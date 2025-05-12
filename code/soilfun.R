@@ -46,7 +46,9 @@ packages_needed = c(
     "ape", 
     "phangorn", 
     "geosphere", 
-    "conflicted"
+    "conflicted",
+    "ggpubr",
+    "patchwork"
 )
 packages_installed = packages_needed %in% rownames(installed.packages())
 #+ packages,message=FALSE
@@ -77,21 +79,33 @@ source(root_path("resources", "styles.txt"))
 sites <- read_csv(paste0(getwd(), "/clean_data/sites.csv"), show_col_types = FALSE) %>% 
     mutate(field_type = factor(field_type, ordered = TRUE, levels = c("corn", "restored", "remnant")))
 
+#' ### Wrangle site metadata
+#' Intersite geographic distance will be used as a covariate in clustering. 
+#' Raw coordinates in data file aren't distances; convert to distance matrix and summarize with PCoA
+field_dist <- as.dist(distm(sites[, c("long", "lat")], fun = distHaversine))
+field_dist_pcoa <- pcoa(field_dist)
+field_dist_pcoa$values[c(1,2), c(1,2)] %>% 
+    kable(format = "pandoc")
+#' First axis of geographic distance PCoA explains 91% of the variation among sites. 
+sites$dist_axis_1 = field_dist_pcoa$vectors[, 1]
+
 #' ## Sites-species tables
 #' List *spe* holds average sequence abundances for the top 6 samples per field. 
 #' CSV files were produced in `process_data.R`
 spe <- list(
-    its_avg   = read_csv(paste0(getwd(), "/clean_data/spe_ITS_avg.csv"), 
+    its_avg   = read_csv(root_path("clean_data/spe_ITS_avg.csv"), 
                          show_col_types = FALSE),
-    amf_avg   = read_csv(paste0(getwd(), "/clean_data/spe_18S_avg.csv"), 
+    amf_avg   = read_csv(root_path("clean_data/spe_18S_avg.csv"), 
+                         show_col_types = FALSE),
+    amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"),
                          show_col_types = FALSE)
 )
 #' 
 #' ## Microbial species metadata
 spe_meta <- list(
-    its = read_csv(file.path(getwd(), "clean_data/spe_ITS_metadata.csv"),
+    its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"),
                    show_col_types = FALSE),
-    amf = read_csv(file.path(getwd(), "clean_data/spe_18S_metadata.csv"),
+    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"),
                    show_col_types = FALSE)
 ) %>% map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
 
@@ -116,12 +130,12 @@ its_ps <- phyloseq(
 #' #### AMF
 amf_avg_ps <- phyloseq(
     otu_table(
-        data.frame(spe$amf_avg, row.names = 1) %>%
+        data.frame(spe$amf_avg_uni, row.names = 1) %>%
             decostand(method = "total", MARGIN = 2),
         taxa_are_rows = TRUE
     ),
     read.dna(
-        file.path(getwd(), "otu_tables/18S/18S_sequences.fasta"),
+        root_path("otu_tables/18S/18S_sequences.fasta"),
         format = "fasta"
     ) %>%
         phyDat(type = "DNA") %>%
@@ -413,5 +427,80 @@ plot(its_shan_em)
 #' 
 #' Beta diverstiy could depend on intersite distance, which may limit propagule dispersal [Redondo et al. 2020](https://doi.org/10.1093/femsec/fiaa082).
 #' We use cartesian intersite distance as a covariate in statistical tests to account for this. 
+
+
+#' ### Whole fungal microbiome (ITS gene sequences)
+#+ its_ord
+d_its <- spe$its_avg %>% 
+    data.frame(row.names = 1) %>% 
+    decostand("total") %>%
+    vegdist("bray")
+mva_its <- mva(d = d_its)
+#+ its_ord_results
+mva_its$dispersion_test
+mva_its$permanova
+mva_its$pairwise_contrasts
+#' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
+#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
+#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
+#' a PERMANOVA test. 
+#' 
+#' Clustering revealed that community variation was related to geographic distance, the covariate in 
+#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
+#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
+#' communities in restored and remnant fields. 
+#' 
+#' Plotting results: 
+p_its_centers <- mva_its$ordination_scores %>% 
+    group_by(field_type) %>% 
+    summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+    mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+           across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+its_ord <- 
+    ggplot(mva_its$ordination_scores, aes(x = Axis.1, y = Axis.2)) +
+    # geom_hline(yintercept = 0, linetype = "dotted") +
+    # geom_vline(xintercept = 0, linetype = "dotted") +
+    geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+    geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+    geom_point(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    labs(
+        x = paste0("Axis 1 (", mva_its$axis_pct[1], "%)"),
+        y = paste0("Axis 2 (", mva_its$axis_pct[2], "%)")) +
+    theme_ord +
+    guides(fill = guide_legend(position = "inside")) +
+    theme(legend.justification = c(0.03, 0.98))
+
+
+## Unified figure
+#+ fig2,warning=FALSE,fig.height=5,fig.width=7
+fig2 <- ((plfa_fig / its_rich_fig) | its_ord) +
+    plot_layout(widths = c(0.35, 0.65)) +
+    plot_annotation(tag_levels = 'A') 
+
+
+#' NEED TO FIX THE LABEL SIZES IN STYLES
+#' NEED TO UPDATE THE FIGURE CAPTION
+
+
+#' Fig 2 - Ordination of sites from principal coordinate analysis of soil fungal composition as inferred by clustering 
+#' ITS sequences into 97% similar OTUs. Small circles depict locations of individual sites and large circles show
+#' centroids of clusters based on field type. Shading represents field type, with corn shaded gray, restored shaded black, 
+#' and remnant shaded white. Horizontal and vertical error bars around centroids encompass 95% confidence intervals around the 
+#' mean location of sites in the cluster. Text within the black circles indicates the number of years between restoration and 
+#' collection of field samples. Percentages included in the axis titles indicate the percent of community variation explained on each axis 
+#' out of the entire ordination. 
+
+#+ fig2_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+ggsave(root_path("figs", "fig2.png"),
+       plot = fig2,
+       width = 6.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
+
+
 
 

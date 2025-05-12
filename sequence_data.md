@@ -5,8 +5,9 @@ Beau Larkin
 Last updated: 12 May, 2025
 
 - [Description](#description)
-  - [Root path function](#root-path-function)
+  - [Styles](#styles)
 - [Functions](#functions)
+  - [Root path function](#root-path-function)
   - [ETL: clean OTU data and return formatted
     objects](#etl-clean-otu-data-and-return-formatted-objects)
   - [Species accumulation](#species-accumulation)
@@ -26,7 +27,7 @@ Last updated: 12 May, 2025
 - Load and clean QIIME2 sequence data
 - Apply fungal traits
 - Create sample and site OTU tables
-- Export UNIFRAC inputs
+- Export UNIFRAC tables for AMF
 - Evaluate sampling effort with rarefaction and accumulation \#
   Resources \## Packages
 
@@ -37,13 +38,19 @@ if (any(!packages_needed %in% rownames(installed.packages())))
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
 
+## Styles
+
+``` r
+source(root_path("resources", "styles.txt"))
+```
+
+# Functions
+
 ## Root path function
 
 ``` r
 root_path <- function(...) rprojroot::find_rstudio_root_file(...)
 ```
-
-# Functions
 
 ## ETL: clean OTU data and return formatted objects
 
