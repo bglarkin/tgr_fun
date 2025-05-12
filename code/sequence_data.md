@@ -37,6 +37,29 @@ if (any(!packages_needed %in% rownames(installed.packages())))
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
 
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+    ## ✔ ggplot2   3.5.2     ✔ tibble    3.2.1
+    ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+    ## ✔ purrr     1.0.4     
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+    ## Loading required package: permute
+    ## 
+    ## Loading required package: lattice
+    ## 
+    ## 
+    ## Attaching package: 'rlang'
+    ## 
+    ## 
+    ## The following objects are masked from 'package:purrr':
+    ## 
+    ##     %@%, flatten, flatten_chr, flatten_dbl, flatten_int, flatten_lgl,
+    ##     flatten_raw, invoke, splice
+
 ## Root path function
 
 ``` r
@@ -214,7 +237,7 @@ its_rc %>%
     theme_bw()
 ```
 
-![](resources/sequence_data_files/figure-gfm/its_rarefaction-1.png)<!-- -->
+![](sequence_data_files/figure-gfm/its_rarefaction-1.png)<!-- -->
 
 ## Rarefaction: ITS site-averaged
 
@@ -242,7 +265,7 @@ its_rc_site %>%
     theme_bw()
 ```
 
-![](resources/sequence_data_files/figure-gfm/its_rarefaction_site_avg-1.png)<!-- -->
+![](sequence_data_files/figure-gfm/its_rarefaction_site_avg-1.png)<!-- -->
 
 ## Rarefaction: AMF sample
 
@@ -271,7 +294,7 @@ amf_rc %>%
     theme_bw()
 ```
 
-![](resources/sequence_data_files/figure-gfm/amf_rarefaction-1.png)<!-- -->
+![](sequence_data_files/figure-gfm/amf_rarefaction-1.png)<!-- -->
 
 ## Rarefaction: AMF site-averaged
 
@@ -299,7 +322,7 @@ amf_rc_site %>%
     theme_bw()
 ```
 
-![](resources/sequence_data_files/figure-gfm/amf_rarefaction_site_avg-1.png)<!-- -->
+![](sequence_data_files/figure-gfm/amf_rarefaction_site_avg-1.png)<!-- -->
 
 # Species accumulation curves
 
@@ -330,4 +353,4 @@ ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
     theme_bw()
 ```
 
-![](resources/sequence_data_files/figure-gfm/species_accumulation_fig-1.png)<!-- -->
+![](sequence_data_files/figure-gfm/species_accumulation_fig-1.png)<!-- -->

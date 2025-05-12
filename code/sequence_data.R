@@ -8,8 +8,9 @@
 #'     toc_depth: 3
 #'     df_print: paged
 #' ---
-
+#' 
 #' # Description
+#' 
 #' - Load and clean QIIME2 sequence data
 #' - Apply fungal traits
 #' - Create sample and site OTU tables

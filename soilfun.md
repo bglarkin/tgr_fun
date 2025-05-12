@@ -4,6 +4,15 @@ Beau Larkin
 
 Last updated: 12 May, 2025
 
+- [Description](#description)
+- [Packages and libraries](#packages-and-libraries)
+- [Data](#data)
+  - [Sites-species tables](#sites-species-tables)
+  - [Site metadata and design](#site-metadata-and-design)
+  - [PLFA](#plfa)
+- [Functions](#functions)
+  - [Alpha diversity calculations](#alpha-diversity-calculations)
+
 # Description
 
 # Packages and libraries

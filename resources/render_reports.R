@@ -40,7 +40,7 @@ for (script in scripts) {
   # render with knit_root_dir as proj_root, and disable self_contained so images stay external
   rmarkdown::render(
     input          = script,
-    output_format  = rmarkdown::github_document(),
+    # output_format  = rmarkdown::github_document(),
     output_file    = output_md,
     output_dir     = proj_root,
     knit_root_dir  = proj_root,
