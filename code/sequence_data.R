@@ -151,8 +151,10 @@ amf$spe_avg %>%
     write_tsv(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"))
 
 #' # Sampling depth and coverage
-#' Script running rarecurve() is commented out because it takes so long to execute.
-#' Data were saved to the wd and are used for making figures.
+#' Script running `rarecurve()` is commented out because it takes so long to execute.
+#' Data were saved to the wd and are used for making figures. These files are too large
+#' to upload to GitHub and are ignored. Please run these calls to `rarecurve()` to create
+#' your own rarefaction and species accumulation data files. 
 
 #' ## Rarefaction: ITS sample
 # its_rc <- rarecurve(
