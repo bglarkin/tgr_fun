@@ -308,12 +308,14 @@ kable(pairs(plfa_em),
 #+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
 plfa_fig <- 
     ggplot(data.frame(summary(plfa_em)), aes(x = field_type, y = response)) +
-    geom_col(color = "black", width = 0.5) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5) +
     geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0) +
-    # geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -2, family = "serif", size = 4) +
     labs(x = NULL, y = expression(PLFA~(nmol%*%g[soil]^-1))) +
-    # lims(y = c(0, 700)) +
-    theme_cor
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
 
 
 
@@ -370,12 +372,16 @@ its_rich <-
 #+ its_richness_fig,fig.width=4,fig.height=4,fig.align='center'
 its_rich_fig <- 
     ggplot(its_rich, aes(x = field_type, y = avg_rich)) +
-    geom_col(color = "black", width = 0.5) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5) +
     geom_errorbar(aes(ymin = avg_rich, ymax = ci_u), width = 0) +
-    geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -2, family = "serif", size = 4) +
+    geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
     labs(x = NULL, y = "Richness") +
-    lims(y = c(0, 700)) +
-    theme_cor
+    lims(y = c(0, 760)) +
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
 
 
 #' ### Shannon's diversity
@@ -470,15 +476,20 @@ its_ord <-
         x = paste0("Axis 1 (", mva_its$axis_pct[1], "%)"),
         y = paste0("Axis 2 (", mva_its$axis_pct[2], "%)")) +
     theme_ord +
-    guides(fill = guide_legend(position = "inside")) +
-    theme(legend.justification = c(0.03, 0.98))
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.01))
+    # guides(fill = guide_legend(position = "inside")) +
+    # theme(legend.justification = c(0.03, 0.98))
 
 
 ## Unified figure
 #+ fig2,warning=FALSE,fig.height=5,fig.width=7
-fig2 <- ((plfa_fig / its_rich_fig) | its_ord) +
-    plot_layout(widths = c(0.35, 0.65)) +
-    plot_annotation(tag_levels = 'A') 
+ls <- (plfa_fig / plot_spacer() / its_rich_fig) +
+    plot_layout(heights = c(1,0.01,1)) 
+fig2 <- (ls | plot_spacer() | its_ord) +
+    plot_layout(widths = c(0.35, 0.01, 0.64)) +
+    plot_annotation(tag_levels = 'a') 
 
 
 #' NEED TO FIX THE LABEL SIZES IN STYLES
