@@ -69,7 +69,7 @@ conflict_prefer("select", "dplyr")
 conflict_prefer("diversity", "vegan")
 #' 
 #+ graphics_styles
-source(root_path("resources", "styles.txt"))
+source(root_path("resources", "styles.R"))
 #' 
 #' # Data
 
@@ -308,14 +308,28 @@ kable(pairs(plfa_em),
 #+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
 plfa_fig <- 
     ggplot(data.frame(summary(plfa_em)), aes(x = field_type, y = response)) +
-    geom_col(aes(fill = field_type), color = "black", width = 0.5) +
-    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
     labs(x = NULL, y = expression(PLFA~(nmol%*%g[soil]^-1))) +
     scale_fill_manual(values = c("gray", "black", "white")) +
     theme_cor +
     theme(legend.position = "none",
           plot.tag = element_text(size = 14, face = 1),
           plot.tag.position = c(0, 1.02))
+
+
+plfa_fig_alt <- 
+    ggplot(data.frame(summary(plfa_em)), aes(x = field_type, y = response)) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+    labs(x = NULL, y = expression(PLFA~(nmol%*%g[soil]^-1))) +
+    scale_fill_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
+
+
 
 
 
@@ -372,8 +386,8 @@ its_rich <-
 #+ its_richness_fig,fig.width=4,fig.height=4,fig.align='center'
 its_rich_fig <- 
     ggplot(its_rich, aes(x = field_type, y = avg_rich)) +
-    geom_col(aes(fill = field_type), color = "black", width = 0.5) +
-    geom_errorbar(aes(ymin = avg_rich, ymax = ci_u), width = 0) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = avg_rich, ymax = ci_u), width = 0, linewidth = lw) +
     geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
     labs(x = NULL, y = "Richness") +
     lims(y = c(0, 760)) +
@@ -382,6 +396,21 @@ its_rich_fig <-
     theme(legend.position = "none",
           plot.tag = element_text(size = 14, face = 1),
           plot.tag.position = c(0, 1.02))
+
+its_rich_fig_alt <- 
+    ggplot(its_rich, aes(x = field_type, y = avg_rich)) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = avg_rich, ymax = ci_u), width = 0, linewidth = lw) +
+    geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+    labs(x = NULL, y = "Richness") +
+    lims(y = c(0, 760)) +
+    scale_fill_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
+
+
 
 
 #' ### Shannon's diversity
@@ -484,6 +513,37 @@ its_ord <-
     # theme(legend.justification = c(0.03, 0.98))
 
 
+
+its_ord_alt <- 
+ggplot(mva_its$ordination_scores, aes(x = Axis.1, y = Axis.2)) +
+    geom_point(size = 0) +
+    geom_point(data = mva_its$ordination_scores %>% filter(field_type == "corn"),
+               aes(x = Axis.1, y = Axis.2), fill = field_type_cols[1], size = sm_size, stroke = lw, shape = 21) +
+    geom_point(data = mva_its$ordination_scores %>% filter(field_type == "restored"),
+               aes(x = Axis.1, y = Axis.2, fill = yr_since), size = sm_size, stroke = lw, shape = 21) +
+    geom_point(data = mva_its$ordination_scores %>% filter(field_type == "remnant"),
+               aes(x = Axis.1, y = Axis.2), fill = field_type_cols[3], size = sm_size, stroke = lw, shape = 21) +
+    # geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+    geom_point(data = p_its_centers %>% filter(field_type == "corn"), fill = field_type_cols[1],
+               aes(x = mean_Axis.1, y = mean_Axis.2), size = lg_size, stroke = lw, shape = 21) +
+    geom_point(data = p_its_centers %>% filter(field_type == "restored"), fill = field_type_cols[2],
+               aes(x = mean_Axis.1, y = mean_Axis.2), size = lg_size, stroke = lw, shape = 21) +
+    geom_point(data = p_its_centers %>% filter(field_type == "remnant"), fill = field_type_cols[3],
+               aes(x = mean_Axis.1, y = mean_Axis.2), size = lg_size, stroke = lw, shape = 21) +
+    scale_fill_continuous_sequential(palette = "restgrad") +
+    labs(
+        x = paste0("Axis 1 (", mva_its$axis_pct[1], "%)"),
+        y = paste0("Axis 2 (", mva_its$axis_pct[2], "%)")) +
+    theme_ord +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.01))
+
+
+
+
 #' ## Unified figure
 #+ fig2_patchwork,warning=FALSE
 ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
@@ -517,4 +577,15 @@ ggsave(root_path("figs", "fig2.png"),
 
 
 
-
+# Alternate fig
+ls_alt <- (its_rich_fig_alt / plot_spacer() / plfa_fig_alt) +
+    plot_layout(heights = c(1,0.01,1)) 
+fig2_alt <- (ls_alt | plot_spacer() | its_ord_alt) +
+    plot_layout(widths = c(0.35, 0.01, 0.64)) +
+    plot_annotation(tag_levels = 'a') 
+ggsave(root_path("figs", "fig2_alt.png"),
+       plot = fig2_alt,
+       width = 6.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
