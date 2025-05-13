@@ -315,7 +315,7 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
             contrast_matrix ~ env$dist_axis_1[group_subset] + group_var[group_subset],
             permutations = nperm,
             by = "terms")
-        # Prepare constrasts table
+        # Prepare contrasts table
         contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
         contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
         contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
@@ -332,7 +332,7 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
         ordination_scores  = p_sco,
         dispersion_test    = mvdisper,
         permanova          = gl_permtest,
-        pairwise_contrasts = kable(contrasts, format = "pandoc", caption = "Post-hoc PERMANOVA results"),
+        pairwise_contrasts = contrasts,
         vector_fit_result  = p_fit,
         vector_fit_scores  = p_fit_sco
     )
@@ -411,12 +411,14 @@ Tests are performed on the log scale
 ``` r
 plfa_fig <- 
     ggplot(data.frame(summary(plfa_em)), aes(x = field_type, y = response)) +
-    geom_col(color = "black", width = 0.5) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5) +
     geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0) +
-    # geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -2, family = "serif", size = 4) +
     labs(x = NULL, y = expression(PLFA~(nmol%*%g[soil]^-1))) +
-    # lims(y = c(0, 700)) +
-    theme_cor
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
 ```
 
 ## Diversity Indices
@@ -552,12 +554,16 @@ its_rich <-
 ``` r
 its_rich_fig <- 
     ggplot(its_rich, aes(x = field_type, y = avg_rich)) +
-    geom_col(color = "black", width = 0.5) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5) +
     geom_errorbar(aes(ymin = avg_rich, ymax = ci_u), width = 0) +
-    geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -2, family = "serif", size = 4) +
+    geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
     labs(x = NULL, y = "Richness") +
-    lims(y = c(0, 700)) +
-    theme_cor
+    lims(y = c(0, 760)) +
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
 ```
 
 ### Shannon’s diversity
@@ -703,7 +709,7 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0605 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999  0.059 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -711,8 +717,8 @@ mva_its$dispersion_test
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##              corn restored remnant
-    ## corn              0.065500  0.1245
-    ## restored 0.068726           0.1435
+    ## corn              0.061500  0.1095
+    ## restored 0.068726           0.1230
     ## remnant  0.126039 0.135570
 
 ``` r
@@ -726,7 +732,7 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0250 *  
+    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0245 *  
     ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
@@ -734,16 +740,17 @@ mva_its$permanova
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
-mva_its$pairwise_contrasts
+mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+    kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-| group1   | group2  |    R2 | F_value | df1 | df2 | p_value | p_value_adj |
-|:---------|:--------|------:|--------:|----:|----:|--------:|------------:|
-| restored | corn    | 0.164 |   3.913 |   1 |  18 |  0.0005 |      0.0015 |
-| restored | remnant | 0.054 |   1.062 |   1 |  17 |  0.3225 |      0.3225 |
-| corn     | remnant | 0.281 |   2.858 |   1 |   6 |  0.0035 |      0.0053 |
+|     | group1   | group2  | F_value |    R2 | p_value_adj |
+|-----|:---------|:--------|--------:|------:|------------:|
+| 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
+| 3   | corn     | remnant |   2.858 | 0.281 |      0.0030 |
+| 2   | restored | remnant |   1.062 | 0.054 |      0.3225 |
 
-Post-hoc PERMANOVA results
+Pairwise permanova contrasts
 
 No eignevalue correction was needed. Two relative eigenvalues exceeded
 broken stick model. Based on the homogeneity of variance test, the null
@@ -779,28 +786,39 @@ its_ord <-
         x = paste0("Axis 1 (", mva_its$axis_pct[1], "%)"),
         y = paste0("Axis 2 (", mva_its$axis_pct[2], "%)")) +
     theme_ord +
-    guides(fill = guide_legend(position = "inside")) +
-    theme(legend.justification = c(0.03, 0.98))
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.01))
+    # guides(fill = guide_legend(position = "inside")) +
+    # theme(legend.justification = c(0.03, 0.98))
 
 
 ## Unified figure
 ```
 
 ``` r
-fig2 <- ((plfa_fig / its_rich_fig) | its_ord) +
-    plot_layout(widths = c(0.35, 0.65)) +
-    plot_annotation(tag_levels = 'A') 
+ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
+    plot_layout(heights = c(1,0.01,1)) 
+fig2 <- (ls | plot_spacer() | its_ord) +
+    plot_layout(widths = c(0.35, 0.01, 0.64)) +
+    plot_annotation(tag_levels = 'a') 
 ```
 
-NEED TO FIX THE LABEL SIZES IN STYLES NEED TO UPDATE THE FIGURE CAPTION
-Fig 2 - Ordination of sites from principal coordinate analysis of soil
-fungal composition as inferred by clustering ITS sequences into 97%
-similar OTUs. Small circles depict locations of individual sites and
-large circles show centroids of clusters based on field type. Shading
+NEED TO UPDATE THE FIGURE CAPTION **Fig 2** Whole soil fungal
+communities from cornfields, restored, or remnant prairies, with column
+charts showing **a** OTU richness and **b** fungal biomass (PLFA). Error
+bars show 95% confidence intervals and lowercase letters show
+significant pairwise contrasts (P \< 0.001). An ordination of community
+data **c** shows a principal coordinate analysis of soil fungal
+composition as inferred by clustering ITS sequences into 97% similar
+OTUs. Small circles depict individual sites and large circles show
+centroids of clusters based on field type. Horizontal and vertical error
+bars around centroids encompass 95% confidence intervals around the mean
+location of sites in the cluster. In pairwise contrasts, cornfields
+clustered separately from restored or remnant prairies (P \< 0.01). Text
+within the black circles indicates the number of years between
+restoration and collection of field samples. Percentages included in the
+axis titles indicate the percent of community variation explained on
+each axis out of the entire ordination. Across all plots, shading
 represents field type, with corn shaded gray, restored shaded black, and
-remnant shaded white. Horizontal and vertical error bars around
-centroids encompass 95% confidence intervals around the mean location of
-sites in the cluster. Text within the black circles indicates the number
-of years between restoration and collection of field samples.
-Percentages included in the axis titles indicate the percent of
-community variation explained on each axis out of the entire ordination.
+remnant shaded white.

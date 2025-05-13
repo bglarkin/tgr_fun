@@ -248,7 +248,7 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
             contrast_matrix ~ env$dist_axis_1[group_subset] + group_var[group_subset],
             permutations = nperm,
             by = "terms")
-        # Prepare constrasts table
+        # Prepare contrasts table
         contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
         contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
         contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
@@ -265,7 +265,7 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
         ordination_scores  = p_sco,
         dispersion_test    = mvdisper,
         permanova          = gl_permtest,
-        pairwise_contrasts = kable(contrasts, format = "pandoc", caption = "Post-hoc PERMANOVA results"),
+        pairwise_contrasts = contrasts,
         vector_fit_result  = p_fit,
         vector_fit_scores  = p_fit_sco
     )
@@ -445,7 +445,8 @@ mva_its <- mva(d = d_its)
 #+ its_ord_results
 mva_its$dispersion_test
 mva_its$permanova
-mva_its$pairwise_contrasts
+mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+    kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
@@ -485,24 +486,29 @@ its_ord <-
 
 ## Unified figure
 #+ fig2,warning=FALSE,fig.height=5,fig.width=7
-ls <- (plfa_fig / plot_spacer() / its_rich_fig) +
+ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
     plot_layout(heights = c(1,0.01,1)) 
 fig2 <- (ls | plot_spacer() | its_ord) +
     plot_layout(widths = c(0.35, 0.01, 0.64)) +
     plot_annotation(tag_levels = 'a') 
 
 
-#' NEED TO FIX THE LABEL SIZES IN STYLES
 #' NEED TO UPDATE THE FIGURE CAPTION
 
 
-#' Fig 2 - Ordination of sites from principal coordinate analysis of soil fungal composition as inferred by clustering 
-#' ITS sequences into 97% similar OTUs. Small circles depict locations of individual sites and large circles show
-#' centroids of clusters based on field type. Shading represents field type, with corn shaded gray, restored shaded black, 
-#' and remnant shaded white. Horizontal and vertical error bars around centroids encompass 95% confidence intervals around the 
-#' mean location of sites in the cluster. Text within the black circles indicates the number of years between restoration and 
+#' **Fig 2** Whole soil fungal communities from cornfields, restored, or remnant prairies,
+#' with column charts showing **a** OTU richness and **b** fungal
+#' biomass (PLFA). Error bars show 95% confidence intervals and lowercase letters show 
+#' significant pairwise contrasts (P < 0.001). An ordination of community data **c** shows
+#' a  principal coordinate analysis of soil fungal composition as inferred by clustering 
+#' ITS sequences into 97% similar OTUs. Small circles depict individual sites and large circles show
+#' centroids of clusters based on field type. Horizontal and vertical error bars around centroids encompass 95% confidence intervals around the 
+#' mean location of sites in the cluster. In pairwise contrasts, cornfields clustered separately from 
+#' restored or remnant prairies (P < 0.01). 
+#' Text within the black circles indicates the number of years between restoration and 
 #' collection of field samples. Percentages included in the axis titles indicate the percent of community variation explained on each axis 
-#' out of the entire ordination. 
+#' out of the entire ordination. Across all plots, shading represents field type, with corn shaded gray, restored shaded black, 
+#' and remnant shaded white. 
 
 #+ fig2_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
 ggsave(root_path("figs", "fig2.png"),
