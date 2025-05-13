@@ -484,18 +484,15 @@ its_ord <-
     # theme(legend.justification = c(0.03, 0.98))
 
 
-## Unified figure
-#+ fig2,warning=FALSE,fig.height=5,fig.width=7
+#' ## Unified figure
+#+ fig2_patchwork,warning=FALSE
 ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
     plot_layout(heights = c(1,0.01,1)) 
 fig2 <- (ls | plot_spacer() | its_ord) +
     plot_layout(widths = c(0.35, 0.01, 0.64)) +
     plot_annotation(tag_levels = 'a') 
-
-
-#' NEED TO UPDATE THE FIGURE CAPTION
-
-
+#+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
+fig2
 #' **Fig 2** Whole soil fungal communities from cornfields, restored, or remnant prairies,
 #' with column charts showing **a** OTU richness and **b** fungal
 #' biomass (PLFA). Error bars show 95% confidence intervals and lowercase letters show 
