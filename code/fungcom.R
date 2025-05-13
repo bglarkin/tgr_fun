@@ -13,7 +13,28 @@
 #' - Biomass: PLFA/NLFA
 #' - OTU richness and diversity
 #' - Beta diversity
-#'    - Beta diversity is tested with multivariate analysis, conducted using species abundances averaged
+#' 
+#' ## Alpha diversity
+#' Sequence abundance and fungal biomass are used to evaluate alpha diversity. Sequence abundances were determined
+#' in 97% similar OTUs for ITS and 18S genes. Site averages were used because sites are the replicate in this study. 
+#' 
+#' This report presents visualizations and results of tests contrasting OTU richness and diversity, and 
+#' fungal biomass, among field types. 
+#' Model selection consisted of visual inspection of diagnostic plots 
+#' to choose the model that best minimized heteroscedasticity and the residuals' departure from a 
+#' normal distribution. Potential outlier points were examined for leverage. 
+#' 
+#' Since OTU counts considered here lie far from zero and produce relatively normal or log-normal distributions, 
+#' the central limit theorem justifies that richness be interpreted as a continuous variable. Further model selection 
+#' used linear models and then generalized linear models, which provided the best fits with either Gaussian 
+#' error distributions and log-link functions. Sequence depth was square-root transformed to improve fit 
+#' as in [Bálint et al. 2015](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.13018).
+#' 
+#' Means separation among field types was accomplished using least-squares means, implemented in package emmeans. 
+#' 
+#' 
+#' ## Beta diversity
+#' Beta diversity is tested with multivariate analysis, conducted using species abundances averaged
 #' in replicate sites. Pooling abundances from multiple subsamples has been shown to increase 
 #' recovery of microbial richness [Song et al. 2015](https://doi.org/10.1371/journal.pone.0127234) The analysis flow is:
 #' 
@@ -29,8 +50,6 @@
 #' 
 #' Beta diverstiy could depend on intersite distance, which may limit propagule dispersal [Redondo et al. 2020](https://doi.org/10.1093/femsec/fiaa082).
 #' We use cartesian intersite distance as a covariate in statistical tests to account for this. 
-#' 
-#' 
 #' 
 #' 
 #' # Packages and libraries
@@ -186,6 +205,10 @@ calc_div <- function(spe) {
 #+ ci_function
 ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
 ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
+
+
+
+
 #' 
 #' ## Multivariate analysis
 #' Perform ordination, diagnostics, PERMANOVA, and post-hoc
@@ -281,57 +304,6 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
 
 
 #' # All Soil Fungi
-#' ## PLFA
-#' Based on previous histograms (not shown), log transformation is warranted.
-
-
-plfa_glm <- glm(
-    fungi_18.2 ~ field_type,
-    family = gaussian(link = "log"),
-    data = fa %>% mutate(field_type = factor(field_type, ordered = FALSE)))
-
-par(mfrow = c(2,2))
-plot(plfa_glm)
-summary(plfa_glm)
-
-plfa_em <- emmeans(plfa_glm, ~ field_type, type = "response")
-#+ plfa_em_summary,echo=FALSE
-kable(summary(plfa_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95 - Intervals are back-transformed from the log scale")
-#+ plfa_em_posthoc,echo=FALSE
-kable(pairs(plfa_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
-
-
-#+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
-plfa_fig <- 
-    ggplot(data.frame(summary(plfa_em)), aes(x = field_type, y = response)) +
-    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
-    labs(x = NULL, y = expression(PLFA~(nmol%*%g[soil]^-1))) +
-    scale_fill_manual(values = c("gray", "black", "white")) +
-    theme_cor +
-    theme(legend.position = "none",
-          plot.tag = element_text(size = 14, face = 1),
-          plot.tag.position = c(0, 1.02))
-
-
-plfa_fig_alt <- 
-    ggplot(data.frame(summary(plfa_em)), aes(x = field_type, y = response)) +
-    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
-    labs(x = NULL, y = expression(PLFA~(nmol%*%g[soil]^-1))) +
-    scale_fill_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
-    theme_cor +
-    theme(legend.position = "none",
-          plot.tag = element_text(size = 14, face = 1),
-          plot.tag.position = c(0, 1.02))
-
-
-
-
 
 #' ## Diversity Indices
 
@@ -340,7 +312,8 @@ its_div <- calc_div(spe$its_avg)
 #' 
 #' ### Richness
 #' Predict OTU richness by field type with sequencing depth per field as a covariate. Log 
-#' link function warranted based on visual interpretation of histograms (not shown).
+#' link function warranted based on visual interpretation of histograms (not shown). Sequence depth was square-root transformed to improve fit 
+#' as in [Bálint et al. 2015](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.13018).
 its_rich_glm <- glm(richness ~ sqrt(depth) + field_type, family = gaussian(link = "log"), data = its_div)
 par(mfrow = c(2,2))
 #+ its_rich_diagnostics,fig.width=6,fig.height=5,fig.align='left'
@@ -375,41 +348,20 @@ kable(pairs(its_rich_em),
       format = "pandoc", 
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
 #' OTU richness in cornfields is significantly less than in restored or remnant fields, which 
-#' don't differ. Plot the results, for now as a barplot with letters indicating significance at 
-#' a<0.05. 
-its_rich <- 
-    its_div %>% 
-    group_by(field_type) %>% 
-    summarize(avg_rich = mean(richness), .groups = "drop",
-              ci_u = avg_rich + (qnorm(0.975) * sd(richness) / sqrt(n())),
-              ci_l = avg_rich + (qnorm(0.025) * sd(richness) / sqrt(n())))
+#' don't differ. 
 #+ its_richness_fig,fig.width=4,fig.height=4,fig.align='center'
 its_rich_fig <- 
-    ggplot(its_rich, aes(x = field_type, y = avg_rich)) +
+    ggplot(summary(its_rich_em), aes(x = field_type, y = response)) +
     geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-    geom_errorbar(aes(ymin = avg_rich, ymax = ci_u), width = 0, linewidth = lw) +
-    geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+    geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
     labs(x = NULL, y = "Richness") +
     lims(y = c(0, 760)) +
     scale_fill_manual(values = c("gray", "black", "white")) +
     theme_cor +
     theme(legend.position = "none",
           plot.tag = element_text(size = 14, face = 1),
-          plot.tag.position = c(0, 1.02))
-
-its_rich_fig_alt <- 
-    ggplot(its_rich, aes(x = field_type, y = avg_rich)) +
-    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-    geom_errorbar(aes(ymin = avg_rich, ymax = ci_u), width = 0, linewidth = lw) +
-    geom_text(aes(y = ci_u, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
-    labs(x = NULL, y = "Richness") +
-    lims(y = c(0, 760)) +
-    scale_fill_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
-    theme_cor +
-    theme(legend.position = "none",
-          plot.tag = element_text(size = 14, face = 1),
-          plot.tag.position = c(0, 1.02))
-
+          plot.tag.position = c(2, 0.98))
 
 
 
@@ -432,7 +384,7 @@ its_shan_em <- emmeans(its_shan_glm, ~ field_type, type = "response")
 #+ its_shan_em_summary,echo=FALSE
 kable(summary(its_shan_em), 
       format = "pandoc", 
-      caption = "Confidence level used: 0.95 - Intervals are back-transformed from the log scale")
+      caption = "Confidence level used: 0.95.\nIntervals are back-transformed from the log scale")
 #+ its_shan_em_posthoc,echo=FALSE
 kable(pairs(its_shan_em), 
       format = "pandoc", 
@@ -440,7 +392,58 @@ kable(pairs(its_shan_em),
 #' Shannon's diversity in cornfields is significantly less than in restored or remnant fields, which 
 #' don't differ. Plot the results, for now as a barplot with letters indicating significance at 
 #' a<0.05. 
-plot(its_shan_em)
+#+ its_richness_fig,fig.width=4,fig.height=4,fig.align='center'
+its_shan_fig <- 
+    ggplot(summary(its_shan_em), aes(x = field_type, y = response)) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+    geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+    labs(x = NULL, y = "Shannon diversity") +
+    lims(y = c(0, 160)) +
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1, hjust = 0),
+          plot.tag.position = c(0, 1))
+
+
+
+
+#' ## PLFA
+#' Based on previous histograms (not shown), log transformation is warranted.
+plfa_glm <- glm(
+    fungi_18.2 ~ field_type,
+    family = gaussian(link = "log"),
+    data = fa %>% mutate(field_type = factor(field_type, ordered = FALSE)))
+
+par(mfrow = c(2,2))
+plot(plfa_glm)
+summary(plfa_glm)
+
+plfa_em <- emmeans(plfa_glm, ~ field_type, type = "response")
+#+ plfa_em_summary,echo=FALSE
+kable(summary(plfa_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95 - Intervals are back-transformed from the log scale")
+#+ plfa_em_posthoc,echo=FALSE
+kable(pairs(plfa_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
+
+
+#+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
+plfa_fig <- 
+    ggplot(summary(plfa_em), aes(x = field_type, y = response)) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+    labs(x = NULL, y = expression(PLFA~(nmol%*%g[soil]^-1))) +
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
+
+
 
 
 #' ## Beta Diversity
@@ -494,8 +497,6 @@ p_its_centers <- mva_its$ordination_scores %>%
            across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
 its_ord <- 
     ggplot(mva_its$ordination_scores, aes(x = Axis.1, y = Axis.2)) +
-    # geom_hline(yintercept = 0, linetype = "dotted") +
-    # geom_vline(xintercept = 0, linetype = "dotted") +
     geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
     geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
     geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
@@ -512,34 +513,6 @@ its_ord <-
     # guides(fill = guide_legend(position = "inside")) +
     # theme(legend.justification = c(0.03, 0.98))
 
-
-
-its_ord_alt <- 
-ggplot(mva_its$ordination_scores, aes(x = Axis.1, y = Axis.2)) +
-    geom_point(size = 0) +
-    geom_point(data = mva_its$ordination_scores %>% filter(field_type == "corn"),
-               aes(x = Axis.1, y = Axis.2), fill = field_type_cols[1], size = sm_size, stroke = lw, shape = 21) +
-    geom_point(data = mva_its$ordination_scores %>% filter(field_type == "restored"),
-               aes(x = Axis.1, y = Axis.2, fill = yr_since), size = sm_size, stroke = lw, shape = 21) +
-    geom_point(data = mva_its$ordination_scores %>% filter(field_type == "remnant"),
-               aes(x = Axis.1, y = Axis.2), fill = field_type_cols[3], size = sm_size, stroke = lw, shape = 21) +
-    # geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
-    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-    geom_point(data = p_its_centers %>% filter(field_type == "corn"), fill = field_type_cols[1],
-               aes(x = mean_Axis.1, y = mean_Axis.2), size = lg_size, stroke = lw, shape = 21) +
-    geom_point(data = p_its_centers %>% filter(field_type == "restored"), fill = field_type_cols[2],
-               aes(x = mean_Axis.1, y = mean_Axis.2), size = lg_size, stroke = lw, shape = 21) +
-    geom_point(data = p_its_centers %>% filter(field_type == "remnant"), fill = field_type_cols[3],
-               aes(x = mean_Axis.1, y = mean_Axis.2), size = lg_size, stroke = lw, shape = 21) +
-    scale_fill_continuous_sequential(palette = "restgrad") +
-    labs(
-        x = paste0("Axis 1 (", mva_its$axis_pct[1], "%)"),
-        y = paste0("Axis 2 (", mva_its$axis_pct[2], "%)")) +
-    theme_ord +
-    theme(legend.position = "none",
-          plot.tag = element_text(size = 14, face = 1),
-          plot.tag.position = c(0, 1.01))
 
 
 
@@ -577,15 +550,121 @@ ggsave(root_path("figs", "fig2.png"),
 
 
 
-# Alternate fig
-ls_alt <- (its_rich_fig_alt / plot_spacer() / plfa_fig_alt) +
-    plot_layout(heights = c(1,0.01,1)) 
-fig2_alt <- (ls_alt | plot_spacer() | its_ord_alt) +
-    plot_layout(widths = c(0.35, 0.01, 0.64)) +
-    plot_annotation(tag_levels = 'a') 
-ggsave(root_path("figs", "fig2_alt.png"),
-       plot = fig2_alt,
-       width = 6.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+
+
+
+
+#' # Arbuscular mycorrhizal fungi
+#' ## Diversity Indices
+#+ amf_diversity
+amf_div <- calc_div(spe$amf_avg)
+#' 
+#' ### Richness
+amf_rich_glm <- glm(richness ~ sqrt(depth) + field_type, family = gaussian(link = "log"), data = amf_div)
+par(mfrow = c(2,2))
+#+ amf_rich_diagnostics,fig.width=6,fig.height=5,fig.align='left'
+plot(amf_rich_glm)
+shapiro.test(residuals(amf_rich_glm))
+#' The residual of row 6 appears to be an outlier and disrupts model fit. It does not appear
+#' to exert significant leverage on the model. This is cornfield 1 from Fermi, near the 
+#' railroad remnant.  
+#' Otherwise, the residuals are relatively well distributed above and below zero and 
+#' little evidence of heteroscedasticity is apparent. Based on a shapiro test, the null hypothesis that
+#' the residuals distribution differs from normal is not rejected.
+summary(amf_rich_glm)
+#' Sequence depth is not a significant predictor of richness, which is less surprising because
+#' relatively fewer AMF species exist and less effort is required to capture the majority of them.
+#' Proceed with means separation by obtaining estimated marginal means for field type
+amf_rich_em <- emmeans(amf_rich_glm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of group means and confidence intervals, 
+#' and the post hoc contrast of richness among field types. 
+#+ amf_rich_em_summary,echo=FALSE
+kable(summary(amf_rich_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95.\nIntervals are back-transformed from the log scale")
+#+ amf_rich_em_posthoc,echo=FALSE
+kable(pairs(amf_rich_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
+#' OTU richness in cornfields is significantly less than in restored or remnant fields, which 
+#' don't differ. Plot the results
+#+ amf_richness_fig,fig.width=4,fig.height=4,fig.align='center'
+amf_rich_fig <- 
+    ggplot(summary(amf_rich_em), aes(x = field_type, y = response)) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+    geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+    labs(x = NULL, y = "Richness") +
+    lims(y = c(0, 70)) +
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1),
+          plot.tag.position = c(0, 1.02))
+
+
+
+#' 
+#' ### Shannon's diversity
+#' Predict Shannon's diversity by field type with sequencing depth as a covariate
+amf_shan_glm <- glm(shannon ~ sqrt(depth) + field_type, family = gaussian(link = "log"), data = amf_div)
+par(mfrow = c(2,2))
+#+ amf_shan_diagnostics,fig.width=6,fig.height=5,fig.align='left'
+plot(amf_shan_glm)
+shapiro.test(residuals(amf_shan_glm))
+#' Residuals show considerable structure around the mean in groups, but
+#' little evidence of heteroscedasticity is apparent. Three extreme outliers exist. Their 
+#' values would tend to weaken separation between corn and restored sites, which, if in error, 
+#' would be in the conservative direction. One high-leverage point would tend to pull remnant
+#' sites away from restored sites; again a conservative error. NULL that residuals come from 
+#' other than a normal distribution is rejected. 
+summary(amf_shan_glm)
+#' Sequence depth is not a significant predictor of richness. Proceed with means separation 
+#' by obtaining estimated marginal means for field type
+amf_shan_em <- emmeans(amf_shan_glm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of group means and confidence intervals,
+#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
+#+ amf_shan_em_summary,echo=FALSE
+kable(summary(amf_shan_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95.\nIntervals are back-transformed from the log scale")
+#+ amf_shan_em_posthoc,echo=FALSE
+kable(pairs(amf_shan_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
+#' Shannon's diversity in cornfields is significantly less than in restored or remnant fields, which 
+#' don't differ. Plot the results, for now as a barplot with letters indicating significance at 
+#' a<0.05. 
+#+ amf_shannons_fig,fig.width=4,fig.height=4,fig.align='center'
+amf_shan_fig <- 
+    ggplot(summary(amf_shan_em), aes(x = field_type, y = response)) +
+    geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+    geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+    geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+    labs(x = NULL, y = NULL) +
+    lims(y = c(0, 32)) +
+    scale_fill_manual(values = c("gray", "black", "white")) +
+    theme_cor +
+    theme(legend.position = "none",
+          plot.tag = element_text(size = 14, face = 1, hjust = 0),
+          plot.tag.position = c(-0.05, 1))
+
+
+#' 
+#' ### Shannon's diversity figure
+#' Includes both ITS and AMF for supplemental figure
+#+ its_amf_shan_fig,warning=FALSE,fig.height=4,fig.width=7
+FigS1 <- (its_shan_fig | plot_spacer() | amf_shan_fig) +
+    plot_layout(widths = c(1, 0.01, 1)) +
+    plot_annotation(tag_levels = 'a')
+
+#+ amf_div_fig_save
+ggsave(
+    root_path("figs", "figS1.png"),
+    plot = FigS1,
+    height = 3,
+    width = 6,
+    units = "in",
+    dpi = 600
+)
+

@@ -1,17 +1,6 @@
 # Graphics styles for TGR repository
 
 
-# Colorspace palettes
-# ————————————————————
-# Packages and libraries
-library(tidyverse)
-library(colorspace)
-# Use online tool http://hclwizard.org:3000/hclcolorpicker/
-# or the shiny app hcl_wizard() to set the parameters for colorspace
-field_type_cols <- sequential_hcl(n = 3, h = c(60, 266), c = c(124, 180, 180), l = c(82, 70), power = c(0, 1.85), rev = FALSE, register = "fieldtypes")
-resto_grad_cols <- sequential_hcl(n = 13, h = 161, c = c(152, 169, NA), l = c(49, 97), power = 1.2, register = "restgrad")
-
-
 # Shapes and sizes
 # ————————————————————
 lw <- 0.5

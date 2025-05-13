@@ -1,0 +1,14 @@
+soil_property,units
+pH,NULL
+OM,% LOI
+NO3,mg/L
+P,mg/L (Mehlich P-III)
+K,mg/L
+SO4,mg/L
+Zn,mg/L
+Fe,mg/L
+Mn,mg/L
+Cu,mg/L
+Ca,mg/L
+Mg,mg/L
+Na,mg/L
