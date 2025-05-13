@@ -27,7 +27,7 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
 
 #' ## Styles
 #+ graphics_styles
-source(root_path("resources", "styles.txt"))
+source(root_path("resources", "styles.R"))
 
 #' # Functions
 
@@ -172,7 +172,7 @@ amf$spe_avg %>%
 
 its_rc <- read_csv(root_path("clean_data", "its_rare_samp.csv"), show_col_types = FALSE)
 
-#+ its_rarefaction,fig.width=6,fig.height=8
+#+ its_rarefaction,fig.width=4,fig.height=7
 its_rc %>%
     separate_wider_delim(Site, delim = "_", names = c("field_name", "sample_key"), cols_remove = FALSE) %>% 
     rename(seq_abund = Sample, otus = Species, field_sample = Site) %>%
@@ -180,9 +180,10 @@ its_rc %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_sample)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS samples") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 
 #' ## Rarefaction: ITS site-averaged
 # its_rc_site <- rarecurve(
@@ -195,16 +196,17 @@ its_rc %>%
 
 its_rc_site <- read_csv(root_path("clean_data", "its_rare_site.csv"), show_col_types = FALSE)
 
-#+ its_rarefaction_site_avg,fig.width=6,fig.height=8
+#+ its_rarefaction_site_avg,fig.width=4,fig.height=7
 its_rc_site %>%
     rename(seq_abund = Sample, otus = Species, field_name = Site) %>%
     left_join(sites, by = "field_name") %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_name)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free_y") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS (site-averaged)") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 
 #' ## Rarefaction: AMF sample
 #+ amf_rc,message=FALSE,warning=FALSE
@@ -218,7 +220,7 @@ its_rc_site %>%
 
 amf_rc <- read_csv(root_path("clean_data", "amf_rare_samp.csv"), show_col_types = FALSE)
 
-#+ amf_rarefaction,fig.width=6,fig.height=8
+#+ amf_rarefaction,fig.width=4,fig.height=7
 amf_rc %>%
     separate_wider_delim(Site, delim = "_", names = c("field_name", "sample_key"), cols_remove = FALSE) %>% 
     rename(seq_abund = Sample, otus = Species, field_sample = Site) %>%
@@ -226,9 +228,10 @@ amf_rc %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_sample)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of 18S samples") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 
 #' ## Rarefaction: AMF site-averaged
 #+ amf_rc_site,message=FALSE,warning=FALSE
@@ -242,16 +245,17 @@ amf_rc %>%
 
 amf_rc_site <- read_csv(root_path("clean_data", "amf_rare_site.csv"), show_col_types = FALSE)
 
-#+ amf_rarefaction_site_avg,fig.width=6,fig.height=8
+#+ amf_rarefaction_site_avg,fig.width=4,fig.height=7
 amf_rc_site %>%
     rename(seq_abund = Sample, otus = Species, field_name = Site) %>%
     left_join(sites, by = "field_name") %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_name)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free_y") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of 18S (site-averaged)") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 
 #' # Species accumulation curves
 #+ species_accumulation,message=FALSE,warning=FALSE
@@ -265,19 +269,20 @@ accum <- bind_rows(
     mutate(dataset = factor(dataset, levels = c("ITS", "AMF"), ordered = TRUE)) %>%
     left_join(sites, by = "field_name")
 
-#+ species_accumulation_fig,fig.width=8,fig.height=5
+#+ species_accumulation_fig,fig.width=7,fig.height=4
 ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
     facet_wrap(vars(dataset), scales = "free_y") +
     geom_line(aes(color = field_type)) +
     geom_segment(aes(xend = samples, y = richness - sd, yend = richness + sd, color = field_type)) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(
         x = "Samples",
         y = expression(N[0]),
         caption = "Species accumulation using exact method; error = moment-based SD"
     ) +
     scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10)) +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 
 
 

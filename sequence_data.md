@@ -2,7 +2,7 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 12 May, 2025
+Last updated: 13 May, 2025
 
 - [Description](#description)
   - [Styles](#styles)
@@ -41,7 +41,7 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
 ## Styles
 
 ``` r
-source(root_path("resources", "styles.txt"))
+source(root_path("resources", "styles.R"))
 ```
 
 # Functions
@@ -216,9 +216,10 @@ its_rc %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_sample)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS samples") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 ```
 
 ![](resources/sequence_data_files/figure-gfm/its_rarefaction-1.png)<!-- -->
@@ -244,9 +245,10 @@ its_rc_site %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_name)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free_y") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS (site-averaged)") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 ```
 
 ![](resources/sequence_data_files/figure-gfm/its_rarefaction_site_avg-1.png)<!-- -->
@@ -273,9 +275,10 @@ amf_rc %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_sample)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of 18S samples") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 ```
 
 ![](resources/sequence_data_files/figure-gfm/amf_rarefaction-1.png)<!-- -->
@@ -301,9 +304,10 @@ amf_rc_site %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_name)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free_y") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of 18S (site-averaged)") +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 ```
 
 ![](resources/sequence_data_files/figure-gfm/amf_rarefaction_site_avg-1.png)<!-- -->
@@ -327,14 +331,15 @@ ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
     facet_wrap(vars(dataset), scales = "free_y") +
     geom_line(aes(color = field_type)) +
     geom_segment(aes(xend = samples, y = richness - sd, yend = richness + sd, color = field_type)) +
-    scale_color_discrete_qualitative(palette = "Harmonic") +
+    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
     labs(
         x = "Samples",
         y = expression(N[0]),
         caption = "Species accumulation using exact method; error = moment-based SD"
     ) +
     scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10)) +
-    theme_bw()
+    theme_corf +
+    theme(legend.position = "none")
 ```
 
 ![](resources/sequence_data_files/figure-gfm/species_accumulation_fig-1.png)<!-- -->
