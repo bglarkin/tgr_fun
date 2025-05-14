@@ -74,7 +74,8 @@ packages_needed = c(
     "ggpubr",
     "patchwork",
     "car",
-    "boot"
+    "performance",
+    "broom"
 )
 packages_installed = packages_needed %in% rownames(installed.packages())
 #+ packages,message=FALSE
