@@ -71,33 +71,26 @@ sites$dist_axis_1 = field_dist_pcoa$vectors[, 1]
 #' CSV files were produced in `sequence_data.R`. Amf_avg_uni table is in species-samples format
 #' to enable use of `Unifrac()` later.
 spe <- list(
-    its_avg   = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE),
-    amf_avg   = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE),
+    its_avg     = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE),
+    amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE),
     amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"), show_col_types = FALSE)
 )
 #' 
 #' ## Microbial species metadata
 spe_meta <- list(
     its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE),
-    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE)
+    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE),
+    amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"), show_col_types = FALSE)
 ) %>% 
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
 
 #' ### Phyloseq databases
-#' Sequence abundance data aren't standardized here; 
-#' they will be after the data are subsetted by guilds or taxonomic ranks.
-#' #### Whole soil fungi
-its_ps <- phyloseq(
-    otu_table(data.frame(spe$its_avg, row.names = 1), taxa_are_rows = FALSE),
-    sample_data(sites %>% column_to_rownames(var = "field_name")),
-    tax_table(data.frame(spe_meta$its, row.names = 1) %>% as.matrix())
-)
-#' 
-#' #### AMF
-amf_avg_ps <- phyloseq(
-    otu_table(data.frame(spe$amf_avg_uni, row.names = 1) %>% 
+#' Only AMF needed here for UNIFRAC distance in PCoA
+amf_ps <- phyloseq(
+    otu_table(data.frame(spe$amf_avg_uni, row.names = 1) %>%
                 decostand(method = "total", MARGIN = 2),
               taxa_are_rows = TRUE),
+    tax_table(as.matrix(data.frame(spe_meta$amf, row.names = 2))),
     read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
         phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
     sample_data(sites %>% column_to_rownames(var = "field_name"))
@@ -385,6 +378,8 @@ plfa_fig <-
 
 #' 
 #' ## Beta Diversity
+#' Abundances were transformed by row proportions in sites before producing a distance matrix per
+#' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
 #+ its_ord
 d_its <- spe$its_avg %>% 
     data.frame(row.names = 1) %>% 
@@ -633,9 +628,14 @@ nlfa_fig <-
 
 #' 
 #' ## Beta Diversity
-#' AMF (18S sequences), UNIFRAC distance matrix must be created. 
+#' AMF (18S sequences)
+#' 
+#' Abundances were transformed by row proportions in sites before producing a distance matrix per
+#' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115). 
+#' Row proportions were calculated on the raw abundance data before creating the phyloseq data (see 
+#' above). UNIFRAC distance matrix is created on the standardized abundance data.  
 #+ amf_ord
-d_amf <- UniFrac(amf_avg_ps, weighted = TRUE)
+d_amf <- UniFrac(amf_ps, weighted = TRUE)
 mva_amf <- mva(d = d_amf, corr = "lingoes")
 #+ amf_ord_results
 mva_amf$dispersion_test

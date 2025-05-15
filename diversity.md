@@ -124,8 +124,8 @@ species-samples format to enable use of `Unifrac()` later.
 
 ``` r
 spe <- list(
-    its_avg   = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE),
-    amf_avg   = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE),
+    its_avg     = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE),
+    amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE),
     amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"), show_col_types = FALSE)
 )
 ```
@@ -135,31 +135,22 @@ spe <- list(
 ``` r
 spe_meta <- list(
     its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE),
-    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE)
+    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE),
+    amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"), show_col_types = FALSE)
 ) %>% 
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
 ```
 
 ### Phyloseq databases
 
-Sequence abundance data aren’t standardized here; they will be after the
-data are subsetted by guilds or taxonomic ranks. \#### Whole soil fungi
+Only AMF needed here for UNIFRAC distance in PCoA
 
 ``` r
-its_ps <- phyloseq(
-    otu_table(data.frame(spe$its_avg, row.names = 1), taxa_are_rows = FALSE),
-    sample_data(sites %>% column_to_rownames(var = "field_name")),
-    tax_table(data.frame(spe_meta$its, row.names = 1) %>% as.matrix())
-)
-```
-
-#### AMF
-
-``` r
-amf_avg_ps <- phyloseq(
-    otu_table(data.frame(spe$amf_avg_uni, row.names = 1) %>% 
+amf_ps <- phyloseq(
+    otu_table(data.frame(spe$amf_avg_uni, row.names = 1) %>%
                 decostand(method = "total", MARGIN = 2),
               taxa_are_rows = TRUE),
+    tax_table(as.matrix(data.frame(spe_meta$amf, row.names = 2))),
     read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
         phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
     sample_data(sites %>% column_to_rownames(var = "field_name"))
@@ -333,7 +324,7 @@ par(mfrow = c(2,2))
 plot(its_rich_lm) # variance similar in groups
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ``` r
 performance::check_distribution(its_rich_lm) 
@@ -481,7 +472,7 @@ par(mfrow = c(2,2))
 plot(its_shan_lm) # variance similar in groups 
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 ``` r
 performance::check_distribution(its_shan_lm) 
@@ -635,7 +626,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) # variance differs slightly in groups. Tails on qq plot diverge, lots of groups structure
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 ``` r
 performance::check_distribution(plfa_lm) 
@@ -732,6 +723,10 @@ plfa_fig <-
 
 ## Beta Diversity
 
+Abundances were transformed by row proportions in sites before producing
+a distance matrix per [McKnight et
+al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
+
 ``` r
 d_its <- spe$its_avg %>% 
     data.frame(row.names = 1) %>% 
@@ -751,7 +746,7 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999  0.059 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0565 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -759,8 +754,8 @@ mva_its$dispersion_test
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##              corn restored remnant
-    ## corn              0.072500   0.132
-    ## restored 0.068726            0.133
+    ## corn              0.057000   0.130
+    ## restored 0.068726            0.136
     ## remnant  0.126039 0.135570
 
 ``` r
@@ -774,7 +769,7 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0280 *  
+    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0285 *  
     ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
@@ -789,8 +784,8 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
-| 3   | corn     | remnant |   2.858 | 0.281 |      0.0023 |
-| 2   | restored | remnant |   1.062 | 0.054 |      0.3160 |
+| 3   | corn     | remnant |   2.858 | 0.281 |      0.0015 |
+| 2   | restored | remnant |   1.062 | 0.054 |      0.3310 |
 
 Pairwise permanova contrasts
 
@@ -886,7 +881,7 @@ par(mfrow = c(2,2))
 plot(amf_rich_lm) # variance similar in groups with an outlier
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 ``` r
 performance::check_distribution(amf_rich_lm) 
@@ -1014,7 +1009,7 @@ par(mfrow = c(2,2))
 plot(amf_shan_lm) 
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 Variance somewhat non-constant in groups, qqplot fit is poor, one
 leverage point (Cook’s \> 0.5)
@@ -1174,7 +1169,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
 
 ``` r
 performance::check_distribution(nlfa_lm) 
@@ -1239,7 +1234,7 @@ nlfa_lm_log   <- lm(log(amf) ~ field_type, data = fa)
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-2.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-3.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-4.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-44-3.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-44-4.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -1255,7 +1250,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-45-5.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-44-5.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -1354,10 +1349,17 @@ nlfa_fig <-
 
 ## Beta Diversity
 
-AMF (18S sequences), UNIFRAC distance matrix must be created.
+AMF (18S sequences)
+
+Abundances were transformed by row proportions in sites before producing
+a distance matrix per [McKnight et
+al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115).
+Row proportions were calculated on the raw abundance data before
+creating the phyloseq data (see above). UNIFRAC distance matrix is
+created on the standardized abundance data.
 
 ``` r
-d_amf <- UniFrac(amf_avg_ps, weighted = TRUE)
+d_amf <- UniFrac(amf_ps, weighted = TRUE)
 mva_amf <- mva(d = d_amf, corr = "lingoes")
 ```
 
@@ -1372,14 +1374,14 @@ mva_amf$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9355
+    ## Groups     2 0.000418 0.0002089 0.0647   1999  0.927
     ## Residuals 22 0.071014 0.0032279                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.86150   0.907
-    ## restored 0.85873            0.700
+    ## corn              0.85200  0.9095
+    ## restored 0.85873           0.7140
     ## remnant  0.89942  0.71821
 
 ``` r
@@ -1393,7 +1395,7 @@ mva_amf$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1220    
+    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1305    
     ## field_type   2  0.21243 0.24757 3.7307 0.0005 ***
     ## Residual    21  0.59788 0.69677                  
     ## Total       24  0.85808 1.00000                  
@@ -1408,8 +1410,8 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.478 | 0.250 |      0.0015 |
-| 3   | corn     | remnant |   4.655 | 0.355 |      0.0045 |
-| 2   | restored | remnant |   0.442 | 0.023 |      0.8800 |
+| 3   | corn     | remnant |   4.655 | 0.355 |      0.0023 |
+| 2   | restored | remnant |   0.442 | 0.023 |      0.8655 |
 
 Pairwise permanova contrasts
 
