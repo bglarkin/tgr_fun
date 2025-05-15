@@ -8,19 +8,20 @@
 #'     toc_depth: 2
 #' ---
 #'
-#' # Description  —
+#' # Description
 #' **Scope** – Biomass (PLFA/NLFA), OTU richness and diversity, and β‑diversity of soil fungi across corn, 
 #' restored, and remnant prairie fields.
 #' 
-#' **Alpha diversity** – 97 %-OTUs (ITS & 18S); site means are replicates; Gaussian GLM with log‑link 
-#' and √‑depth covariate per [Bálint 2015](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.13018); pairwise LSMs via *emmeans*.
+#' **Alpha diversity** – 97 %-OTUs (ITS & 18S); site means are replicates; means separation model selection
+#' based on response and residuals distributions; √‑transformation of sequencing depth used as covariate 
+#' per [Bálint 2015](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.13018); 
+#' pairwise LSMs via *emmeans*.
 #' 
 #' **Beta diversity** – Workflow after [Song 2015](https://doi.org/10.1371/journal.pone.0127234):  
-#'  1 PCoA of Bray (ITS) or UNIFRAC (18S) distances,  
-#'  2 homogeneity test → PERMANOVA (+ pairwise),  
-#'  3 post‑hoc *envfit* of restoration age.  
-#' Cartesian inter‑site distance enters models as a covariate [Redondo 2020](https://doi.org/10.1093/femsec/fiaa082).
-#' 
+#'  1. PCoA of Bray (ITS) or UNIFRAC (18S) distances,  
+#'  2. homogeneity test diagnostics 
+#'  3. PERMANOVA (+ pairwise) 
+#' Cartesian inter‑site distance enters models as a covariate per [Redondo 2020](https://doi.org/10.1093/femsec/fiaa082).
 
 #' # Packages and libraries
 # Libraries ———————— ####
@@ -67,8 +68,8 @@ sites$dist_axis_1 = field_dist_pcoa$vectors[, 1]
 
 #' 
 #' ## Sites-species tables
-#' List *spe* holds average sequence abundances for the top 6 samples per field. 
-#' CSV files were produced in `process_data.R`
+#' CSV files were produced in `sequence_data.R`. Amf_avg_uni table is in species-samples format
+#' to enable use of `Unifrac()` later.
 spe <- list(
     its_avg   = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE),
     amf_avg   = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE),
@@ -284,7 +285,7 @@ its_rich_fig <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(2, 0.98))
+        plot.tag.position = c(0, 1))
 
 #' 
 #' ### Shannon's diversity
@@ -557,11 +558,12 @@ amf_shan_fig <-
 #' 
 #' ### Shannon's diversity figure
 #' Includes both ITS and AMF for supplemental figure
-#+ its_amf_shan_fig,warning=FALSE,fig.height=4,fig.width=7
+#+ its_amf_shan_fig_pw,warning=FALSE
 FigS1 <- (its_shan_fig | plot_spacer() | amf_shan_fig) +
     plot_layout(widths = c(1, 0.01, 1)) +
     plot_annotation(tag_levels = 'a')
-
+#+ its_amf_shan_fig,warning=FALSE,fig.height=4,fig.width=7
+FigS1
 #+ amf_div_fig_save
 ggsave(
     root_path("figs", "figS1.png"),
@@ -638,7 +640,8 @@ mva_amf <- mva(d = d_amf, corr = "lingoes")
 #+ amf_ord_results
 mva_amf$dispersion_test
 mva_amf$permanova
-mva_amf$pairwise_contrasts
+mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes eigenvalue correction was used. The first three relative eigenvalues exceeded broken stick model. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
@@ -681,9 +684,11 @@ fig3 <- (fig3_ls | plot_spacer() | amf_ord) +
   plot_annotation(tag_levels = 'a') 
 #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
 fig3
-#' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields.  
-#' **a** OTU richness; **b** NLFA biomass (95 % CI, letters = Tukey groups; P < 0.05 / 0.0001).  
-#' **c** PCoA of weighted‑UniFrac distances (18S, 97 % OTUs): small points = sites, large rings = field‑type centroids ±95 % CI. Numbers in rings give years since restoration. Axes show % variance. Corn clusters apart from both prairie types (P < 0.01). Shading: corn grey, restored black, remnant white.
+#' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
+#' NLFA biomass **b** (95 % CI, letters = Tukey groups; P < 0.05 / 0.0001). PCoA of weighted‑UniFrac distances 
+#' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
+#' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
+#' prairie types (P < 0.01). Shading: corn grey, restored black, remnant white.
 
 #+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
 ggsave(root_path("figs", "fig3.png"),
