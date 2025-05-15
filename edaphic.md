@@ -1,64 +1,91 @@
-#' ---
-#' title: "Soil properties"
-#' author: "Beau Larkin\n"
-#' date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
-#' output:
-#'   github_document:
-#'     toc: true
-#'     toc_depth: 3
-#'     df_print: paged
-#'     fig_width: 8
-#'     fig_height: 7
-#' ---
-#'
-#' # Description
-#' Soil nutrients were analyzed by [Ward Laboratories, Inc.](https://www.wardlab.com/services/soil-health-analysis/), 
-#' analysis methods available in local files or at the link included here.
-#' Soil organic matter is in percent determined by the loss-on-ignition method.
-#' Soil pH is in a log scale as is typical, and all the other minerals are in parts per million. 
-#' This may need to be converted to $mg*kg^{-1}$ or other unit. 
-#' 
-#' This script provides a quick overview of the soil abiotic property data and tests differences among field types
-#' based on soil properties.
-#' 
-#' # Packages and libraries
+Soil properties
+================
+Beau Larkin
+
+Last updated: 15 May, 2025
+
+- [Description](#description)
+- [Packages and libraries](#packages-and-libraries)
+  - [Root path function](#root-path-function)
+- [Functions](#functions)
+  - [Confidence intervals](#confidence-intervals)
+  - [Soil properties](#soil-properties)
+- [Results](#results)
+  - [Quantities in field types](#quantities-in-field-types)
+  - [PCA ordination, variable correlations, and
+    PERMANOVA](#pca-ordination-variable-correlations-and-permanova)
+  - [Soil variable loadings and
+    correlations](#soil-variable-loadings-and-correlations)
+
+# Description
+
+Soil nutrients were analyzed by [Ward Laboratories,
+Inc.](https://www.wardlab.com/services/soil-health-analysis/), analysis
+methods available in local files or at the link included here. Soil
+organic matter is in percent determined by the loss-on-ignition method.
+Soil pH is in a log scale as is typical, and all the other minerals are
+in parts per million. This may need to be converted to $mg*kg^{-1}$ or
+other unit.
+
+This script provides a quick overview of the soil abiotic property data
+and tests differences among field types based on soil properties.
+
+# Packages and libraries
+
+``` r
 packages_needed <- c("tidyverse", "knitr", "vegan")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
+```
 
-#' ## Root path function
+## Root path function
+
+``` r
 root_path <- function(...) rprojroot::find_rstudio_root_file(...)
+```
 
-#+ conflicts,message=FALSE
+``` r
 conflict_prefer("filter", "dplyr")
 conflict_prefer("select", "dplyr")
 conflict_prefer("diversity", "vegan")
-#' 
-#+ graphics_styles
-source(root_path("resources", "styles.R"))
+```
 
-#' 
-#' # Functions
-#' ## Confidence intervals
-#' Calculate upper and lower confidence intervals with alpha=0.05
-#+ ci_function
+``` r
+source(root_path("resources", "styles.R"))
+```
+
+# Functions
+
+## Confidence intervals
+
+Calculate upper and lower confidence intervals with alpha=0.05
+
+``` r
 ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
 ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
-#' 
+```
 
-#' 
-#' #' # Data
-#' ## Site metadata and design
+\#’ \# Data \## Site metadata and design
+
+``` r
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
     mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-#' ## Soil properties
+```
+
+## Soil properties
+
+``` r
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
 soil_units <- read_csv(root_path("clean_data/soil_units.csv"), show_col_types = FALSE)
-#' 
-#' # Results
-#' ## Quantities in field types
+```
+
+# Results
+
+## Quantities in field types
+
+``` r
 soil_ft_avg <- 
     soil %>% 
     left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
@@ -69,22 +96,51 @@ soil_ft_avg <-
     pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
     left_join(soil_units, by = join_by(soil_property)) %>% 
     select(soil_property, units, everything())
-    
+```
 
+## PCA ordination, variable correlations, and PERMANOVA
 
-
-#' ## PCA ordination, variable correlations, and PERMANOVA
-
+``` r
 soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
 soil_pca <- rda(soil_z)
 summary(soil_pca)
+```
+
+    ## 
+    ## Call:
+    ## rda(X = soil_z) 
+    ## 
+    ## Partitioning of variance:
+    ##               Inertia Proportion
+    ## Total              13          1
+    ## Unconstrained      13          1
+    ## 
+    ## Eigenvalues, and their contribution to the variance 
+    ## 
+    ## Importance of components:
+    ##                          PC1    PC2    PC3    PC4     PC5     PC6     PC7     PC8     PC9     PC10     PC11
+    ## Eigenvalue            4.4790 2.3301 1.7896 1.4132 1.16188 0.70120 0.38467 0.27747 0.20308 0.129286 0.069183
+    ## Proportion Explained  0.3445 0.1792 0.1377 0.1087 0.08938 0.05394 0.02959 0.02134 0.01562 0.009945 0.005322
+    ## Cumulative Proportion 0.3445 0.5238 0.6614 0.7701 0.85952 0.91346 0.94305 0.96440 0.98002 0.989963 0.995285
+    ##                          PC12     PC13
+    ## Eigenvalue            0.04186 0.019432
+    ## Proportion Explained  0.00322 0.001495
+    ## Cumulative Proportion 0.99851 1.000000
+
+``` r
 plot(soil_pca)
-#' Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6 account for 91%. 
-#' 
-#' ## Soil variable loadings and correlations
-#' Which soil properties explain the most variation among sites?
+```
 
+![](resources/edaphic_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
+Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6
+account for 91%.
+
+## Soil variable loadings and correlations
+
+Which soil properties explain the most variation among sites?
+
+``` r
 site_sco <- scores(soil_pca, display = "sites", choices = c(1,2))
 
 soil_cor <- 
@@ -92,18 +148,39 @@ soil_cor <-
     mutate(PCA_correlation = sqrt(PC1^2 + PC2^2)) %>% 
     arrange(-PCA_correlation) %>% 
     rownames_to_column(var = "soil_property")
+```
 
-#' Use the variable correlations to sort the soil property averages in a table 
-#' highlighting field types:
+Use the variable correlations to sort the soil property averages in a
+table highlighting field types:
+
+``` r
 soil_ft_avg %>% 
     left_join(soil_cor %>% select(soil_property, PCA_correlation), by = join_by(soil_property)) %>% 
     arrange(-PCA_correlation) %>% 
     mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
     select(PCA_correlation, everything()) %>% 
     kable(format = "pandoc")
+```
 
+| PCA_correlation | soil_property | units                |    corn | restored | remnant |
+|----------------:|:--------------|:---------------------|--------:|---------:|--------:|
+|            0.95 | OM            | % LOI                |    4.68 |     5.26 |    7.28 |
+|            0.95 | P             | mg/L (Mehlich P-III) |   64.40 |     8.06 |    5.50 |
+|            0.91 | Ca            | mg/L                 | 2803.20 |  1992.75 | 2856.50 |
+|            0.87 | Mg            | mg/L                 |  562.40 |   556.56 |  512.75 |
+|            0.85 | NO3           | mg/L                 |   21.54 |     5.07 |    4.38 |
+|            0.79 | Mn            | mg/L                 |   15.42 |    20.36 |   16.70 |
+|            0.79 | SO4           | mg/L                 |   21.20 |    16.69 |   16.00 |
+|            0.72 | pH            | NULL                 |    6.88 |     6.42 |    6.68 |
+|            0.57 | K             | mg/L                 |  214.40 |   111.62 |   96.00 |
+|            0.52 | Na            | mg/L                 |   15.00 |    13.31 |   13.75 |
+|            0.40 | Zn            | mg/L                 |    2.72 |     3.60 |    2.61 |
+|            0.33 | Cu            | mg/L                 |    2.90 |     2.73 |    2.15 |
+|            0.27 | Fe            | mg/L                 |   47.34 |    50.16 |   55.92 |
 
-#' Axis 1 & 2 eigenvalue proportions
+Axis 1 & 2 eigenvalue proportions
+
+``` r
 eig_prop <- round(summary(soil_pca)$cont$importance[2, 1:2] * 100, 1)
 
 
@@ -169,6 +246,17 @@ soilperm <- function(clust_vec, clust_var) {
 
 soilperm_field_type <- soilperm(soil_ord_scores$field_type, "field_type")
 soilperm_field_type$gl_permtest
+```
+
+<div data-pagedtable="false">
+
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Df"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["SumOfSqs"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["R2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["F"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Pr(>F)"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"2","2":"13.27672","3":"0.3758232","4":"6.623213","5":"5e-04","_rn_":"field_type"},{"1":"22","2":"22.05032","3":"0.6241768","4":"NA","5":"NA","_rn_":"Residual"},{"1":"24","2":"35.32704","3":"1.0000000","4":"NA","5":"NA","_rn_":"Total"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+
+</div>
+
+``` r
 ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
     geom_polygon(data = soil_ord_scores %>% group_by(field_type) %>% slice(chull(PC1, PC2)),
                  aes(group = field_type), fill = "transparent", color = "black") +
@@ -180,10 +268,29 @@ ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
         y = paste0("Axis 2 (", eig_prop[2], "%)")) +
     theme_ord +
     theme(legend.position = "none")
+```
 
+![](resources/edaphic_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
+``` r
 soilperm_region <- soilperm(soil_ord_scores$region, "region")
+```
+
+    ## Set of permutations < 'minperm'. Generating entire set.
+
+``` r
 soilperm_region$gl_permtest
+```
+
+<div data-pagedtable="false">
+
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Df"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["SumOfSqs"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["R2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["F"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Pr(>F)"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"3","2":"14.37445","3":"0.4068966","4":"4.802326","5":"0.0015","_rn_":"region"},{"1":"21","2":"20.95259","3":"0.5931034","4":"NA","5":"NA","_rn_":"Residual"},{"1":"24","2":"35.32704","3":"1.0000000","4":"NA","5":"NA","_rn_":"Total"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+
+</div>
+
+``` r
 ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
     geom_polygon(data = soil_ord_scores %>% group_by(region) %>% slice(chull(PC1, PC2)),
                  aes(group = region), fill = "transparent", color = "black") +
@@ -195,13 +302,13 @@ ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
         y = paste0("Axis 2 (", eig_prop[2], "%)")) +
     theme_ord +
     theme(legend.position = "none")
+```
 
+![](resources/edaphic_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
 
+Plotting results:
 
-
-
-
-#' Plotting results: 
+``` r
 soil_ord_centers <- soil_ord_scores %>% 
     group_by(field_type) %>% 
     summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
@@ -224,5 +331,6 @@ soil_ord <-
            shape = guide_legend(position = "inside")) +
     theme(legend.justification = c(0.03, 0.98),
           legend.box = "horizontal")
-#+ soil_ord_plot,warning=FALSE,fig.height=5,fig.width=5,fig.align='center',echo=FALSE
-soil_ord
+```
+
+<img src="resources/edaphic_files/figure-gfm/soil_ord_plot-1.png" style="display: block; margin: auto;" />

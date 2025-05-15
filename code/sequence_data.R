@@ -21,8 +21,9 @@
 
 #' ## Packages
 packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", "rlang")
-if (any(!packages_needed %in% rownames(installed.packages())))
-    install.packages(packages_needed[!packages_needed %in% rownames(installed.packages())])
+
+to_install <- setdiff(packages_needed, rownames(installed.packages()))
+if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 
 #' ## Styles
@@ -124,7 +125,7 @@ traits <- read_csv(root_path("otu_tables/2023-02-23_fungal_traits.csv"), show_co
 
 #+ import_sites,message=FALSE
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>%
-    mutate(field_type = factor(field_type, ordered = TRUE, levels = c("corn", "restored", "remnant"))) %>%
+    mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant"))) %>%
     select(-lat, -long, -yr_restore)
 
 #' ## ETL processing
@@ -180,7 +181,7 @@ its_rc %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_sample)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
+    scale_color_discrete_qualitative(palette = "Harmonic") +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS samples") +
     theme_corf +
     theme(legend.position = "none")
@@ -203,7 +204,7 @@ its_rc_site %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_name)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free_y") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS (site-averaged)") +
     theme_corf +
     theme(legend.position = "none")
@@ -228,7 +229,7 @@ amf_rc %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_sample)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of 18S samples") +
     theme_corf +
     theme(legend.position = "none")
@@ -252,7 +253,7 @@ amf_rc_site %>%
     ggplot(aes(x = seq_abund, y = otus, group = field_name)) +
     facet_wrap(vars(field_type), ncol = 1, scales = "free_y") +
     geom_line(aes(color = field_type), linewidth = 0.4) +
-    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of 18S (site-averaged)") +
     theme_corf +
     theme(legend.position = "none")
@@ -271,10 +272,10 @@ accum <- bind_rows(
 
 #+ species_accumulation_fig,fig.width=7,fig.height=4
 ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
-    facet_wrap(vars(dataset), scales = "free_y") +
+    facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free_y") +
     geom_line(aes(color = field_type)) +
     geom_segment(aes(xend = samples, y = richness - sd, yend = richness + sd, color = field_type)) +
-    scale_color_discrete_sequential(palette = "fieldtypes", rev = FALSE) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
     labs(
         x = "Samples",
         y = expression(N[0]),
