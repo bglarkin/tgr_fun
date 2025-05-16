@@ -15,11 +15,10 @@
 #' method [Gloor 2017](https://www.frontiersin.org/articles/10.3389/fmicb.2017.02224) and
 #' [Greenacre 2021](https://doi.org/10.3389/fmicb.2021.727398) before differential tests.
 #' Plant cover (10×1 m quadrats, WI only; M. Healy 2016) was analysed without log‑transformation
-#' because values are not instrument‑bounded and may exceed 100% [Gloor 2017].
-#' Trait data was obtained from the [TRY database](https://www.try-db.org)  
-#' ([Kattge 2010](https://doi.org/10.1111/j.2041-210X.2010.00067.x),
+#' because values are not instrument‑bounded and may exceed 100% [Gloor 2017](https://www.frontiersin.org/articles/10.3389/fmicb.2017.02224).
+#' Trait data was obtained from the [TRY database](https://www.try-db.org) ([Kattge 2010](https://doi.org/10.1111/j.2041-210X.2010.00067.x),
 #' [Kattge 2011](https://doi.org/10.1111/j.1365-2486.2011.02451.x)).
-
+#' 
 #' # Packages and libraries
 packages_needed <- c(
   "tidyverse", "colorspace", "vegan", "knitr", "conflicted",
@@ -183,8 +182,9 @@ summary(glom_lm)
 #' NS
 clar_lm <- lm(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
 summary(clar_lm)
-performance::check_distribution(clar_lm) 
-leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+performance::check_distribution(clar_lm) %>% as.data.frame() %>% arrange(-p_Residuals) %>% 
+  slice_head(n = 3) %>% kable(format = "pandoc")
+leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg) %>% as.data.frame() %>% kable(format = "pandoc")
 TukeyHSD(aov(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg))
 #' Model R2_adj 0.24, p<0.02
 ggplot(amf_fmlr_pfg, aes(x = field_type, y = Paraglomeraceae)) + geom_boxplot()
@@ -216,7 +216,8 @@ plot(gf_patho_lm)
 #' Some residual structure, but a smooth qq fit. 
 #' Minor leverage with point 4 pulls the slope to more level, risking a type II error rather than type I. 
 #' Model is still significant with point 4 removed. 
-performance::check_distribution(gf_patho_lm) 
+performance::check_distribution(gf_patho_lm) %>% as.data.frame() %>% arrange(-p_Residuals) %>% 
+  slice_head(n = 3) %>% kable(format = "pandoc")
 #' Response and residuals normal, no transformations warranted and linear model appropriate.
 summary(gf_patho_lm)
 
