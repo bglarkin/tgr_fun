@@ -23,7 +23,7 @@
 #' # Packages and libraries
 packages_needed <- c(
   "tidyverse", "colorspace", "vegan", "knitr", "conflicted",
-  "grid", "gridExtra", "gridtext", "GGally", "geosphere", "ape"
+  "geosphere", "ape", "performance", "patchwork"
 )
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -71,84 +71,153 @@ pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FA
 
 #' # Data wrangling
 # Data wrangling ———————— ####
-#' The OTU tables must be wrangled to perform the ALR transformation
-#' in guilds for whole soild fungi and families for AMF. Raw abundances are kept for plotting.
+#' 
+#' - C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
+#' - The OTU abundance tables must be wrangled to perform a log-ratio transformation, which reduces
+#' data skewness and compositionality bias (Aitchison 1986, Gloor et al. 2017). 
+#' The transformation will be applied across guilds for whole soil fungi and families for AMF. 
+#' Raw abundances are kept for plotting.
 #' Abundance data are also joined with site and env paramaters to facilitate downstream analyses.
 #' 
-#' ## Raw abundances
-#' ### Whole soil fungi
+#' ## Grass-forb index
+#' C4 grass and forb cover are highly correlated (*r* = `r round(cor(pfg$forb, pfg$C4_grass), 2)`) 
+#' in restored prairies. In models or constrained ordinations, they are collinear and cannot be
+#' used simultaneously. An index of grass-forb cover is created to solve this problem. 
+pfg_pca <- 
+  pfg %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  filter(field_type == "restored") %>% 
+  select(-field_type) %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand(method = "standardize") %>% 
+  rda()
+pfg_pca %>% summary() # 92% variation on first axis
+gf_index = scores(pfg_pca, choices = 1, display = "sites") %>% 
+  data.frame() %>% 
+  rename(gf_index = PC1) %>% 
+  rownames_to_column(var = "field_name")
+#' 
+#' ## Whole soil fungi
+#' ### Raw abundances
 its_guab <- 
   spe$its_avg %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
-  pivot_wider(names_from = "primary_lifestyle", values_from = "abund")
+  pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
+  mutate(saprotroph = rowSums(across(ends_with("_saprotroph")))) %>% 
+  select(field_name, unidentified, saprotroph, plant_pathogen, everything()) %>% 
+  select(-ends_with("_saprotroph"))
 its_guab_pfg <- 
   its_guab %>% 
-  left_join(pfg, by = join_by(field_name))
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
 #' 
-#' ### AMF
+#' ### Log ratio transformed abundances
+its_gulr <- 
+  its_guab %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand("rclr", MARGIN = 2) %>%
+  # decostand("clr", MARGIN = 2, pseudocount = 0.2) %>%
+  # decostand("alr", MARGIN = 2, reference = 1, pseudocount = 0.2) %>%
+  rownames_to_column(var = "field_name") %>% 
+  as_tibble()
+its_gulr_pfg <- 
+  its_gulr %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+#' 
+#' ## AMF
+#' ### Raw abundances
 amf_fmab <- 
   spe$amf_avg %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$amf %>% select(otu_num, family), by = join_by(otu_num)) %>% 
   group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
-  pivot_wider(names_from = "family", values_from = "abund") %>% 
-  left_join(its_guab %>% select(field_name, unidentified), by = join_by(field_name)) %>% 
-  select(field_name, unidentified, everything())
+  pivot_wider(names_from = "family", values_from = "abund")
 amf_fmab_pfg <- 
   amf_fmab %>% 
-  left_join(pfg, by = join_by(field_name))
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
 #' 
-#' ## ALR-transformed abundances
-#' ### Whole soil fungi
-its_gulr <- 
-  its_guab %>% 
-  column_to_rownames(var = "field_name") %>% 
-  decostand("alr", MARGIN = 2, reference = 1, pseudocount = 0.2) %>% 
-  rownames_to_column(var = "field_name") %>% 
-  left_join(sites %>% select(field_name, field_type, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, everything()) %>% 
-  as_tibble()
-its_gulr_pfg <- 
-  its_gulr %>% 
-  left_join(pfg, by = join_by(field_name))
-#' 
-#' ### AMF
+#' ### Log ratio transformed abundances
 amf_fmlr <- 
   amf_fmab %>% 
   column_to_rownames(var = "field_name") %>% 
-  decostand("alr", MARGIN = 2, reference = 1, pseudocount = 0.2) %>% 
+  decostand("rclr", MARGIN = 2) %>% 
+  # decostand("alr", MARGIN = 2, reference = 1, pseudocount = 0.2) %>% 
   rownames_to_column(var = "field_name") %>% 
-  left_join(sites %>% select(field_name, field_type, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, everything()) %>% 
   as_tibble()
 amf_fmlr_pfg <- 
   amf_fmlr %>% 
-  left_join(pfg, by = join_by(field_name))
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
 
-#' 
 #' # AMF abundance in families
-#' Display raw abundances in field types and perform tests on ALR-transformed data 
+# AMF abundance in families ———————— ####
+#' Display raw abundances in a table but separate means with log ratio transformed data
 amf_fmab_ft <- 
   amf_fmab %>% 
   left_join(sites %>% select(field_name, field_type, yr_since), by = join_by(field_name)) %>% 
   pivot_longer(Glomeraceae:Gigasporaceae, names_to = "family", values_to = "abund") %>% 
   group_by(field_type, family) %>% 
-  summarize(abund = sum(abund), .groups = "drop") %>% 
+  summarize(abund = mean(abund), .groups = "drop") %>% 
   pivot_wider(names_from = field_type, values_from = abund) %>% 
-  mutate(total = corn+restored+remnant, across(where(is.numeric), ~ round(.x, 1))) %>% 
+  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 1))) %>% 
   arrange(-total)
 kable(amf_fmab_ft, format = "pandoc", caption = "AMF abundance in families and field types")
+#' 
+#' Test RCLR transformed abundances across field types for each family
+glom_lm <- lm(Glomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(glom_lm)
+#' NS
+clar_lm <- lm(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(clar_lm)
+performance::check_distribution(clar_lm) 
+leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+TukeyHSD(aov(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg))
+#' Model R2_adj 0.24, p<0.02
+ggplot(amf_fmlr_pfg, aes(x = field_type, y = Paraglomeraceae)) + geom_boxplot()
+para_lm <- lm(Paraglomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(para_lm)
+#' NS
+dive_lm <- lm(Diversisporaceae ~ field_type, data = amf_fmlr_pfg)
+summary(dive_lm)
+#' NS
+giga_lm <- lm(Gigasporaceae ~ field_type, data = amf_fmlr_pfg)
+summary(giga_lm)
+#' NS
 
 
 
 
 
+# Pathogens and plants
+# Formally incorporate into this script later...
+ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x = gf_index, y = plant_pathogen)) +
+  geom_smooth(method = "lm") +
+  geom_point()
 
 
-# Correlate litter and saprotrophs
-read_csv(root_path("clean_data", "plant_avg.csv"), show_col_types = FALSE) %>% 
-  rename(field_name = SITE) %>% select(LITTER)
+gf_patho_lm <- lm(plant_pathogen ~ gf_index, data = its_gulr_pfg %>% filter(field_type == "restored", region != "FL"))
+#' Diagnostics
+par(mfrow = c(2,2))
+plot(gf_patho_lm) 
+#' Some residual structure, but a smooth qq fit. 
+#' Minor leverage with point 4 pulls the slope to more level, risking a type II error rather than type I. 
+#' Model is still significant with point 4 removed. 
+performance::check_distribution(gf_patho_lm) 
+#' Response and residuals normal, no transformations warranted and linear model appropriate.
+summary(gf_patho_lm)
+
+

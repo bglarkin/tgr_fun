@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 15 May, 2025
+Last updated: 16 May, 2025
 
 - [Description](#description)
   - [Root path function](#root-path-function)
@@ -746,7 +746,7 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0565 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0585 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -754,8 +754,8 @@ mva_its$dispersion_test
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##              corn restored remnant
-    ## corn              0.057000   0.130
-    ## restored 0.068726            0.136
+    ## corn              0.070000   0.122
+    ## restored 0.068726            0.151
     ## remnant  0.126039 0.135570
 
 ``` r
@@ -769,8 +769,8 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0285 *  
-    ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
+    ## dist_axis_1  1   0.4225 0.06253 1.7391  3e-02 *  
+    ## field_type   2   1.2321 0.18236 2.5358  5e-04 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
     ## ---
@@ -784,8 +784,8 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
-| 3   | corn     | remnant |   2.858 | 0.281 |      0.0015 |
-| 2   | restored | remnant |   1.062 | 0.054 |      0.3310 |
+| 3   | corn     | remnant |   2.858 | 0.281 |      0.0045 |
+| 2   | restored | remnant |   1.062 | 0.054 |      0.3330 |
 
 Pairwise permanova contrasts
 
@@ -1374,14 +1374,14 @@ mva_amf$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.000418 0.0002089 0.0647   1999  0.927
+    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9275
     ## Residuals 22 0.071014 0.0032279                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.85200  0.9095
-    ## restored 0.85873           0.7140
+    ## corn              0.86400  0.9125
+    ## restored 0.85873           0.6750
     ## remnant  0.89942  0.71821
 
 ``` r
@@ -1395,7 +1395,7 @@ mva_amf$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1305    
+    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1260    
     ## field_type   2  0.21243 0.24757 3.7307 0.0005 ***
     ## Residual    21  0.59788 0.69677                  
     ## Total       24  0.85808 1.00000                  
@@ -1411,7 +1411,7 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.478 | 0.250 |      0.0015 |
 | 3   | corn     | remnant |   4.655 | 0.355 |      0.0023 |
-| 2   | restored | remnant |   0.442 | 0.023 |      0.8655 |
+| 2   | restored | remnant |   0.442 | 0.023 |      0.8740 |
 
 Pairwise permanova contrasts
 

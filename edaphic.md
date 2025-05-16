@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 15 May, 2025
+Last updated: 16 May, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
