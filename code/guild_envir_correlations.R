@@ -38,6 +38,29 @@ conflict_prefer("select", "dplyr")
 #+ styles
 source(root_path("resources", "styles.R"))
 
+#' # Functions
+# Functions ———————— ####
+#' ## Model distribution probabilities
+#' Probable distributions of response and residuals. Package performance prints
+#' javascript which doesn't render on github documents.
+#+ distribution_prob_function
+distribution_prob <- function(df) {
+  print(
+    performance::check_distribution(df) %>% 
+      as.data.frame() %>% 
+      select(Distribution, p_Residuals) %>% 
+      arrange(-p_Residuals) %>% 
+      slice_head(n = 3) %>% 
+      kable(format = "pandoc"))
+  print(
+    performance::check_distribution(df) %>% 
+      as.data.frame() %>% 
+      select(Distribution, p_Response) %>% 
+      arrange(-p_Response) %>% 
+      slice_head(n = 3) %>% 
+      kable(format = "pandoc"))
+}
+
 #' # Data
 # Data ———————— ####
 #' 
@@ -56,7 +79,9 @@ spe <- list(
 #' 
 #' ## Microbial species metadata
 spe_meta <- list(
-  its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE),
+  its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
+    mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph", 
+                                         TRUE ~ primary_lifestyle)),
   amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE)
 ) %>% 
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
@@ -105,9 +130,7 @@ its_guab <-
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
-  mutate(saprotroph = rowSums(across(ends_with("_saprotroph")))) %>% 
-  select(field_name, unidentified, saprotroph, plant_pathogen, everything()) %>% 
-  select(-ends_with("_saprotroph"))
+  select(field_name, unidentified, saprotroph, plant_pathogen, everything())
 its_guab_pfg <- 
   its_guab %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
@@ -182,8 +205,7 @@ summary(glom_lm)
 #' NS
 clar_lm <- lm(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
 summary(clar_lm)
-performance::check_distribution(clar_lm) %>% as.data.frame() %>% arrange(-p_Residuals) %>% 
-  slice_head(n = 3) %>% kable(format = "pandoc")
+distribution_prob(clar_lm)
 leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg) %>% as.data.frame() %>% kable(format = "pandoc")
 TukeyHSD(aov(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg))
 #' Model R2_adj 0.24, p<0.02
@@ -216,8 +238,7 @@ plot(gf_patho_lm)
 #' Some residual structure, but a smooth qq fit. 
 #' Minor leverage with point 4 pulls the slope to more level, risking a type II error rather than type I. 
 #' Model is still significant with point 4 removed. 
-performance::check_distribution(gf_patho_lm) %>% as.data.frame() %>% arrange(-p_Residuals) %>% 
-  slice_head(n = 3) %>% kable(format = "pandoc")
+distribution_prob(gf_patho_lm)
 #' Response and residuals normal, no transformations warranted and linear model appropriate.
 summary(gf_patho_lm)
 

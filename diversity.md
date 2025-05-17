@@ -15,7 +15,9 @@ Last updated: 16 May, 2025
   - [Alpha diversity calculations](#alpha-diversity-calculations)
   - [Confidence intervals](#confidence-intervals)
   - [Multivariate analysis](#multivariate-analysis)
-  - [Multivariate analysis](#multivariate-analysis-1)
+  - [Model distribution
+    probabilities](#model-distribution-probabilities)
+  - [Filter spe to a guild](#filter-spe-to-a-guild)
 - [Whole Soil Fungi](#whole-soil-fungi)
   - [Diversity Indices](#diversity-indices)
   - [PLFA](#plfa)
@@ -26,6 +28,11 @@ Last updated: 16 May, 2025
   - [NLFA](#nlfa)
   - [Beta Diversity](#beta-diversity-1)
   - [Unified figure](#unified-figure-1)
+- [Putative plant pathogens](#putative-plant-pathogens)
+  - [Diversity Indices](#diversity-indices-2)
+  - [Sequence abundance](#sequence-abundance)
+  - [Beta Diversity](#beta-diversity-2)
+  - [Unified figure](#unified-figure-2)
 
 # Description
 
@@ -134,11 +141,36 @@ spe <- list(
 
 ``` r
 spe_meta <- list(
-    its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE),
+    its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
+      mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph", 
+                                           TRUE ~ primary_lifestyle)),
     amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE),
     amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"), show_col_types = FALSE)
 ) %>% 
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
+```
+
+### Wrangle species and metadata
+
+Raw and log ratio transformed abundances
+
+``` r
+its_guab <- 
+  spe$its_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+  left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
+  group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+  arrange(field_name, -abund) %>% 
+  pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
+  select(field_name, unidentified, saprotroph, plant_pathogen, everything())
+its_gulr <- 
+  its_guab %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand("rclr", MARGIN = 2) %>%
+  rownames_to_column(var = "field_name") %>% 
+  as_tibble() %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  select(field_name, field_type, everything())
 ```
 
 ### Phyloseq databases
@@ -210,8 +242,6 @@ Calculate upper and lower confidence intervals with alpha=0.05
 ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
 ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
 ```
-
-## Multivariate analysis
 
 ## Multivariate analysis
 
@@ -297,6 +327,47 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
 }
 ```
 
+## Model distribution probabilities
+
+Probable distributions of response and residuals. Package performance
+prints javascript which doesn’t render on github documents.
+
+``` r
+distribution_prob <- function(df) {
+  print(
+    performance::check_distribution(df) %>% 
+      as.data.frame() %>% 
+      select(Distribution, p_Residuals) %>% 
+      arrange(-p_Residuals) %>% 
+      slice_head(n = 3) %>% 
+      kable(format = "pandoc"))
+  print(
+    performance::check_distribution(df) %>% 
+      as.data.frame() %>% 
+      select(Distribution, p_Response) %>% 
+      arrange(-p_Response) %>% 
+      slice_head(n = 3) %>% 
+      kable(format = "pandoc"))
+}
+```
+
+## Filter spe to a guild
+
+Create samp-spe matrix of sequence abundance in a guild
+
+``` r
+guildseq <- function(spe, guild) {
+  guab <- 
+    spe %>% 
+    pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+    left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
+    filter(primary_lifestyle == guild) %>% 
+    select(-primary_lifestyle) %>% 
+    pivot_wider(names_from = otu_num, values_from = abund)
+  return(guab)
+}
+```
+
 # Whole Soil Fungi
 
 ``` r
@@ -324,47 +395,46 @@ par(mfrow = c(2,2))
 plot(its_rich_lm) # variance similar in groups
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
-performance::check_distribution(its_rich_lm) 
+distribution_prob(its_rich_lm)
 ```
 
-    ## # Distribution of Model Family
     ## 
-    ## Predicted Distribution of Residuals
     ## 
-    ##  Distribution Probability
-    ##        cauchy         66%
-    ##        normal         16%
-    ##     lognormal          6%
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## cauchy              0.65625
+    ## normal              0.15625
+    ## lognormal           0.06250
     ## 
-    ## Predicted Distribution of Response
     ## 
-    ##                Distribution Probability
-    ##                   lognormal         38%
-    ##  neg. binomial (zero-infl.)         31%
-    ##               beta-binomial         12%
+    ## Distribution                  p_Response
+    ## ---------------------------  -----------
+    ## lognormal                         0.3750
+    ## neg. binomial (zero-infl.)        0.3125
+    ## beta-binomial                     0.1250
 
 residuals distribution normal or close, response log
 
 ``` r
-leveneTest(richness ~ field_type, data = its_div)
+leveneTest(richness ~ field_type, data = its_div) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2   0.491 0.6186
-    ##       22
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.4909782 | 0.6185753 |
+|       |  22 |        NA |        NA |
 
 ``` r
-leveneTest(residuals(its_rich_lm) ~ its_div$field_type)
+leveneTest(residuals(its_rich_lm) ~ its_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2  0.0882 0.9159
-    ##       22
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.0881621 | 0.9159343 |
+|       |  22 |        NA |        NA |
 
 Residuals/response distributions do not suggest the need for
 transformation. Levene’s p \> 0.05 → fail to reject = variances can be
@@ -472,49 +542,47 @@ par(mfrow = c(2,2))
 plot(its_shan_lm) # variance similar in groups 
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 ``` r
-performance::check_distribution(its_shan_lm) 
+distribution_prob(its_shan_lm)
 ```
 
-    ## # Distribution of Model Family
     ## 
-    ## Predicted Distribution of Residuals
     ## 
-    ##  Distribution Probability
-    ##        cauchy         56%
-    ##        normal         44%
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## cauchy               0.5625
+    ## normal               0.4375
+    ## bernoulli            0.0000
     ## 
-    ## Predicted Distribution of Response
     ## 
-    ##  Distribution Probability
-    ##         gamma         31%
-    ##     lognormal         31%
-    ##           chi         16%
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## gamma              0.31250
+    ## lognormal          0.31250
+    ## chi                0.15625
 
 residuals distribution most likely cauchy/normal; symmetric but long
 tails residuals distribution normal or close, response gamma
 
 ``` r
-leveneTest(shannon ~ field_type, data = its_div)
+leveneTest(shannon ~ field_type, data = its_div) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value  Pr(>F)  
-    ## group  2  2.7424 0.08642 .
-    ##       22                  
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+|       |  Df |  F value |   Pr(\>F) |
+|-------|----:|---------:|----------:|
+| group |   2 | 2.742412 | 0.0864225 |
+|       |  22 |       NA |        NA |
 
 ``` r
-leveneTest(residuals(its_shan_lm) ~ its_div$field_type)
+leveneTest(residuals(its_shan_lm) ~ its_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2   2.266 0.1274
-    ##       22
+|       |  Df |  F value |   Pr(\>F) |
+|-------|----:|---------:|----------:|
+| group |   2 | 2.265973 | 0.1274059 |
+|       |  22 |       NA |        NA |
 
 Residuals distribution does not suggest the need for transformation.
 Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
@@ -626,38 +694,37 @@ par(mfrow = c(2,2))
 plot(plfa_lm) # variance differs slightly in groups. Tails on qq plot diverge, lots of groups structure
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
 
 ``` r
-performance::check_distribution(plfa_lm) 
+distribution_prob(plfa_lm)
 ```
 
-    ## # Distribution of Model Family
     ## 
-    ## Predicted Distribution of Residuals
     ## 
-    ##  Distribution Probability
-    ##        normal         62%
-    ##        cauchy         12%
-    ##         gamma          9%
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.62500
+    ## cauchy              0.12500
+    ## gamma               0.09375
     ## 
-    ## Predicted Distribution of Response
     ## 
-    ##   Distribution Probability
-    ##        weibull         22%
-    ##         normal         19%
-    ##  beta-binomial         12%
+    ## Distribution     p_Response
+    ## --------------  -----------
+    ## weibull             0.21875
+    ## normal              0.18750
+    ## beta-binomial       0.12500
 
 Residuals distribution fits normal, response normal-ish
 
 ``` r
-leveneTest(residuals(plfa_lm) ~ fa$field_type) # No covariate, response and residuals tests equivalent
+leveneTest(residuals(plfa_lm) ~ fa$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2   0.975 0.3929
-    ##       22
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.9749963 | 0.3929075 |
+|       |  22 |        NA |        NA |
 
 Residuals distribution does not suggest the need for transformation.
 Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
@@ -746,7 +813,7 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0585 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0575 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -754,8 +821,8 @@ mva_its$dispersion_test
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##              corn restored remnant
-    ## corn              0.070000   0.122
-    ## restored 0.068726            0.151
+    ## corn              0.069000  0.1210
+    ## restored 0.068726           0.1275
     ## remnant  0.126039 0.135570
 
 ``` r
@@ -769,8 +836,8 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391  3e-02 *  
-    ## field_type   2   1.2321 0.18236 2.5358  5e-04 ***
+    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0280 *  
+    ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
     ## ---
@@ -784,8 +851,8 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
-| 3   | corn     | remnant |   2.858 | 0.281 |      0.0045 |
-| 2   | restored | remnant |   1.062 | 0.054 |      0.3330 |
+| 3   | corn     | remnant |   2.858 | 0.281 |      0.0075 |
+| 2   | restored | remnant |   1.062 | 0.054 |      0.3290 |
 
 Pairwise permanova contrasts
 
@@ -881,47 +948,46 @@ par(mfrow = c(2,2))
 plot(amf_rich_lm) # variance similar in groups with an outlier
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
 ``` r
-performance::check_distribution(amf_rich_lm) 
+distribution_prob(amf_rich_lm)
 ```
 
-    ## # Distribution of Model Family
     ## 
-    ## Predicted Distribution of Residuals
     ## 
-    ##  Distribution Probability
-    ##        normal         41%
-    ##        cauchy         34%
-    ##           chi         19%
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.40625
+    ## cauchy              0.34375
+    ## chi                 0.18750
     ## 
-    ## Predicted Distribution of Response
     ## 
-    ##                Distribution Probability
-    ##               beta-binomial         47%
-    ##  neg. binomial (zero-infl.)         25%
-    ##                      normal          9%
+    ## Distribution                  p_Response
+    ## ---------------------------  -----------
+    ## beta-binomial                    0.46875
+    ## neg. binomial (zero-infl.)       0.25000
+    ## normal                           0.09375
 
 Residuals distribution most likely normal, response bimodal (ignore)
 
 ``` r
-leveneTest(richness ~ field_type, data = amf_div)
+leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2   0.705 0.5049
-    ##       22
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.7049808 | 0.5049423 |
+|       |  22 |        NA |        NA |
 
 ``` r
-leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type)
+leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2  0.6933 0.5105
-    ##       22
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.6933442 | 0.5104973 |
+|       |  22 |        NA |        NA |
 
 Residuals/response distributions do not suggest the need for
 transformation. Levene’s p \> 0.05 → fail to reject = variances can be
@@ -1009,50 +1075,49 @@ par(mfrow = c(2,2))
 plot(amf_shan_lm) 
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
 
 Variance somewhat non-constant in groups, qqplot fit is poor, one
 leverage point (Cook’s \> 0.5)
 
 ``` r
-performance::check_distribution(amf_shan_lm) 
+distribution_prob(amf_shan_lm)
 ```
 
-    ## # Distribution of Model Family
     ## 
-    ## Predicted Distribution of Residuals
     ## 
-    ##  Distribution Probability
-    ##        normal         69%
-    ##        cauchy         19%
-    ##           chi          3%
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.68750
+    ## cauchy              0.18750
+    ## chi                 0.03125
     ## 
-    ## Predicted Distribution of Response
     ## 
-    ##  Distribution Probability
-    ##        normal         25%
-    ##       uniform         16%
-    ##        pareto         12%
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.25000
+    ## uniform            0.15625
+    ## pareto             0.12500
 
 Residuals/response distributions most likely normal.
 
 ``` r
-leveneTest(shannon ~ field_type, data = amf_div)
+leveneTest(shannon ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2  0.2897 0.7513
-    ##       22
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.2896534 | 0.7513336 |
+|       |  22 |        NA |        NA |
 
 ``` r
-leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type)
+leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-    ## Levene's Test for Homogeneity of Variance (center = median)
-    ##       Df F value Pr(>F)
-    ## group  2  0.3023 0.7422
-    ##       22
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.3022751 | 0.7421555 |
+|       |  22 |        NA |        NA |
 
 Residuals/response distributions do not suggest the need for
 transformation. Covariate adds little added explanatory value. Levene’s
@@ -1169,27 +1234,26 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
 
 ``` r
-performance::check_distribution(nlfa_lm) 
+distribution_prob(nlfa_lm)
 ```
 
-    ## # Distribution of Model Family
     ## 
-    ## Predicted Distribution of Residuals
     ## 
-    ##  Distribution Probability
-    ##        cauchy         62%
-    ##        normal         16%
-    ##           chi          6%
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## cauchy              0.62500
+    ## normal              0.15625
+    ## chi                 0.06250
     ## 
-    ## Predicted Distribution of Response
     ## 
-    ##  Distribution Probability
-    ##         gamma         41%
-    ##           chi         12%
-    ##   half-cauchy         12%
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## gamma              0.40625
+    ## chi                0.12500
+    ## half-cauchy        0.12500
 
 ``` r
 # response distribution gamma; resids likely normal
@@ -1234,7 +1298,7 @@ nlfa_lm_log   <- lm(log(amf) ~ field_type, data = fa)
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-44-3.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-44-4.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-2.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-3.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-4.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -1250,7 +1314,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-44-5.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-45-5.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -1374,14 +1438,14 @@ mva_amf$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9275
+    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9335
     ## Residuals 22 0.071014 0.0032279                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.86400  0.9125
-    ## restored 0.85873           0.6750
+    ## corn              0.85550  0.9065
+    ## restored 0.85873           0.6970
     ## remnant  0.89942  0.71821
 
 ``` r
@@ -1395,8 +1459,8 @@ mva_amf$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1260    
-    ## field_type   2  0.21243 0.24757 3.7307 0.0005 ***
+    ## dist_axis_1  1  0.04776 0.05566 1.6777  0.120    
+    ## field_type   2  0.21243 0.24757 3.7307  0.001 ***
     ## Residual    21  0.59788 0.69677                  
     ## Total       24  0.85808 1.00000                  
     ## ---
@@ -1410,8 +1474,8 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.478 | 0.250 |      0.0015 |
-| 3   | corn     | remnant |   4.655 | 0.355 |      0.0023 |
-| 2   | restored | remnant |   0.442 | 0.023 |      0.8740 |
+| 3   | corn     | remnant |   4.655 | 0.355 |      0.0015 |
+| 2   | restored | remnant |   0.442 | 0.023 |      0.8710 |
 
 Pairwise permanova contrasts
 
@@ -1477,3 +1541,466 @@ groups; P \< 0.05 / 0.0001). PCoA of weighted‑UniFrac distances (18S, 97
 ±95 % CI. Numbers in points give years since restoration. Axes show %
 variance. Corn clusters apart from both prairie types (P \< 0.01).
 Shading: corn grey, restored black, remnant white.
+
+# Putative plant pathogens
+
+``` r
+# Putative plant pathogens ———————— ####
+```
+
+Retrieve pathogen sequence abundance
+
+``` r
+patho <- guildseq(spe$its_avg, "plant_pathogen")
+```
+
+## Diversity Indices
+
+``` r
+patho_div <- calc_div(patho)
+```
+
+### Richness
+
+Account for sequencing depth as a covariate
+
+``` r
+patho_rich_lm <- lm(richness ~ sqrt(depth) + field_type, data = patho_div)
+```
+
+Diagnostics
+
+``` r
+par(mfrow = c(2,2))
+plot(patho_rich_lm) # variance similar in groups
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-51-1.png)<!-- -->
+
+``` r
+distribution_prob(patho_rich_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.75000
+    ## cauchy              0.15625
+    ## chi                 0.03125
+    ## 
+    ## 
+    ## Distribution                  p_Response
+    ## ---------------------------  -----------
+    ## beta-binomial                    0.50000
+    ## neg. binomial (zero-infl.)       0.25000
+    ## chi                              0.09375
+
+residuals distribution normal or close, response showing group divisions
+
+``` r
+leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Response var in groups")
+```
+
+|       |  Df |  F value |   Pr(\>F) |
+|-------|----:|---------:|----------:|
+| group |   2 | 1.455231 | 0.2549471 |
+|       |  22 |       NA |        NA |
+
+Response var in groups
+
+``` r
+leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Residuals var in groups")
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.6950833 | 0.5096629 |
+|       |  22 |        NA |        NA |
+
+Residuals var in groups
+
+Residuals/response distributions do not suggest the need for
+transformation. Levene’s p \> 0.05 → fail to reject = variances can be
+considered equal. Model results, group means, and post-hoc
+
+``` r
+summary(patho_rich_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = richness ~ sqrt(depth) + field_type, data = patho_div)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -10.125  -2.848  -1.673   3.606   9.184 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)         18.2292     5.3177   3.428 0.002526 ** 
+    ## sqrt(depth)          0.5727     0.1346   4.255 0.000353 ***
+    ## field_typerestored   3.9477     2.6523   1.488 0.151499    
+    ## field_typeremnant    1.5077     3.5368   0.426 0.674234    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 5.176 on 21 degrees of freedom
+    ## Multiple R-squared:  0.5171, Adjusted R-squared:  0.4482 
+    ## F-statistic: 7.497 on 3 and 21 DF,  p-value: 0.001354
+
+Sequence depth is highly significant; richness doesn’t vary in groups
+Calculate confidence intervals for figure. Arithmetic means calculated
+in this case.
+
+``` r
+patho_rich_em <- emmeans(patho_rich_lm, ~ field_type, type = "response")
+```
+
+``` r
+patho_rich_fig <- 
+  ggplot(summary(patho_rich_em), aes(x = field_type, y = emmean)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = "Richness") +
+  # lims(y = c(0, 760)) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+```
+
+### Shannon’s diversity
+
+Account for sequencing depth as a covariate
+
+``` r
+patho_shan_lm <- lm(shannon ~ sqrt(depth) + field_type, data = patho_div)
+```
+
+Diagnostics
+
+``` r
+par(mfrow = c(2,2))
+plot(its_shan_lm) # variance similar in groups 
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-56-1.png)<!-- -->
+
+``` r
+distribution_prob(patho_shan_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.84375
+    ## cauchy              0.12500
+    ## pareto              0.03125
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.40625
+    ## weibull            0.15625
+    ## pareto             0.12500
+
+residuals distribution most likely cauchy/normal; symmetric but long
+tails response normal
+
+``` r
+leveneTest(shannon ~ field_type, data = patho_div) %>% as.data.frame() %>% kable(format = "pandoc")
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.0061893 | 0.9938316 |
+|       |  22 |        NA |        NA |
+
+``` r
+leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.1904989 | 0.8278957 |
+|       |  22 |        NA |        NA |
+
+Residuals distribution does not suggest the need for transformation.
+Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
+Model results, group means, and post-hoc
+
+``` r
+summary(patho_shan_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = shannon ~ sqrt(depth) + field_type, data = patho_div)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -4.4522 -1.4543 -0.0679  0.7511  4.6287 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)   
+    ## (Intercept)         8.20224    2.44421   3.356  0.00299 **
+    ## sqrt(depth)         0.12056    0.06186   1.949  0.06477 . 
+    ## field_typerestored -2.00480    1.21909  -1.645  0.11496   
+    ## field_typeremnant  -1.63299    1.62567  -1.005  0.32657   
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 2.379 on 21 degrees of freedom
+    ## Multiple R-squared:  0.2459, Adjusted R-squared:  0.1382 
+    ## F-statistic: 2.283 on 3 and 21 DF,  p-value: 0.1086
+
+Sequence depth is not a significant predictor of Shannon diversity, nor
+field type
+
+``` r
+patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
+```
+
+Results tables below show the emmeans summary of group means and
+confidence intervals, with sequencing depth as a covariate, and the post
+hoc contrast of richness among field types.
+
+``` r
+patho_shan_fig <- 
+  ggplot(summary(patho_shan_em), aes(x = field_type, y = emmean)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = "Shannon diversity") +
+  # lims(y = c(0, 160)) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+## Sequence abundance
+
+Use log ratio transformed data, which handles composition bias so depth
+not needed as a covariate.
+
+``` r
+patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr)
+par(mfrow = c(2,2))
+plot(patho_ab_lm) # variance differs slightly in groups. Tails on qq plot diverge
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-60-1.png)<!-- -->
+
+``` r
+distribution_prob(patho_ab_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.53125
+    ## cauchy              0.15625
+    ## gamma               0.12500
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.68750
+    ## cauchy             0.15625
+    ## gamma              0.09375
+
+Residuals distribution fits normal
+
+``` r
+leveneTest(residuals(patho_ab_lm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.7509095 | 0.4836523 |
+|       |  22 |        NA |        NA |
+
+Residuals distribution does not suggest the need for transformation.
+Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
+Model results, group means, and post-hoc, with arithmetic means from
+emmeans
+
+``` r
+summary(patho_ab_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = plant_pathogen ~ field_type, data = its_gulr)
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -0.78137 -0.30407 -0.00819  0.35188  0.73548 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)         0.08181    0.20946   0.391    0.700
+    ## field_typerestored -0.04447    0.23996  -0.185    0.855
+    ## field_typeremnant  -0.33344    0.31418  -1.061    0.300
+    ## 
+    ## Residual standard error: 0.4684 on 22 degrees of freedom
+    ## Multiple R-squared:  0.06018,    Adjusted R-squared:  -0.02525 
+    ## F-statistic: 0.7044 on 2 and 22 DF,  p-value: 0.5052
+
+``` r
+patho_ab_em <- emmeans(patho_ab_lm, ~ field_type, type = "response")
+```
+
+``` r
+patho_ab_fig <- 
+  patho_div %>% 
+  group_by(field_type) %>% 
+  summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
+  ggplot(aes(x = field_type, y = seq_ab)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = seq_ab, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = "Sequence abundance") +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.02))
+```
+
+## Beta Diversity
+
+Abundances were transformed by row proportions in sites before producing
+a distance matrix per [McKnight et
+al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
+
+``` r
+d_patho <- patho %>% 
+  data.frame(row.names = 1) %>% 
+  decostand("total") %>%
+  vegdist("bray")
+mva_patho <- mva(d = d_patho, corr = "lingoes")
+```
+
+``` r
+mva_patho$dispersion_test
+```
+
+    ## 
+    ## Permutation test for homogeneity of multivariate dispersions
+    ## Permutation: free
+    ## Number of permutations: 1999
+    ## 
+    ## Response: Distances
+    ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
+    ## Groups     2 0.015563 0.0077814 1.4865   1999  0.251
+    ## Residuals 22 0.115164 0.0052347                     
+    ## 
+    ## Pairwise comparisons:
+    ## (Observed p-value below diagonal, permuted p-value above diagonal)
+    ##             corn restored remnant
+    ## corn              0.10900   0.310
+    ## restored 0.10559            0.787
+    ## remnant  0.30990  0.77814
+
+``` r
+mva_patho$permanova
+```
+
+    ## Permutation test for adonis under reduced model
+    ## Terms added sequentially (first to last)
+    ## Permutation: free
+    ## Number of permutations: 1999
+    ## 
+    ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
+    ##             Df SumOfSqs      R2      F Pr(>F)    
+    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1280    
+    ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
+    ## Residual    21   2.3587 0.69121                  
+    ## Total       24   3.4124 1.00000                  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+```
+
+|     | group1   | group2  | F_value |    R2 | p_value_adj |
+|-----|:---------|:--------|--------:|------:|------------:|
+| 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
+| 3   | corn     | remnant |   5.690 | 0.453 |      0.0128 |
+| 2   | restored | remnant |   0.768 | 0.040 |      0.6090 |
+
+Pairwise permanova contrasts
+
+Lingoes correction was needed. Based on the homogeneity of variance
+test, the null hypothesis of equal variance among groups is accepted
+across all clusters and in pairwise comparison of clusters (both
+p\>0.05), supporting the application of a PERMANOVA test.
+
+An effect of geographic distance (covariate) on pathogen communities was
+not supported. With geographic distance accounted for, the test variable
+‘field type’ significantly explained variation in fungal communities,
+with a post-hoc test revealing that communities in corn fields differed
+from communities in restored and remnant fields.
+
+Plotting results:
+
+``` r
+patho_ord_data <- mva_patho$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_patho_centers <- patho_ord_data %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+patho_ord <- 
+  ggplot(patho_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  labs(
+    x = paste0("Axis 1 (", mva_patho$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_patho$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.01))
+# guides(fill = guide_legend(position = "inside")) +
+# theme(legend.justification = c(0.03, 0.98))
+```
+
+## Unified figure
+
+``` r
+fig4_ls <- (patho_rich_fig / plot_spacer() / patho_ab_fig) +
+  plot_layout(heights = c(1,0.01,1)) 
+fig4 <- (fig4_ls | plot_spacer() | patho_ord) +
+  plot_layout(widths = c(0.35, 0.01, 0.64)) +
+  plot_annotation(tag_levels = 'a') 
+```
+
+``` r
+fig4
+```
+
+![](resources/diversity_files/figure-gfm/fig4-1.png)<!-- -->
+
+**Fig 4.** Putative plant pathogen communities in **corn**,
+**restored**, and **remnant** prairie fields. **a** OTU richness and
+**b** sequence abundance are shown as columns with 95 % CIs. **c**
+Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
+distances: small points = sites, large circles = field-type centroids
+(error bars = 95 % CI). Cornfields cluster apart from restored or
+remnant prairies (P \< 0.01). Numbers in black circles give years since
+restoration. Axis labels show the percent variation explained.
+Colours/shading: corn = grey, restored = black, remnant = white.

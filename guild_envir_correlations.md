@@ -5,7 +5,11 @@ Beau Larkin
 Last updated: 16 May, 2025
 
 - [Description](#description)
+- [Packages and libraries](#packages-and-libraries)
   - [Root path function](#root-path-function)
+- [Functions](#functions)
+  - [Model distribution
+    probabilities](#model-distribution-probabilities)
 - [Data](#data)
   - [Site metadata and design](#site-metadata-and-design)
   - [Sites-species tables](#sites-species-tables)
@@ -26,11 +30,13 @@ the additive‑log‑ratio (ALR) method [Gloor
 [Greenacre 2021](https://doi.org/10.3389/fmicb.2021.727398) before
 differential tests. Plant cover (10×1 m quadrats, WI only; M. Healy
 2016) was analysed without log‑transformation because values are not
-instrument‑bounded and may exceed 100% \[Gloor 2017\]. Trait data was
-obtained from the [TRY database](https://www.try-db.org)  
+instrument‑bounded and may exceed 100% [Gloor
+2017](https://www.frontiersin.org/articles/10.3389/fmicb.2017.02224).
+Trait data was obtained from the [TRY database](https://www.try-db.org)
 ([Kattge 2010](https://doi.org/10.1111/j.2041-210X.2010.00067.x),
-[Kattge 2011](https://doi.org/10.1111/j.1365-2486.2011.02451.x)). \#
-Packages and libraries
+[Kattge 2011](https://doi.org/10.1111/j.1365-2486.2011.02451.x)).
+
+# Packages and libraries
 
 ``` r
 packages_needed <- c(
@@ -55,6 +61,36 @@ conflict_prefer("select", "dplyr")
 
 ``` r
 source(root_path("resources", "styles.R"))
+```
+
+# Functions
+
+``` r
+# Functions ———————— ####
+```
+
+## Model distribution probabilities
+
+Probable distributions of response and residuals. Package performance
+prints javascript which doesn’t render on github documents.
+
+``` r
+distribution_prob <- function(df) {
+  print(
+    performance::check_distribution(df) %>% 
+      as.data.frame() %>% 
+      select(Distribution, p_Residuals) %>% 
+      arrange(-p_Residuals) %>% 
+      slice_head(n = 3) %>% 
+      kable(format = "pandoc"))
+  print(
+    performance::check_distribution(df) %>% 
+      as.data.frame() %>% 
+      select(Distribution, p_Response) %>% 
+      arrange(-p_Response) %>% 
+      slice_head(n = 3) %>% 
+      kable(format = "pandoc"))
+}
 ```
 
 # Data
@@ -87,7 +123,9 @@ spe <- list(
 
 ``` r
 spe_meta <- list(
-  its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE),
+  its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
+    mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph", 
+                                         TRUE ~ primary_lifestyle)),
   amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE)
 ) %>% 
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
@@ -175,9 +213,7 @@ its_guab <-
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
-  mutate(saprotroph = rowSums(across(ends_with("_saprotroph")))) %>% 
-  select(field_name, unidentified, saprotroph, plant_pathogen, everything()) %>% 
-  select(-ends_with("_saprotroph"))
+  select(field_name, unidentified, saprotroph, plant_pathogen, everything())
 its_guab_pfg <- 
   its_guab %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
@@ -328,28 +364,32 @@ summary(clar_lm)
     ## F-statistic: 4.704 on 2 and 22 DF,  p-value: 0.01991
 
 ``` r
-performance::check_distribution(clar_lm) 
+distribution_prob(clar_lm)
 ```
 
-<div data-pagedtable="false">
-
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":["Distribution"],"name":[1],"type":["chr"],"align":["left"]},{"label":["p_Residuals"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_Response"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"bernoulli","2":"0.00000","3":"0.00000"},{"1":"beta","2":"0.00000","3":"0.00000"},{"1":"beta-binomial","2":"0.00000","3":"0.00000"},{"1":"binomial","2":"0.00000","3":"0.00000"},{"1":"cauchy","2":"0.18750","3":"0.18750"},{"1":"chi","2":"0.00000","3":"0.00000"},{"1":"exponential","2":"0.00000","3":"0.00000"},{"1":"F","2":"0.00000","3":"0.00000"},{"1":"gamma","2":"0.09375","3":"0.06250"},{"1":"half-cauchy","2":"0.00000","3":"0.00000"},{"1":"inverse-gamma","2":"0.00000","3":"0.00000"},{"1":"lognormal","2":"0.00000","3":"0.00000"},{"1":"neg. binomial (zero-infl.)","2":"0.00000","3":"0.00000"},{"1":"negative binomial","2":"0.00000","3":"0.00000"},{"1":"normal","2":"0.71875","3":"0.71875"},{"1":"pareto","2":"0.00000","3":"0.00000"},{"1":"poisson","2":"0.00000","3":"0.00000"},{"1":"poisson (zero-infl.)","2":"0.00000","3":"0.00000"},{"1":"tweedie","2":"0.00000","3":"0.00000"},{"1":"uniform","2":"0.00000","3":"0.00000"},{"1":"weibull","2":"0.00000","3":"0.03125"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-
-</div>
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.71875
+    ## cauchy              0.18750
+    ## gamma               0.09375
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.71875
+    ## cauchy             0.18750
+    ## gamma              0.06250
 
 ``` r
-leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg) %>% as.data.frame() %>% kable(format = "pandoc")
 ```
 
-<div data-pagedtable="false">
-
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Df"],"name":[1],"type":["int"],"align":["right"]},{"label":["F value"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Pr(>F)"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"2","2":"0.2616302","3":"0.7721571","_rn_":"group"},{"1":"22","2":"NA","3":"NA","_rn_":""}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-
-</div>
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.2616302 | 0.7721571 |
+|       |  22 |        NA |        NA |
 
 ``` r
 TukeyHSD(aov(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg))
@@ -372,7 +412,7 @@ Model R2_adj 0.24, p\<0.02
 ggplot(amf_fmlr_pfg, aes(x = field_type, y = Paraglomeraceae)) + geom_boxplot()
 ```
 
-![](resources/guild_envir_correlations_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](resources/guild_envir_correlations_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 ``` r
 para_lm <- lm(Paraglomeraceae ~ field_type, data = amf_fmlr_pfg)
@@ -459,7 +499,7 @@ ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x 
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](resources/guild_envir_correlations_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](resources/guild_envir_correlations_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
 
 ``` r
 gf_patho_lm <- lm(plant_pathogen ~ gf_index, data = its_gulr_pfg %>% filter(field_type == "restored", region != "FL"))
@@ -472,23 +512,30 @@ par(mfrow = c(2,2))
 plot(gf_patho_lm) 
 ```
 
-![](resources/guild_envir_correlations_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](resources/guild_envir_correlations_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
 
 Some residual structure, but a smooth qq fit. Minor leverage with point
 4 pulls the slope to more level, risking a type II error rather than
 type I. Model is still significant with point 4 removed.
 
 ``` r
-performance::check_distribution(gf_patho_lm) 
+distribution_prob(gf_patho_lm)
 ```
 
-<div data-pagedtable="false">
-
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":["Distribution"],"name":[1],"type":["chr"],"align":["left"]},{"label":["p_Residuals"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_Response"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"bernoulli","2":"0.00000","3":"0.03125"},{"1":"beta","2":"0.15625","3":"0.09375"},{"1":"beta-binomial","2":"0.00000","3":"0.00000"},{"1":"binomial","2":"0.00000","3":"0.00000"},{"1":"cauchy","2":"0.18750","3":"0.15625"},{"1":"chi","2":"0.00000","3":"0.00000"},{"1":"exponential","2":"0.03125","3":"0.00000"},{"1":"F","2":"0.00000","3":"0.00000"},{"1":"gamma","2":"0.06250","3":"0.06250"},{"1":"half-cauchy","2":"0.00000","3":"0.00000"},{"1":"inverse-gamma","2":"0.03125","3":"0.03125"},{"1":"lognormal","2":"0.00000","3":"0.00000"},{"1":"neg. binomial (zero-infl.)","2":"0.00000","3":"0.00000"},{"1":"negative binomial","2":"0.00000","3":"0.00000"},{"1":"normal","2":"0.50000","3":"0.56250"},{"1":"pareto","2":"0.00000","3":"0.00000"},{"1":"poisson","2":"0.00000","3":"0.00000"},{"1":"poisson (zero-infl.)","2":"0.00000","3":"0.03125"},{"1":"tweedie","2":"0.00000","3":"0.00000"},{"1":"uniform","2":"0.00000","3":"0.03125"},{"1":"weibull","2":"0.03125","3":"0.00000"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-
-</div>
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.50000
+    ## cauchy              0.18750
+    ## beta                0.15625
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.56250
+    ## cauchy             0.15625
+    ## beta               0.09375
 
 Response and residuals normal, no transformations warranted and linear
 model appropriate.
