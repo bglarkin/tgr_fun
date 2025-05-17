@@ -29,7 +29,7 @@
 packages_needed <- c(
   "colorspace", "emmeans", "gridExtra", "knitr", "tidyverse", "vegan",
   "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
-  "ggpubr", "patchwork", "car", "performance", "broom", "boot"
+  "ggpubr", "patchwork", "car", "performance", "broom", "boot", "indicspecies"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -86,9 +86,44 @@ spe_meta <- list(
 ) %>% 
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
 
+#' ## Plant data
+#' Abundance in functional groups and by species are only available from Wisconsin sites. 
+#' Only C4_grass and forbs are used. Others: C3_grass, legume, and shrubTree were found 
+#' previously to have high VIF in models or were not chosen in forward selection. 
+pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FALSE) %>% 
+  select(field_name, C4_grass, forb)
+
+#' # Data wrangling
+# Data wrangling ———————— ####
+#' 
+#' - C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
+#' - The OTU abundance tables must be wrangled to perform a log-ratio transformation, which reduces
+#' data skewness and compositionality bias (Aitchison 1986, Gloor et al. 2017). 
+#' The transformation will be applied across guilds for whole soil fungi and families for AMF. 
+#' Raw abundances are kept for plotting.
+#' Abundance data are also joined with site and env paramaters to facilitate downstream analyses.
+#' 
+#' ## Grass-forb index
+#' C4 grass and forb cover are highly correlated (*r* = `r round(cor(pfg$forb, pfg$C4_grass), 2)`) 
+#' in restored prairies. In models or constrained ordinations, they are collinear and cannot be
+#' used simultaneously. An index of grass-forb cover is created to solve this problem. 
+pfg_pca <- 
+  pfg %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  filter(field_type == "restored") %>% 
+  select(-field_type) %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand(method = "standardize") %>% 
+  rda()
+pfg_pca %>% summary() # 92% variation on first axis
+gf_index = scores(pfg_pca, choices = 1, display = "sites") %>% 
+  data.frame() %>% 
+  rename(gf_index = PC1) %>% 
+  rownames_to_column(var = "field_name")
 #' 
 #' ### Wrangle species and metadata
 #' Raw and log ratio transformed abundances
+#' #### Whole soil fungi
 its_guab <- 
   spe$its_avg %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
@@ -97,14 +132,47 @@ its_guab <-
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
   select(field_name, unidentified, saprotroph, plant_pathogen, everything())
-its_gulr <- 
+its_guab_pfg <- 
+  its_guab %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+its_gulr_pfg <- 
   its_guab %>% 
   column_to_rownames(var = "field_name") %>% 
   decostand("rclr", MARGIN = 2) %>%
   rownames_to_column(var = "field_name") %>% 
   as_tibble() %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  select(field_name, field_type, everything())
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+#' 
+#' #### AMF
+amf_fmab <- 
+  spe$amf_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+  left_join(spe_meta$amf %>% select(otu_num, family), by = join_by(otu_num)) %>% 
+  group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+  arrange(field_name, -abund) %>% 
+  pivot_wider(names_from = "family", values_from = "abund")
+amf_fmab_pfg <- 
+  amf_fmab %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+amf_fmlr_pfg <- 
+  amf_fmab %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand("rclr", MARGIN = 2) %>% 
+  rownames_to_column(var = "field_name") %>% 
+  as_tibble() %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
 
 #' ### Phyloseq databases
 #' Only AMF needed here for UNIFRAC distance in PCoA
@@ -131,151 +199,9 @@ fa <- read_csv(file.path(getwd(), "clean_data/plfa.csv"), show_col_types = FALSE
 
 #' 
 #' # Functions
+#' Executed from a separate script to save lines here
 # Functions ———————— ####
-#' 
-#' ## Alpha diversity calculations
-#' Returns a dataframe of alpha diversity (richness, Shannon's) for analysis and plotting.
-#+ calc_diversity_function
-calc_div <- function(spe) {
-    div_data <- 
-        spe %>% 
-        rowwise() %>% 
-        mutate(
-            depth = sum(c_across(starts_with("otu"))),
-            richness = sum(c_across(starts_with("otu")) > 0),
-            shannon = exp(diversity(c_across(starts_with("otu"))))
-        ) %>% 
-        select(-starts_with("otu")) %>% 
-        as_tibble() %>% 
-        left_join(sites %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-        mutate(across(starts_with("field"), ~ factor(.x, ordered = FALSE)))
-    
-    return(div_data)
-    
-}
-
-#' ## Confidence intervals
-#' Calculate upper and lower confidence intervals with alpha=0.05
-#+ ci_function
-ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
-ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
-
-#' 
-#' ## Multivariate analysis
-#' Ordination → dispersion check → global & pairwise PERMANOVA → envfit.
-#' Args: *d* dist, *env* metadata, *corr* PCoA correction, *nperm* permutations.
-#' 
-#+ mva_function
-mva <- function(d, env=sites, corr="none", nperm=1999) {
-    # Ordination
-    p <- pcoa(d, correction = corr)
-    p_vals <- data.frame(p$values) %>% 
-        rownames_to_column(var = "Dim") %>% 
-        mutate(Dim = as.integer(Dim))
-    p_eig <- p_vals[1:2, grep("Rel", colnames(p_vals))] %>% round(., 3) * 100
-    p_vec <- data.frame(p$vectors)
-    p_sco <-
-        p_vec[, 1:2] %>%
-        rownames_to_column(var = "field_name") %>%
-        left_join(env, by = join_by(field_name))
-    p_fit <- envfit(
-        p_vec ~ yr_since, 
-        data.frame(env, row.names = 1), 
-        choices = c(1,2),
-        na.rm = TRUE,
-        permutations = nperm)
-    p_fit_sco <- scores(p_fit, display = "bp")
-    # Test multivariate dispersions
-    disper <- betadisper(d, env$field_type, bias.adjust = TRUE)
-    mvdisper <- permutest(disper, pairwise = TRUE, permutations = nperm)
-    # Global PERMANOVA
-    gl_permtest <- adonis2(
-        d ~ dist_axis_1 + field_type,
-        data = env,
-        permutations = nperm,
-        by = "terms")
-    # Pairwise PERMANOVA
-    group_var <- as.character(env$field_type)
-    groups <- as.data.frame(t(combn(unique(group_var), m = 2)))
-    contrasts <- data.frame(
-        group1 = groups$V1,
-        group2 = groups$V2,
-        R2 = NA,
-        F_value = NA,
-        df1 = NA,
-        df2 = NA,
-        p_value = NA
-    )
-    for (i in seq(nrow(contrasts))) {
-        group_subset <-
-            group_var == contrasts$group1[i] |
-            group_var == contrasts$group2[i]
-        # Contrast matrices for Unifrac and Bray distance aren't compatible
-        contrast_matrix <- as.matrix(d)[group_subset, group_subset]
-        fit <- adonis2(
-            contrast_matrix ~ env$dist_axis_1[group_subset] + group_var[group_subset],
-            permutations = nperm,
-            by = "terms")
-        # Prepare contrasts table
-        contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
-        contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
-        contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
-        contrasts$df2[i] <- fit[grep("Residual", rownames(fit)), "Df"]
-        contrasts$p_value[i] <- fit[grep("group_var", rownames(fit)), 5]
-    }
-    contrasts$p_value_adj <- p.adjust(contrasts$p_value, method = "fdr") %>% round(., 4)
-    
-    # Results
-    out <- list(
-        correction_note    = p$note,
-        ordination_values  = p_vals[1:10, ],
-        axis_pct           = p_eig,
-        ordination_scores  = p_sco,
-        dispersion_test    = mvdisper,
-        permanova          = gl_permtest,
-        pairwise_contrasts = contrasts,
-        vector_fit_result  = p_fit,
-        vector_fit_scores  = p_fit_sco
-    )
-    
-    return(out)
-    
-}
-
-#' ## Model distribution probabilities
-#' Probable distributions of response and residuals. Package performance prints
-#' javascript which doesn't render on github documents.
-#+ distribution_prob_function
-distribution_prob <- function(df) {
-  print(
-    performance::check_distribution(df) %>% 
-      as.data.frame() %>% 
-      select(Distribution, p_Residuals) %>% 
-      arrange(-p_Residuals) %>% 
-      slice_head(n = 3) %>% 
-      kable(format = "pandoc"))
-  print(
-    performance::check_distribution(df) %>% 
-      as.data.frame() %>% 
-      select(Distribution, p_Response) %>% 
-      arrange(-p_Response) %>% 
-      slice_head(n = 3) %>% 
-      kable(format = "pandoc"))
-}
-
-#' ## Filter spe to a guild
-#' Create samp-spe matrix of sequence abundance in a guild
-#+ guildseq_function
-guildseq <- function(spe, guild) {
-  guab <- 
-    spe %>% 
-    pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-    left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
-    filter(primary_lifestyle == guild) %>% 
-    select(-primary_lifestyle) %>% 
-    pivot_wider(names_from = otu_num, values_from = abund)
-  return(guab)
-}
+source(root_path("code", "functions.R"))
 
 #' 
 #' # Whole Soil Fungi
@@ -754,6 +680,39 @@ ggsave(root_path("figs", "fig3.png"),
        units = "in",
        dpi = 600)
 
+#' ## AMF abundance in families
+#' Display raw abundances in a table but separate means with log ratio transformed data
+amf_fmab_ft <- 
+  amf_fmab_pfg %>% 
+  pivot_longer(Glomeraceae:Gigasporaceae, names_to = "family", values_to = "abund") %>% 
+  group_by(field_type, family) %>% 
+  summarize(abund = mean(abund), .groups = "drop") %>% 
+  pivot_wider(names_from = field_type, values_from = abund) %>% 
+  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 1))) %>% 
+  arrange(-total)
+kable(amf_fmab_ft, format = "pandoc", caption = "AMF abundance in families and field types")
+#' 
+#' Test RCLR transformed abundances across field types for each family
+glom_lm <- lm(Glomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(glom_lm)
+#' NS
+clar_lm <- lm(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(clar_lm)
+distribution_prob(clar_lm)
+leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg) %>% as.data.frame() %>% kable(format = "pandoc")
+TukeyHSD(aov(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg))
+#' Model R2_adj 0.24, p<0.02
+ggplot(amf_fmlr_pfg, aes(x = field_type, y = Paraglomeraceae)) + geom_boxplot()
+para_lm <- lm(Paraglomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(para_lm)
+#' NS
+dive_lm <- lm(Diversisporaceae ~ field_type, data = amf_fmlr_pfg)
+summary(dive_lm)
+#' NS
+giga_lm <- lm(Gigasporaceae ~ field_type, data = amf_fmlr_pfg)
+summary(giga_lm)
+#' NS
+
 #' 
 #' # Putative plant pathogens
 # Putative plant pathogens ———————— ####
@@ -837,7 +796,7 @@ patho_shan_fig <-
 #' ## Sequence abundance
 #' Use log ratio transformed data, which handles composition bias so depth not 
 #' needed as a covariate.
-patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr)
+patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr_pfg)
 par(mfrow = c(2,2))
 plot(patho_ab_lm) # variance differs slightly in groups. Tails on qq plot diverge
 distribution_prob(patho_ab_lm)
@@ -939,3 +898,58 @@ ggsave(root_path("figs", "fig4.png"),
        height = 4,
        units = "in",
        dpi = 600)
+
+
+
+
+
+
+# Pathogen indicator species
+patho_ind <- inspan("plant_pathogen")
+patho_ind %>% 
+  select(-otu_num, -primary_lifestyle, -p.value) %>% 
+  arrange(field_type, -p_val_adj) %>% 
+  kable(format = "pandoc", caption = paste("Indicator species analysis, plant pathogens"))
+
+
+
+
+
+
+# Pathogens and plants
+# Formally incorporate into this script later...
+ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x = gf_index, y = plant_pathogen)) +
+  geom_smooth(method = "lm") +
+  geom_point(shape = 1, size = 7) +
+  geom_text(aes(label = yr_since)) +
+  labs(x = "Index: C4_grass <—> Forb abundance", y = "Sequence abundance, plant pathogens") +
+  theme_classic()
+
+
+gf_patho_lm <- lm(plant_pathogen ~ gf_index, data = its_gulr_pfg %>% filter(field_type == "restored", region != "FL"))
+#' Diagnostics
+par(mfrow = c(2,2))
+plot(gf_patho_lm) 
+#' Some residual structure, but a smooth qq fit. 
+#' Minor leverage with point 4 pulls the slope to more level, risking a type II error rather than type I. 
+#' Model is still significant with point 4 removed. 
+distribution_prob(gf_patho_lm)
+#' Response and residuals normal, no transformations warranted and linear model appropriate.
+summary(gf_patho_lm)
+
+
+
+
+
+
+
+
+
+
+
+# saprotrophs
+sapro_ind <- inspan("saprotroph")
+sapro_ind %>% 
+  select(-otu_num, -primary_lifestyle, -p.value) %>%
+  arrange(field_type, -p_val_adj) %>%
+  kable(format = "pandoc", caption = paste("Indicator species analysis, saprotrophs"))

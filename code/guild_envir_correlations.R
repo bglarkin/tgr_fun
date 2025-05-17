@@ -61,6 +61,53 @@ distribution_prob <- function(df) {
       kable(format = "pandoc"))
 }
 
+#' ## Perform Indicator Species Analysis
+#' Function `inspan()` takes a combined species and sites data frame and 
+#' filters OTUs for indicators of field types. 
+#+ inspan_function
+inspan <- function(spe_sites, spe_meta, nperm=1999) {
+  spe <- data.frame(
+    spe_sites %>% select(field_key, starts_with("otu")),
+    row.names = 1
+  )
+  grp = spe_sites$field_type
+  mp <- multipatt(
+    spe, grp, max.order = 1, 
+    control = how(nperm = np))
+  si <- mp$sign %>% 
+    select(index, stat, p.value) %>% 
+    mutate(field_type = case_when(index == 1 ~ "corn", 
+                                  index == 2 ~ "restored", 
+                                  index == 3 ~ "remnant")) %>% 
+    filter(p.value < 0.05) %>% 
+    rownames_to_column(var = "otu_num") %>%
+    select(-index) %>% 
+    as_tibble()
+  A  <- mp$A %>% 
+    as.data.frame() %>% 
+    rownames_to_column(var = "otu_num") %>% 
+    pivot_longer(cols = corn:remnant, 
+                 names_to = "field_type", 
+                 values_to = "A")
+  B <- mp$B %>% 
+    as.data.frame() %>% 
+    rownames_to_column(var = "otu_num") %>% 
+    pivot_longer(cols = corn:remnant, 
+                 names_to = "field_type", 
+                 values_to = "B")
+  out <- 
+    si %>% 
+    left_join(A, by = join_by(otu_num, field_type)) %>% 
+    left_join(B, by = join_by(otu_num, field_type)) %>% 
+    left_join(meta %>% select(-otu_ID), by = join_by(otu_num)) %>% 
+    select(otu_num, A, B, stat, p.value, 
+           field_type, primary_lifestyle, everything()) %>% 
+    arrange(field_type, -stat)
+  
+  return(out)
+  
+}
+
 #' # Data
 # Data ———————— ####
 #' 
@@ -189,8 +236,7 @@ amf_fmlr_pfg <-
 # AMF abundance in families ———————— ####
 #' Display raw abundances in a table but separate means with log ratio transformed data
 amf_fmab_ft <- 
-  amf_fmab %>% 
-  left_join(sites %>% select(field_name, field_type, yr_since), by = join_by(field_name)) %>% 
+  amf_fmab_pfg %>% 
   pivot_longer(Glomeraceae:Gigasporaceae, names_to = "family", values_to = "abund") %>% 
   group_by(field_type, family) %>% 
   summarize(abund = mean(abund), .groups = "drop") %>% 
@@ -219,6 +265,12 @@ summary(dive_lm)
 giga_lm <- lm(Gigasporaceae ~ field_type, data = amf_fmlr_pfg)
 summary(giga_lm)
 #' NS
+
+
+
+# Pathogen indicators
+
+patho
 
 
 
