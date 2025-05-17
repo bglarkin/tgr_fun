@@ -22,7 +22,7 @@
 #'  2. homogeneity test diagnostics 
 #'  3. PERMANOVA (+ pairwise) 
 #' Cartesian inter‑site distance enters models as a covariate per [Redondo 2020](https://doi.org/10.1093/femsec/fiaa082).
-
+#' 
 #' # Packages and libraries
 # Libraries ———————— ####
 #+ packages,message=FALSE
