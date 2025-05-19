@@ -912,7 +912,14 @@ patho_ind %>%
   kable(format = "pandoc", caption = paste("Indicator species analysis, plant pathogens"))
 
 
-
+guildseq(spe$its_avg, "plant_pathogen") %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+  left_join(spe_meta$its, by = join_by(otu_num)) %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  select(-otu_ID, -otu_num, -primary_lifestyle, -field_name) %>% 
+  filter(species != "unidentified", abund > 0) %>% 
+  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(sum(.x), 1)) %>% 
+  kable(format = "pandoc", caption = "Named pathogen species and abundances in field types")
 
 
 

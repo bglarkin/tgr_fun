@@ -159,9 +159,6 @@ guildseq <- function(spe, guild) {
 #' Function `inspan()` takes a combined species and sites data frame and 
 #' filters OTUs for indicators of field types. 
 #+ inspan_function
-guild <- "plant_pathogen"
-nperm <- 1999
-
 inspan <- function(guild, nperm=1999) {
   data <- guildseq(spe$its_avg, guild) %>% 
     left_join(sites, by = join_by(field_name))
