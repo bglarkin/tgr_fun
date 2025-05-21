@@ -2,22 +2,20 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 16 May, 2025
+Last updated: 21 May, 2025
 
 - [Description](#description)
+- [Packages and libraries](#packages-and-libraries)
   - [Root path function](#root-path-function)
 - [Data](#data)
   - [Site metadata and design](#site-metadata-and-design)
   - [Sites-species tables](#sites-species-tables)
   - [Microbial species metadata](#microbial-species-metadata)
+  - [Plant data](#plant-data)
+- [Data wrangling](#data-wrangling)
+  - [Grass-forb index](#grass-forb-index)
   - [Fatty Acids: Biomass](#fatty-acids-biomass)
 - [Functions](#functions)
-  - [Alpha diversity calculations](#alpha-diversity-calculations)
-  - [Confidence intervals](#confidence-intervals)
-  - [Multivariate analysis](#multivariate-analysis)
-  - [Model distribution
-    probabilities](#model-distribution-probabilities)
-  - [Filter spe to a guild](#filter-spe-to-a-guild)
 - [Whole Soil Fungi](#whole-soil-fungi)
   - [Diversity Indices](#diversity-indices)
   - [PLFA](#plfa)
@@ -28,11 +26,17 @@ Last updated: 16 May, 2025
   - [NLFA](#nlfa)
   - [Beta Diversity](#beta-diversity-1)
   - [Unified figure](#unified-figure-1)
+  - [AMF abundance in families](#amf-abundance-in-families)
 - [Putative plant pathogens](#putative-plant-pathogens)
   - [Diversity Indices](#diversity-indices-2)
   - [Sequence abundance](#sequence-abundance)
   - [Beta Diversity](#beta-diversity-2)
   - [Unified figure](#unified-figure-2)
+- [Putative saprotrophs](#putative-saprotrophs)
+  - [Diversity Indices](#diversity-indices-3)
+  - [Sequence abundance](#sequence-abundance-1)
+  - [Beta Diversity](#beta-diversity-3)
+  - [Unified figure](#unified-figure-3)
 
 # Description
 
@@ -52,7 +56,9 @@ pairwise LSMs via *emmeans*.
 1. PCoA of Bray (ITS) or UNIFRAC (18S) distances,  
 2. homogeneity test diagnostics 3. PERMANOVA (+ pairwise) Cartesian
 inter‑site distance enters models as a covariate per [Redondo
-2020](https://doi.org/10.1093/femsec/fiaa082). \# Packages and libraries
+2020](https://doi.org/10.1093/femsec/fiaa082).
+
+# Packages and libraries
 
 ``` r
 # Libraries ———————— ####
@@ -62,7 +68,8 @@ inter‑site distance enters models as a covariate per [Redondo
 packages_needed <- c(
   "colorspace", "emmeans", "gridExtra", "knitr", "tidyverse", "vegan",
   "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
-  "ggpubr", "patchwork", "car", "performance", "broom", "boot"
+  "ggpubr", "patchwork", "car", "performance", "broom", "boot", "indicspecies",
+  "MASS", "DHARMa"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -150,9 +157,79 @@ spe_meta <- list(
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
 ```
 
+## Plant data
+
+Abundance in functional groups and by species are only available from
+Wisconsin sites. Only C4_grass and forbs are used. Others: C3_grass,
+legume, and shrubTree were found previously to have high VIF in models
+or were not chosen in forward selection.
+
+``` r
+pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FALSE) %>% 
+  select(field_name, C4_grass, forb)
+```
+
+# Data wrangling
+
+``` r
+# Data wrangling ———————— ####
+```
+
+- C4 grass and forb cover are transformed into a single index using PCA
+  in restored sites only.
+- The OTU abundance tables must be wrangled to perform a log-ratio
+  transformation, which reduces data skewness and compositionality bias
+  (Aitchison 1986, Gloor et al. 2017). The transformation will be
+  applied across guilds for whole soil fungi and families for AMF. Raw
+  abundances are kept for plotting. Abundance data are also joined with
+  site and env paramaters to facilitate downstream analyses.
+
+## Grass-forb index
+
+C4 grass and forb cover are highly correlated (*r* = -0.91) in restored
+prairies. In models or constrained ordinations, they are collinear and
+cannot be used simultaneously. An index of grass-forb cover is created
+to solve this problem.
+
+``` r
+pfg_pca <- 
+  pfg %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  filter(field_type == "restored") %>% 
+  select(-field_type) %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand(method = "standardize") %>% 
+  rda()
+pfg_pca %>% summary() # 92% variation on first axis
+```
+
+    ## 
+    ## Call:
+    ## rda(X = .) 
+    ## 
+    ## Partitioning of variance:
+    ##               Inertia Proportion
+    ## Total               2          1
+    ## Unconstrained       2          1
+    ## 
+    ## Eigenvalues, and their contribution to the variance 
+    ## 
+    ## Importance of components:
+    ##                          PC1     PC2
+    ## Eigenvalue            1.8482 0.15184
+    ## Proportion Explained  0.9241 0.07592
+    ## Cumulative Proportion 0.9241 1.00000
+
+``` r
+gf_index = scores(pfg_pca, choices = 1, display = "sites") %>% 
+  data.frame() %>% 
+  rename(gf_index = PC1) %>% 
+  rownames_to_column(var = "field_name")
+```
+
 ### Wrangle species and metadata
 
-Raw and log ratio transformed abundances
+Raw and log ratio transformed abundances \#### Whole soil fungi
 
 ``` r
 its_guab <- 
@@ -163,14 +240,50 @@ its_guab <-
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
   select(field_name, unidentified, saprotroph, plant_pathogen, everything())
-its_gulr <- 
+its_guab_pfg <- 
+  its_guab %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+its_gulr_pfg <- 
   its_guab %>% 
   column_to_rownames(var = "field_name") %>% 
   decostand("rclr", MARGIN = 2) %>%
   rownames_to_column(var = "field_name") %>% 
   as_tibble() %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  select(field_name, field_type, everything())
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+```
+
+#### AMF
+
+``` r
+amf_fmab <- 
+  spe$amf_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+  left_join(spe_meta$amf %>% select(otu_num, family), by = join_by(otu_num)) %>% 
+  group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+  arrange(field_name, -abund) %>% 
+  pivot_wider(names_from = "family", values_from = "abund")
+amf_fmab_pfg <- 
+  amf_fmab %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+amf_fmlr_pfg <- 
+  amf_fmab %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand("rclr", MARGIN = 2) %>% 
+  rownames_to_column(var = "field_name") %>% 
+  as_tibble() %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
 ```
 
 ### Phyloseq databases
@@ -205,167 +318,11 @@ fa <- read_csv(file.path(getwd(), "clean_data/plfa.csv"), show_col_types = FALSE
 
 # Functions
 
+Executed from a separate script to save lines here
+
 ``` r
 # Functions ———————— ####
-```
-
-## Alpha diversity calculations
-
-Returns a dataframe of alpha diversity (richness, Shannon’s) for
-analysis and plotting.
-
-``` r
-calc_div <- function(spe) {
-    div_data <- 
-        spe %>% 
-        rowwise() %>% 
-        mutate(
-            depth = sum(c_across(starts_with("otu"))),
-            richness = sum(c_across(starts_with("otu")) > 0),
-            shannon = exp(diversity(c_across(starts_with("otu"))))
-        ) %>% 
-        select(-starts_with("otu")) %>% 
-        as_tibble() %>% 
-        left_join(sites %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-        mutate(across(starts_with("field"), ~ factor(.x, ordered = FALSE)))
-    
-    return(div_data)
-    
-}
-```
-
-## Confidence intervals
-
-Calculate upper and lower confidence intervals with alpha=0.05
-
-``` r
-ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
-ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
-```
-
-## Multivariate analysis
-
-Ordination → dispersion check → global & pairwise PERMANOVA → envfit.
-Args: *d* dist, *env* metadata, *corr* PCoA correction, *nperm*
-permutations.
-
-``` r
-mva <- function(d, env=sites, corr="none", nperm=1999) {
-    # Ordination
-    p <- pcoa(d, correction = corr)
-    p_vals <- data.frame(p$values) %>% 
-        rownames_to_column(var = "Dim") %>% 
-        mutate(Dim = as.integer(Dim))
-    p_eig <- p_vals[1:2, grep("Rel", colnames(p_vals))] %>% round(., 3) * 100
-    p_vec <- data.frame(p$vectors)
-    p_sco <-
-        p_vec[, 1:2] %>%
-        rownames_to_column(var = "field_name") %>%
-        left_join(env, by = join_by(field_name))
-    p_fit <- envfit(
-        p_vec ~ yr_since, 
-        data.frame(env, row.names = 1), 
-        choices = c(1,2),
-        na.rm = TRUE,
-        permutations = nperm)
-    p_fit_sco <- scores(p_fit, display = "bp")
-    # Test multivariate dispersions
-    disper <- betadisper(d, env$field_type, bias.adjust = TRUE)
-    mvdisper <- permutest(disper, pairwise = TRUE, permutations = nperm)
-    # Global PERMANOVA
-    gl_permtest <- adonis2(
-        d ~ dist_axis_1 + field_type,
-        data = env,
-        permutations = nperm,
-        by = "terms")
-    # Pairwise PERMANOVA
-    group_var <- as.character(env$field_type)
-    groups <- as.data.frame(t(combn(unique(group_var), m = 2)))
-    contrasts <- data.frame(
-        group1 = groups$V1,
-        group2 = groups$V2,
-        R2 = NA,
-        F_value = NA,
-        df1 = NA,
-        df2 = NA,
-        p_value = NA
-    )
-    for (i in seq(nrow(contrasts))) {
-        group_subset <-
-            group_var == contrasts$group1[i] |
-            group_var == contrasts$group2[i]
-        # Contrast matrices for Unifrac and Bray distance aren't compatible
-        contrast_matrix <- as.matrix(d)[group_subset, group_subset]
-        fit <- adonis2(
-            contrast_matrix ~ env$dist_axis_1[group_subset] + group_var[group_subset],
-            permutations = nperm,
-            by = "terms")
-        # Prepare contrasts table
-        contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
-        contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
-        contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
-        contrasts$df2[i] <- fit[grep("Residual", rownames(fit)), "Df"]
-        contrasts$p_value[i] <- fit[grep("group_var", rownames(fit)), 5]
-    }
-    contrasts$p_value_adj <- p.adjust(contrasts$p_value, method = "fdr") %>% round(., 4)
-    
-    # Results
-    out <- list(
-        correction_note    = p$note,
-        ordination_values  = p_vals[1:10, ],
-        axis_pct           = p_eig,
-        ordination_scores  = p_sco,
-        dispersion_test    = mvdisper,
-        permanova          = gl_permtest,
-        pairwise_contrasts = contrasts,
-        vector_fit_result  = p_fit,
-        vector_fit_scores  = p_fit_sco
-    )
-    
-    return(out)
-    
-}
-```
-
-## Model distribution probabilities
-
-Probable distributions of response and residuals. Package performance
-prints javascript which doesn’t render on github documents.
-
-``` r
-distribution_prob <- function(df) {
-  print(
-    performance::check_distribution(df) %>% 
-      as.data.frame() %>% 
-      select(Distribution, p_Residuals) %>% 
-      arrange(-p_Residuals) %>% 
-      slice_head(n = 3) %>% 
-      kable(format = "pandoc"))
-  print(
-    performance::check_distribution(df) %>% 
-      as.data.frame() %>% 
-      select(Distribution, p_Response) %>% 
-      arrange(-p_Response) %>% 
-      slice_head(n = 3) %>% 
-      kable(format = "pandoc"))
-}
-```
-
-## Filter spe to a guild
-
-Create samp-spe matrix of sequence abundance in a guild
-
-``` r
-guildseq <- function(spe, guild) {
-  guab <- 
-    spe %>% 
-    pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-    left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
-    filter(primary_lifestyle == guild) %>% 
-    select(-primary_lifestyle) %>% 
-    pivot_wider(names_from = otu_num, values_from = abund)
-  return(guab)
-}
+source(root_path("code", "functions.R"))
 ```
 
 # Whole Soil Fungi
@@ -395,7 +352,7 @@ par(mfrow = c(2,2))
 plot(its_rich_lm) # variance similar in groups
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 ``` r
 distribution_prob(its_rich_lm)
@@ -542,7 +499,7 @@ par(mfrow = c(2,2))
 plot(its_shan_lm) # variance similar in groups 
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 ``` r
 distribution_prob(its_shan_lm)
@@ -694,7 +651,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) # variance differs slightly in groups. Tails on qq plot diverge, lots of groups structure
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 ``` r
 distribution_prob(plfa_lm)
@@ -813,7 +770,7 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0575 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999  0.065 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -821,8 +778,8 @@ mva_its$dispersion_test
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##              corn restored remnant
-    ## corn              0.069000  0.1210
-    ## restored 0.068726           0.1275
+    ## corn              0.067500  0.1205
+    ## restored 0.068726           0.1420
     ## remnant  0.126039 0.135570
 
 ``` r
@@ -836,7 +793,7 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0280 *  
+    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0290 *  
     ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
@@ -851,8 +808,8 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
-| 3   | corn     | remnant |   2.858 | 0.281 |      0.0075 |
-| 2   | restored | remnant |   1.062 | 0.054 |      0.3290 |
+| 3   | corn     | remnant |   2.858 | 0.281 |      0.0015 |
+| 2   | restored | remnant |   1.062 | 0.054 |      0.3310 |
 
 Pairwise permanova contrasts
 
@@ -948,7 +905,7 @@ par(mfrow = c(2,2))
 plot(amf_rich_lm) # variance similar in groups with an outlier
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 ``` r
 distribution_prob(amf_rich_lm)
@@ -1075,7 +1032,7 @@ par(mfrow = c(2,2))
 plot(amf_shan_lm) 
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
 
 Variance somewhat non-constant in groups, qqplot fit is poor, one
 leverage point (Cook’s \> 0.5)
@@ -1234,7 +1191,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -1267,8 +1224,8 @@ leveneTest(residuals(nlfa_lm) ~ fa$field_type) # No covariate, response and resi
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residuals distribution does not suggest the need for transformation.
-Levene’s p ~ 0.05 → reject the null of equal variance. Check CV in
+Residuals distribution variance may not be equal in groups. Levene’s p =
+0.054, close to rejecting the null of equal variance. Check CV in
 groups.
 
 ``` r
@@ -1298,7 +1255,7 @@ nlfa_lm_log   <- lm(log(amf) ~ field_type, data = fa)
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-2.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-3.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-45-4.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-49-1.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-49-2.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-49-3.png)<!-- -->![](resources/diversity_files/figure-gfm/unnamed-chunk-49-4.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -1314,7 +1271,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-45-5.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-49-5.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -1438,14 +1395,14 @@ mva_amf$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9335
+    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9435
     ## Residuals 22 0.071014 0.0032279                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.85550  0.9065
-    ## restored 0.85873           0.6970
+    ## corn              0.85000   0.915
+    ## restored 0.85873            0.725
     ## remnant  0.89942  0.71821
 
 ``` r
@@ -1459,8 +1416,8 @@ mva_amf$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1  0.04776 0.05566 1.6777  0.120    
-    ## field_type   2  0.21243 0.24757 3.7307  0.001 ***
+    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1425    
+    ## field_type   2  0.21243 0.24757 3.7307 0.0010 ***
     ## Residual    21  0.59788 0.69677                  
     ## Total       24  0.85808 1.00000                  
     ## ---
@@ -1474,8 +1431,8 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.478 | 0.250 |      0.0015 |
-| 3   | corn     | remnant |   4.655 | 0.355 |      0.0015 |
-| 2   | restored | remnant |   0.442 | 0.023 |      0.8710 |
+| 3   | corn     | remnant |   4.655 | 0.355 |      0.0023 |
+| 2   | restored | remnant |   0.442 | 0.023 |      0.8620 |
 
 Pairwise permanova contrasts
 
@@ -1542,6 +1499,211 @@ groups; P \< 0.05 / 0.0001). PCoA of weighted‑UniFrac distances (18S, 97
 variance. Corn clusters apart from both prairie types (P \< 0.01).
 Shading: corn grey, restored black, remnant white.
 
+## AMF abundance in families
+
+Display raw abundances in a table but separate means with log ratio
+transformed data
+
+``` r
+amf_fmab_ft <- 
+  amf_fmab_pfg %>% 
+  pivot_longer(Glomeraceae:Gigasporaceae, names_to = "family", values_to = "abund") %>% 
+  group_by(field_type, family) %>% 
+  summarize(abund = mean(abund), .groups = "drop") %>% 
+  pivot_wider(names_from = field_type, values_from = abund) %>% 
+  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 1))) %>% 
+  arrange(-total)
+kable(amf_fmab_ft, format = "pandoc", caption = "AMF abundance in families and field types")
+```
+
+| family               |   corn | restored | remnant |  total |
+|:---------------------|-------:|---------:|--------:|-------:|
+| Glomeraceae          | 3001.3 |   2924.2 |  2952.1 | 8877.5 |
+| Claroideoglomeraceae |  151.2 |    455.5 |   367.4 |  974.1 |
+| Paraglomeraceae      |  330.9 |    228.6 |    89.8 |  649.4 |
+| Diversisporaceae     |  110.1 |     81.7 |    61.1 |  252.9 |
+| Gigasporaceae        |    3.5 |     17.5 |    10.9 |   31.9 |
+
+AMF abundance in families and field types
+
+Test RCLR transformed abundances across field types for each family
+
+``` r
+glom_lm <- lm(Glomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(glom_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = Glomeraceae ~ field_type, data = amf_fmlr_pfg)
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -0.46762 -0.12054  0.03023  0.18259  0.30843 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)         0.03598    0.10567   0.340    0.737
+    ## field_typerestored -0.04618    0.12106  -0.381    0.707
+    ## field_typeremnant  -0.04014    0.15850  -0.253    0.802
+    ## 
+    ## Residual standard error: 0.2363 on 22 degrees of freedom
+    ## Multiple R-squared:  0.006636,   Adjusted R-squared:  -0.08367 
+    ## F-statistic: 0.07349 on 2 and 22 DF,  p-value: 0.9294
+
+NS
+
+``` r
+clar_lm <- lm(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(clar_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -1.2116 -0.3921  0.0490  0.2913  1.3191 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)   
+    ## (Intercept)         -0.7689     0.2870  -2.679  0.01372 * 
+    ## field_typerestored   1.0087     0.3288   3.067  0.00564 **
+    ## field_typeremnant    0.7708     0.4305   1.790  0.08717 . 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6418 on 22 degrees of freedom
+    ## Multiple R-squared:  0.2996, Adjusted R-squared:  0.2359 
+    ## F-statistic: 4.704 on 2 and 22 DF,  p-value: 0.01991
+
+``` r
+distribution_prob(clar_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.71875
+    ## cauchy              0.18750
+    ## gamma               0.09375
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.71875
+    ## cauchy             0.18750
+    ## gamma              0.06250
+
+``` r
+leveneTest(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg) %>% as.data.frame() %>% kable(format = "pandoc")
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.2616302 | 0.7721571 |
+|       |  22 |        NA |        NA |
+
+``` r
+TukeyHSD(aov(Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg))
+```
+
+    ##   Tukey multiple comparisons of means
+    ##     95% family-wise confidence level
+    ## 
+    ## Fit: aov(formula = Claroideoglomeraceae ~ field_type, data = amf_fmlr_pfg)
+    ## 
+    ## $field_type
+    ##                        diff        lwr      upr     p adj
+    ## restored-corn     1.0086676  0.1826065 1.834729 0.0149598
+    ## remnant-corn      0.7708261 -0.3107418 1.852394 0.1960301
+    ## remnant-restored -0.2378415 -1.1391481 0.663465 0.7870933
+
+Model R2_adj 0.24, p\<0.02
+
+``` r
+ggplot(amf_fmlr_pfg, aes(x = field_type, y = Paraglomeraceae)) + geom_boxplot()
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-55-1.png)<!-- -->
+
+``` r
+para_lm <- lm(Paraglomeraceae ~ field_type, data = amf_fmlr_pfg)
+summary(para_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = Paraglomeraceae ~ field_type, data = amf_fmlr_pfg)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.1910 -1.0760  0.2353  0.9508  2.2856 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)          0.3096     0.5922   0.523    0.606
+    ## field_typerestored  -0.2269     0.6785  -0.334    0.741
+    ## field_typeremnant   -1.0270     0.8884  -1.156    0.260
+    ## 
+    ## Residual standard error: 1.324 on 22 degrees of freedom
+    ## Multiple R-squared:  0.06421,    Adjusted R-squared:  -0.02087 
+    ## F-statistic: 0.7547 on 2 and 22 DF,  p-value: 0.4819
+
+NS
+
+``` r
+dive_lm <- lm(Diversisporaceae ~ field_type, data = amf_fmlr_pfg)
+summary(dive_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = Diversisporaceae ~ field_type, data = amf_fmlr_pfg)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.0799 -0.6190  0.1989  0.8105  2.0707 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)          0.3472     0.5047   0.688    0.499
+    ## field_typerestored  -0.4499     0.5782  -0.778    0.445
+    ## field_typeremnant   -0.3706     0.7570  -0.490    0.629
+    ## 
+    ## Residual standard error: 1.129 on 22 degrees of freedom
+    ## Multiple R-squared:  0.02687,    Adjusted R-squared:  -0.0616 
+    ## F-statistic: 0.3037 on 2 and 22 DF,  p-value: 0.7411
+
+NS
+
+``` r
+giga_lm <- lm(Gigasporaceae ~ field_type, data = amf_fmlr_pfg)
+summary(giga_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = Gigasporaceae ~ field_type, data = amf_fmlr_pfg)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.7186 -0.9071  0.3179  0.9320  2.2616 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)         -0.4378     0.5768  -0.759    0.456
+    ## field_typerestored   0.5587     0.6608   0.846    0.407
+    ## field_typeremnant    0.5012     0.8652   0.579    0.568
+    ## 
+    ## Residual standard error: 1.29 on 22 degrees of freedom
+    ## Multiple R-squared:  0.03196,    Adjusted R-squared:  -0.05604 
+    ## F-statistic: 0.3632 on 2 and 22 DF,  p-value: 0.6995
+
+NS
+
 # Putative plant pathogens
 
 ``` r
@@ -1575,7 +1737,7 @@ par(mfrow = c(2,2))
 plot(patho_rich_lm) # variance similar in groups
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-51-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-61-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_rich_lm)
@@ -1688,7 +1850,7 @@ par(mfrow = c(2,2))
 plot(its_shan_lm) # variance similar in groups 
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-56-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-66-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_shan_lm)
@@ -1790,12 +1952,12 @@ Use log ratio transformed data, which handles composition bias so depth
 not needed as a covariate.
 
 ``` r
-patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr)
+patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr_pfg)
 par(mfrow = c(2,2))
 plot(patho_ab_lm) # variance differs slightly in groups. Tails on qq plot diverge
 ```
 
-![](resources/diversity_files/figure-gfm/unnamed-chunk-60-1.png)<!-- -->
+![](resources/diversity_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_ab_lm)
@@ -1838,7 +2000,7 @@ summary(patho_ab_lm)
 
     ## 
     ## Call:
-    ## lm(formula = plant_pathogen ~ field_type, data = its_gulr)
+    ## lm(formula = plant_pathogen ~ field_type, data = its_gulr_pfg)
     ## 
     ## Residuals:
     ##      Min       1Q   Median       3Q      Max 
@@ -1858,15 +2020,21 @@ summary(patho_ab_lm)
 patho_ab_em <- emmeans(patho_ab_lm, ~ field_type, type = "response")
 ```
 
+Figure could show raw abundances or rclr transformed. The latter is less
+intuitive, but the former may not match the results of statistical
+tests. Try a dot and line plot to handle negative values and show rclr
+means…
+
 ``` r
 patho_ab_fig <- 
-  patho_div %>% 
-  group_by(field_type) %>% 
-  summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
-  ggplot(aes(x = field_type, y = seq_ab)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = seq_ab, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Sequence abundance") +
+  # patho_div %>% 
+  # group_by(field_type) %>% 
+  # summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
+  ggplot(summary(patho_ab_em), aes(x = field_type, y = emmean)) +
+  # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0, linewidth = lw) +
+  geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
+  labs(x = NULL, y = "Seq. abund. (LRT)") +
   scale_fill_manual(values = c("gray", "black", "white")) +
   theme_cor +
   theme(legend.position = "none",
@@ -1899,14 +2067,14 @@ mva_patho$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.015563 0.0077814 1.4865   1999  0.251
+    ## Groups     2 0.015563 0.0077814 1.4865   1999 0.2395
     ## Residuals 22 0.115164 0.0052347                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.10900   0.310
-    ## restored 0.10559            0.787
+    ## corn              0.10200   0.315
+    ## restored 0.10559            0.761
     ## remnant  0.30990  0.77814
 
 ``` r
@@ -1920,7 +2088,7 @@ mva_patho$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1280    
+    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1250    
     ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
     ## Residual    21   2.3587 0.69121                  
     ## Total       24   3.4124 1.00000                  
@@ -1935,8 +2103,8 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
-| 3   | corn     | remnant |   5.690 | 0.453 |      0.0128 |
-| 2   | restored | remnant |   0.768 | 0.040 |      0.6090 |
+| 3   | corn     | remnant |   5.690 | 0.453 |      0.0090 |
+| 2   | restored | remnant |   0.768 | 0.040 |      0.6200 |
 
 Pairwise permanova contrasts
 
@@ -2004,3 +2172,822 @@ distances: small points = sites, large circles = field-type centroids
 remnant prairies (P \< 0.01). Numbers in black circles give years since
 restoration. Axis labels show the percent variation explained.
 Colours/shading: corn = grey, restored = black, remnant = white.
+
+| A | B | stat | p_val_adj | field_type | phylum | class | order | family | genus | species |
+|---:|---:|---:|---:|:---|:---|:---|:---|:---|:---|:---|
+| 1.0000000 | 0.40 | 0.6324555 | 0.4282200 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Stenocarpella | unidentified |
+| 0.9658793 | 0.60 | 0.7612671 | 0.2684000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Lectera | unidentified |
+| 0.7371032 | 1.00 | 0.8585472 | 0.1830000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
+| 0.7457627 | 1.00 | 0.8635755 | 0.1753750 | corn | Ascomycota | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
+| 0.8630287 | 0.80 | 0.8309169 | 0.1753750 | corn | Ascomycota | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
+| 1.0000000 | 0.60 | 0.7745967 | 0.1372500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola |
+| 0.8861696 | 1.00 | 0.9413658 | 0.0915000 | corn | Ascomycota | Sordariomycetes | Magnaporthales | Magnaporthaceae | Gaeumannomyces | unidentified |
+| 0.9918904 | 0.80 | 0.8907931 | 0.0653571 | corn | Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
+| 0.9552239 | 0.80 | 0.8741734 | 0.0610000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | unidentified |
+| 1.0000000 | 0.80 | 0.8944272 | 0.0549000 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | unidentified |
+| 1.0000000 | 0.80 | 0.8944272 | 0.0549000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
+| 0.9812387 | 1.00 | 0.9905749 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola |
+| 0.9553209 | 1.00 | 0.9774052 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
+| 0.9023836 | 1.00 | 0.9499387 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
+| 0.8965517 | 0.50 | 0.6695341 | 0.3660000 | remnant | Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides |
+| 0.7768055 | 1.00 | 0.8813657 | 0.2418214 | remnant | Ascomycota | Dothideomycetes | Pleosporales | Massarinaceae | Stagonospora | unidentified |
+| 0.7444885 | 1.00 | 0.8628374 | 0.0915000 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Ilyonectria | unidentified |
+| 0.7660806 | 0.75 | 0.7579977 | 0.4282200 | restored | Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Pseudopithomyces | unidentified |
+| 0.5818028 | 1.00 | 0.7627600 | 0.4036765 | restored | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
+
+Indicator species analysis, plant pathogens
+
+| phylum | class | order | family | genus | species | corn | restored | remnant |
+|:---|:---|:---|:---|:---|:---|---:|---:|---:|
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_oxysporum | 213.9 | 340.1 | 295.0 |
+| Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris | 214.9 | 26.1 | 7.4 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Nectria | Nectria_ramulariae | 119.8 | 59.5 | 58.8 |
+| Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina | 134.4 | 30.1 | 16.0 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_chlamydosporum | 64.1 | 51.9 | 30.1 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_concentricum | 33.2 | 37.1 | 43.6 |
+| Ascomycota | Dothideomycetes | Pleosporales | Periconiaceae | Periconia | Periconia_neobrittanica | 1.1 | 76.8 | 8.9 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Gibberella | Gibberella_baccata | 30.2 | 15.4 | 13.1 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_algeriense | 3.1 | 10.9 | 33.5 |
+| Basidiomycota | Agaricomycetes | Cantharellales | Ceratobasidiaceae | Rhizoctonia | Rhizoctonia_fusispora | 1.0 | 20.9 | 23.0 |
+| Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | Colletotrichum_spaethianum | 31.8 | 10.0 | 1.7 |
+| Basidiomycota | Ustilaginomycetes | Ustilaginales | Ustilaginaceae | Ustilago | Ustilago_nunavutica | 0.3 | 29.4 | 6.6 |
+| Ascomycota | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Plenodomus | Plenodomus_biglobosus | 0.3 | 20.9 | 13.8 |
+| Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Paraphoma | Paraphoma_radicina | 8.4 | 4.0 | 8.2 |
+| Basidiomycota | Agaricomycetes | Cantharellales | Ceratobasidiaceae | Thanatephorus | Thanatephorus_cucumeris | 0.7 | 5.1 | 8.0 |
+| Ascomycota | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Leptosphaeria | Leptosphaeria_sclerotioides | 0.9 | 6.8 | 2.7 |
+| Ascomycota | Pezizomycetes | Pezizales | Sarcosomataceae | Urnula | Urnula_craterium | 0.6 | 0.6 | 5.0 |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymellaceae | Neoascochyta | Neoascochyta_argentina | 0.8 | 1.6 | 2.3 |
+| Ascomycota | Dothideomycetes | Pleosporales | Periconiaceae | Periconia | Periconia_pseudodigitata | NA | 3.0 | 1.7 |
+| Ascomycota | Sordariomycetes | Xylariales | Microdochiaceae | Microdochium | Microdochium_colombiense | 2.8 | 0.7 | NA |
+| Basidiomycota | Ustilaginomycetes | Urocystidales | Urocystidaceae | Urocystis | Urocystis_agropyri | NA | 1.0 | NA |
+| Basidiomycota | Agaricomycetes | Corticiales | Corticiaceae | Limonomyces | Limonomyces_roseipellis | NA | 1.5 | NA |
+| Ascomycota | Dothideomycetes | Capnodiales | Teratosphaeriaceae | Devriesia | Devriesia_pseudoamericana | NA | 18.7 | 0.4 |
+| Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Itersonilia | Itersonilia_perplexans | NA | 4.7 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Leptosphaeria | Leptosphaeria_etheridgei | 0.5 | 0.5 | NA |
+| Basidiomycota | Ustilaginomycetes | Ustilaginales | Ustilaginaceae | Melanopsichium | Melanopsichium_pennsylvanicum | NA | 0.4 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola | 30.4 | 2.3 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Paraphoma | Paraphoma_chlamydocopiosa | NA | 4.4 | 2.2 |
+| Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides | NA | 0.6 | 0.6 |
+| Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Bipolaris | Bipolaris_brizae | NA | 0.6 | 0.4 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_solani | 7.1 | 0.6 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymellaceae | Neoascochyta | Neoascochyta_europaea | NA | 0.5 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Coniothyriaceae | Coniothyrium | Coniothyrium_multiporum | NA | 0.5 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola | 10.7 | NA | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | Curvularia_protuberata | 0.6 | 0.4 | NA |
+| Basidiomycota | Exobasidiomycetes | Tilletiales | Tilletiaceae | Tilletia | Tilletia_maclaganii | 1.3 | 3.7 | NA |
+| Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | Colletotrichum_chlorophyti | 8.2 | NA | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_nematophilum | 4.3 | 0.8 | NA |
+| Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Phaeocytostroma | Phaeocytostroma_ambiguum | 0.6 | NA | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | Curvularia_spicifera | 0.3 | NA | 0.3 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Volutella | Volutella_consors | NA | 0.8 | 0.6 |
+| Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Gibellulopsis | Gibellulopsis_nigrescens | NA | 13.0 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymellaceae | Neoascochyta | Neoascochyta_paspali | NA | 2.9 | NA |
+| Ascomycota | Dothideomycetes | Capnodiales | Neodevriesiaceae | Neodevriesia | Neodevriesia_poagena | NA | 2.1 | NA |
+| Basidiomycota | Agaricomycetes | Corticiales | Corticiaceae | Laetisaria | Laetisaria_arvalis | NA | 2.3 | NA |
+| Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | Diaporthe_helianthi | NA | 1.0 | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Veronaea | Veronaea_japonica | NA | 1.3 | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Veronaea | Veronaea_compacta | NA | 0.8 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymellaceae | Didymella | Didymella_glomerata | NA | 9.9 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_calamagrostidis | NA | 0.2 | 0.4 |
+| Basidiomycota | Agaricomycetes | Corticiales | Corticiaceae | Limonomyces | Limonomyces_culmigenus | NA | 15.4 | NA |
+| Ascomycota | Dothideomycetes | Capnodiales | Teratosphaeriaceae | Penidiella | Penidiella_aggregata | NA | 1.0 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Typhulaceae | Typhula | Typhula_micans | 0.5 | 0.3 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | Ophiosphaerella_korrae | NA | 1.1 | 19.1 |
+| Ascomycota | Sordariomycetes | Xylariales | Xylariaceae | Rosellinia | Rosellinia_aquila | NA | NA | 0.8 |
+| Ascomycota | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Subplenodomus | Subplenodomus_valerianae | NA | NA | 0.5 |
+| Ascomycota | Dothideomycetes | Pleosporales | Periconiaceae | Periconia | Periconia_homothallica | NA | 32.0 | 2.9 |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymellaceae | Neoascochyta | Neoascochyta_desmazieri | NA | 2.2 | NA |
+| Ascomycota | Dothideomycetes | Capnodiales | Teratosphaeriaceae | Devriesia | Devriesia_americana | NA | 8.4 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Leptosphaeria | Leptosphaeria_avenaria | NA | 4.0 | NA |
+| Ascomycota | Sordariomycetes | Xylariales | Microdochiaceae | Microdochium | Microdochium_seminicola | NA | 12.2 | 0.2 |
+| Ascomycota | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Sphaerellopsis | Sphaerellopsis_filum | NA | NA | 0.8 |
+| Basidiomycota | Pucciniomycetes | Pucciniales | Phragmidiaceae | Kuehneola | Kuehneola_uredinis | NA | 1.1 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Pyrenophora | Pyrenophora_tritici-repentis | NA | 22.0 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_polyphialidicum | NA | 5.5 | NA |
+| Basidiomycota | Exobasidiomycetes | Entylomatales | Entylomataceae | Entyloma | Entyloma_hieracii | NA | 2.2 | NA |
+| Basidiomycota | Agaricomycetes | Cantharellales | Ceratobasidiaceae | Ceratobasidium | Ceratobasidium_cereale | NA | 0.9 | NA |
+| Ascomycota | Pezizomycetes | Pezizales | Sarcosomataceae | Strumella | Strumella_coryneoidea | NA | 0.3 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Typhulaceae | Typhula | Typhula_phacorrhiza | 5.9 | NA | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Niessliaceae | Eucasphaeria | Eucasphaeria_capensis | NA | 0.5 | NA |
+| Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Peroneutypa | Peroneutypa_scoparia | NA | 0.2 | NA |
+
+Named pathogen species and abundances in field types
+
+    ## `geom_smooth()` using formula = 'y ~ x'
+
+![](resources/diversity_files/figure-gfm/fig4_save-1.png)<!-- -->
+
+Diagnostics
+
+``` r
+par(mfrow = c(2,2))
+plot(gf_patho_lm) 
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
+
+Some residual structure, but a smooth qq fit. Minor leverage with point
+4 pulls the slope to more level, risking a type II error rather than
+type I. Model is still significant with point 4 removed.
+
+``` r
+distribution_prob(gf_patho_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.50000
+    ## cauchy              0.18750
+    ## beta                0.15625
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.56250
+    ## cauchy             0.15625
+    ## beta               0.09375
+
+Response and residuals normal, no transformations warranted and linear
+model appropriate.
+
+``` r
+summary(gf_patho_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = plant_pathogen ~ gf_index, data = its_gulr_pfg %>% 
+    ##     filter(field_type == "restored", region != "FL"))
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -0.33142 -0.15670  0.03228  0.16276  0.33424 
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  0.25081    0.07504   3.342 0.010196 *  
+    ## gf_index     0.62189    0.11521   5.398 0.000647 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.2373 on 8 degrees of freedom
+    ## Multiple R-squared:  0.7846, Adjusted R-squared:  0.7577 
+    ## F-statistic: 29.14 on 1 and 8 DF,  p-value: 0.0006475
+
+# Putative saprotrophs
+
+``` r
+# Putative saprotrophs ———————— ####
+```
+
+Retrieve pathogen sequence abundance
+
+``` r
+sapro <- guildseq(spe$its_avg, "saprotroph")
+```
+
+## Diversity Indices
+
+``` r
+sapro_div <- calc_div(sapro)
+```
+
+### Richness
+
+Account for sequencing depth as a covariate
+
+``` r
+sapro_rich_lm <- lm(richness ~ sqrt(depth) + field_type, data = sapro_div)
+```
+
+Diagnostics
+
+``` r
+par(mfrow = c(2,2))
+plot(sapro_rich_lm) # heavy residual structure, poor qq alignment, borderline leverage
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-80-1.png)<!-- -->
+
+``` r
+distribution_prob(sapro_rich_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.53125
+    ## cauchy              0.31250
+    ## gamma               0.06250
+    ## 
+    ## 
+    ## Distribution                  p_Response
+    ## ---------------------------  -----------
+    ## neg. binomial (zero-infl.)       0.37500
+    ## beta-binomial                    0.34375
+    ## weibull                          0.09375
+
+residuals distribution normal or close, response showing group divisions
+and count overdispersion (binomial family)
+
+``` r
+leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Response var in groups")
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.3571473 | 0.7036516 |
+|       |  22 |        NA |        NA |
+
+Response var in groups
+
+``` r
+leveneTest(residuals(sapro_rich_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Residuals var in groups")
+```
+
+|       |  Df |  F value |   Pr(\>F) |
+|-------|----:|---------:|----------:|
+| group |   2 | 0.582445 | 0.5669135 |
+|       |  22 |       NA |        NA |
+
+Residuals var in groups
+
+Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
+LM-log transformation did not improve fit (not shown). Despite lack of
+unequal variance, does gamma glm improve other diagnostics?
+
+``` r
+sapro_rich_glm  <- glm(richness ~ sqrt(depth) + field_type, family = Gamma(link = "log"), data = sapro_div)
+sapro_glm_diag <- glm.diag(sapro_rich_glm)
+glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-82-1.png)<!-- -->
+
+scale-location much more uniform but still a little heavy tails, qqplot
+shows much better fit; leverage point now ~0.3
+
+``` r
+performance::check_overdispersion(sapro_rich_glm) # not detected
+```
+
+    ## # Overdispersion test
+    ## 
+    ##  dispersion ratio = 1.077
+    ##           p-value = 0.688
+
+    ## No overdispersion detected.
+
+``` r
+sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
+plot(sapro_glm_sim) # DHARMa passes all tests
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
+
+Gamma glm is the best choice; no high-leverage point Model results,
+group means, and post-hoc
+
+``` r
+summary(sapro_rich_glm)
+```
+
+    ## 
+    ## Call:
+    ## glm(formula = richness ~ sqrt(depth) + field_type, family = Gamma(link = "log"), 
+    ##     data = sapro_div)
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)         4.01301    0.33583  11.950 7.87e-11 ***
+    ## sqrt(depth)         0.01320    0.00615   2.147   0.0436 *  
+    ## field_typerestored  0.16985    0.08468   2.006   0.0579 .  
+    ## field_typeremnant   0.23528    0.12262   1.919   0.0687 .  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for Gamma family taken to be 0.01675549)
+    ## 
+    ##     Null deviance: 0.44813  on 24  degrees of freedom
+    ## Residual deviance: 0.35321  on 21  degrees of freedom
+    ## AIC: 212.54
+    ## 
+    ## Number of Fisher Scoring iterations: 5
+
+Sequence depth is significant; richness doesn’t vary in groups. View
+trend:
+
+``` r
+sapro_div %>% 
+  group_by(field_type) %>% 
+  summarize(avg_richness = mean(richness),
+            avg_depth = mean(depth), .groups = "drop") %>% 
+  mutate(across(starts_with("avg"), ~ round(.x, 1))) %>% 
+  kable(format = "pandoc")
+```
+
+| field_type | avg_richness | avg_depth |
+|:-----------|-------------:|----------:|
+| corn       |        111.8 |    2915.9 |
+| restored   |        119.3 |    2054.2 |
+| remnant    |        119.5 |    1624.2 |
+
+depth and richness in a negative relationship; depth not driving
+richness… Calculate confidence intervals for figure. Arithmetic means
+calculated in this case, back-transformed.
+
+``` r
+sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
+```
+
+``` r
+sapro_rich_fig <- 
+  ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = "Richness") +
+  # lims(y = c(0, 760)) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+```
+
+### Shannon’s diversity
+
+Account for sequencing depth as a covariate
+
+``` r
+sapro_shan_lm <- lm(shannon ~ sqrt(depth) + field_type, data = sapro_div)
+```
+
+Diagnostics
+
+``` r
+par(mfrow = c(2,2))
+plot(its_shan_lm) # variance similar in groups 
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-88-1.png)<!-- -->
+
+``` r
+distribution_prob(sapro_shan_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.84375
+    ## cauchy              0.12500
+    ## gamma               0.03125
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## chi                 0.2500
+    ## gamma               0.2500
+    ## weibull             0.1875
+
+residuals distribution most likely cauchy/normal; symmetric but long
+tails response non-normal, check variance in groups though
+
+``` r
+leveneTest(shannon ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable(format = "pandoc")
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.3384785 | 0.7165013 |
+|       |  22 |        NA |        NA |
+
+``` r
+leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+```
+
+|       |  Df |   F value |   Pr(\>F) |
+|-------|----:|----------:|----------:|
+| group |   2 | 0.0967895 | 0.9081315 |
+|       |  22 |        NA |        NA |
+
+Residuals distribution does not suggest the need for transformation.
+Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
+Model results, group means, and post-hoc
+
+``` r
+summary(sapro_shan_lm)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = shannon ~ sqrt(depth) + field_type, data = sapro_div)
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -16.0683  -2.7170  -0.4009   4.9857  13.1550 
+    ## 
+    ## Coefficients:
+    ##                    Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)         14.4961    20.1203   0.720    0.479
+    ## sqrt(depth)          0.1539     0.3685   0.418    0.680
+    ## field_typerestored   6.9051     5.0736   1.361    0.188
+    ## field_typeremnant    6.5844     7.3464   0.896    0.380
+    ## 
+    ## Residual standard error: 7.755 on 21 degrees of freedom
+    ## Multiple R-squared:  0.093,  Adjusted R-squared:  -0.03657 
+    ## F-statistic: 0.7178 on 3 and 21 DF,  p-value: 0.5524
+
+Sequence depth is not a significant predictor of Shannon diversity, nor
+field type
+
+``` r
+sapro_shan_em <- emmeans(sapro_shan_lm, ~ field_type, type = "response")
+```
+
+Results tables below show the emmeans summary of group means and
+confidence intervals, with sequencing depth as a covariate, and the post
+hoc contrast of richness among field types.
+
+``` r
+sapro_shan_fig <- 
+  ggplot(summary(sapro_shan_em), aes(x = field_type, y = emmean)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = "Shannon diversity") +
+  # lims(y = c(0, 160)) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+## Sequence abundance
+
+Use log ratio transformed data to detrend compositional data before
+differential analysis. Transformation also corrects for different sample
+depths; no covariate needed.
+
+``` r
+sapro_ab_lm <- lm(saprotroph ~ field_type, data = its_gulr_pfg)
+par(mfrow = c(2,2))
+plot(sapro_ab_lm) 
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
+
+variance differs slightly in groups. Tails on qq plot diverge. Variance
+unequal but not bad, two leverage points.
+
+``` r
+distribution_prob(sapro_ab_lm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.37500
+    ## cauchy              0.28125
+    ## beta                0.15625
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.43750
+    ## cauchy             0.28125
+    ## beta               0.09375
+
+Residuals distribution fits normal, so do residuals
+
+``` r
+leveneTest(residuals(sapro_ab_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
+```
+
+|       |  Df |  F value |   Pr(\>F) |
+|-------|----:|---------:|----------:|
+| group |   2 | 1.632722 | 0.2181992 |
+|       |  22 |       NA |        NA |
+
+Residuals distribution does not suggest the need for transformation.
+Levene’s p \> 0.05 → fail to reject = variances can be considered equal
+(aka homoscedastic by group).
+
+Try a model that handles the heavy tails on the residual distribution
+better? Transformed data has values \< 0, so gamma glm is not available.
+Try robust regression (robust M-estimator with bisquare ψ).
+
+``` r
+sapro_ab_rlm <- rlm(saprotroph ~ field_type, data = its_gulr_pfg)
+par(mfrow = c(2,2))
+plot(sapro_ab_rlm) 
+```
+
+![](resources/diversity_files/figure-gfm/unnamed-chunk-95-1.png)<!-- -->
+
+Minor visual improvements to fit
+
+``` r
+distribution_prob(sapro_ab_rlm)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.37500
+    ## cauchy              0.28125
+    ## beta                0.18750
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.43750
+    ## cauchy             0.28125
+    ## beta               0.09375
+
+Residuals distribution fits normal, so do residuals
+
+``` r
+leveneTest(residuals(sapro_ab_rlm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+```
+
+|       |  Df |  F value |   Pr(\>F) |
+|-------|----:|---------:|----------:|
+| group |   2 | 1.632722 | 0.2181992 |
+|       |  22 |       NA |        NA |
+
+``` r
+broom::tidy(sapro_ab_lm, conf.int = TRUE)
+```
+
+    ## # A tibble: 3 × 7
+    ##   term               estimate std.error statistic  p.value conf.low conf.high
+    ##   <chr>                 <dbl>     <dbl>     <dbl>    <dbl>    <dbl>     <dbl>
+    ## 1 (Intercept)           0.320    0.0921      3.47 0.00215     0.129     0.511
+    ## 2 field_typerestored   -0.343    0.106      -3.25 0.00367    -0.562    -0.124
+    ## 3 field_typeremnant    -0.628    0.138      -4.55 0.000159   -0.915    -0.342
+
+``` r
+broom::tidy(sapro_ab_rlm, conf.int = TRUE) # rlm produces a better fit
+```
+
+    ## # A tibble: 3 × 6
+    ##   term               estimate std.error statistic conf.low conf.high
+    ##   <chr>                 <dbl>     <dbl>     <dbl>    <dbl>     <dbl>
+    ## 1 (Intercept)           0.344    0.0786      4.38    0.190     0.498
+    ## 2 field_typerestored   -0.357    0.0901     -3.96   -0.534    -0.181
+    ## 3 field_typeremnant    -0.662    0.118      -5.61   -0.894    -0.431
+
+Points with a high Cook’s statistic remain high, but have less leverage.
+Iteratively re-weighted least squares (rlm) lowers leverage for the two
+extreme sites, but their Cook’s distances remain ≈ 0.5 because the
+robust fit reduces the residual scale estimate, inflating studentised
+residuals. Coefficient estimates changed little, confirming results are
+not driven by those points.
+
+Produce model results, group means, and post-hoc, with arithmetic means
+from emmeans
+
+``` r
+summary(sapro_ab_rlm)
+```
+
+    ## 
+    ## Call: rlm(formula = saprotroph ~ field_type, data = its_gulr_pfg)
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -0.46643 -0.10841  0.01117  0.07956  0.50632 
+    ## 
+    ## Coefficients:
+    ##                    Value   Std. Error t value
+    ## (Intercept)         0.3441  0.0786     4.3761
+    ## field_typerestored -0.3571  0.0901    -3.9635
+    ## field_typeremnant  -0.6624  0.1180    -5.6150
+    ## 
+    ## Residual standard error: 0.1607 on 22 degrees of freedom
+
+``` r
+sapro_ab_em <- emmeans(sapro_ab_rlm, ~ field_type, type = "response", vcov. = vcov(sapro_ab_rlm))
+```
+
+| field_type |     emmean |        SE |  df |  asymp.LCL |  asymp.UCL |
+|:-----------|-----------:|----------:|----:|-----------:|-----------:|
+| corn       |  0.3441472 | 0.0786424 |  NA |  0.1900110 |  0.4982835 |
+| restored   | -0.0129481 | 0.0439624 |  NA | -0.0991129 |  0.0732167 |
+| remnant    | -0.3182172 | 0.0879249 |  NA | -0.4905467 | -0.1458876 |
+
+Confidence level used: 0.95
+
+| contrast           |  estimate |        SE |  df |  z.ratio |   p.value |
+|:-------------------|----------:|----------:|----:|---------:|----------:|
+| corn - restored    | 0.3570953 | 0.0900962 |  NA | 3.963491 | 0.0002180 |
+| corn - remnant     | 0.6623644 | 0.1179636 |  NA | 5.614991 | 0.0000001 |
+| restored - remnant | 0.3052691 | 0.0983030 |  NA | 3.105390 | 0.0053973 |
+
+P value adjustment: tukey method for comparing a family of 3 estimates
+
+Aligning statistical result with visual appearance requires a dot line
+plot
+
+``` r
+sapro_ab_fig <- 
+  # sapro_div %>% 
+  # group_by(field_type) %>% 
+  # summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
+  ggplot(summary(sapro_ab_em), aes(x = field_type, y = emmean)) +
+  # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0, linewidth = lw) +
+  geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
+  geom_text(aes(y = asymp.UCL, label = c("a", "b", "c")), vjust = -1.5, family = "serif", size = 4) + 
+  labs(x = NULL, y = "Seq. abund. (LRT)") +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  lims(y = c(-0.6, 0.7)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.02))
+```
+
+## Beta Diversity
+
+Abundances were transformed by row proportions in sites before producing
+a distance matrix per [McKnight et
+al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
+
+``` r
+d_sapro <- sapro %>% 
+  data.frame(row.names = 1) %>% 
+  decostand("total") %>%
+  vegdist("bray")
+mva_sapro <- mva(d = d_sapro)
+```
+
+``` r
+mva_patho$dispersion_test
+```
+
+    ## 
+    ## Permutation test for homogeneity of multivariate dispersions
+    ## Permutation: free
+    ## Number of permutations: 1999
+    ## 
+    ## Response: Distances
+    ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
+    ## Groups     2 0.015563 0.0077814 1.4865   1999 0.2395
+    ## Residuals 22 0.115164 0.0052347                     
+    ## 
+    ## Pairwise comparisons:
+    ## (Observed p-value below diagonal, permuted p-value above diagonal)
+    ##             corn restored remnant
+    ## corn              0.10200   0.315
+    ## restored 0.10559            0.761
+    ## remnant  0.30990  0.77814
+
+``` r
+mva_patho$permanova
+```
+
+    ## Permutation test for adonis under reduced model
+    ## Terms added sequentially (first to last)
+    ## Permutation: free
+    ## Number of permutations: 1999
+    ## 
+    ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
+    ##             Df SumOfSqs      R2      F Pr(>F)    
+    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1250    
+    ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
+    ## Residual    21   2.3587 0.69121                  
+    ## Total       24   3.4124 1.00000                  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+```
+
+|     | group1   | group2  | F_value |    R2 | p_value_adj |
+|-----|:---------|:--------|--------:|------:|------------:|
+| 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
+| 3   | corn     | remnant |   5.690 | 0.453 |      0.0090 |
+| 2   | restored | remnant |   0.768 | 0.040 |      0.6200 |
+
+Pairwise permanova contrasts
+
+Lingoes correction was not necessary. Based on the homogeneity of
+variance test, the null hypothesis of equal variance among groups is
+accepted across all clusters and in pairwise comparison of clusters
+(both p\>0.05), supporting the application of a PERMANOVA test.
+
+An effect of geographic distance (covariate) on pathogen communities was
+not supported. With geographic distance accounted for, the test variable
+‘field type’ significantly explained variation in fungal communities,
+with a post-hoc test revealing that communities in corn fields differed
+from communities in restored and remnant fields.
+
+Plotting results:
+
+``` r
+sapro_ord_data <- mva_sapro$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_sapro_centers <- sapro_ord_data %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+sapro_ord <- 
+  ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  labs(
+    x = paste0("Axis 1 (", mva_sapro$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_sapro$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.01))
+# guides(fill = guide_legend(position = "inside")) +
+# theme(legend.justification = c(0.03, 0.98))
+```
+
+## Unified figure
+
+``` r
+fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ab_fig) +
+  plot_layout(heights = c(1,0.01,1)) 
+fig5 <- (fig5_ls | plot_spacer() | sapro_ord) +
+  plot_layout(widths = c(0.35, 0.01, 0.64)) +
+  plot_annotation(tag_levels = 'a') 
+```
+
+``` r
+fig5
+```
+
+![](resources/diversity_files/figure-gfm/fig5-1.png)<!-- -->
+
+**Fig 4.** Putative plant pathogen communities in **corn**,
+**restored**, and **remnant** prairie fields. **a** OTU richness and
+**b** sequence abundance are shown as columns with 95 % CIs. **c**
+Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
+distances: small points = sites, large circles = field-type centroids
+(error bars = 95 % CI). Cornfields cluster apart from restored or
+remnant prairies (P \< 0.01). Numbers in black circles give years since
+restoration. Axis labels show the percent variation explained.
+Colours/shading: corn = grey, restored = black, remnant = white.
+
+| A | B | stat | p_val_adj | field_type | phylum | class | order | family | genus | species |
+|---:|---:|---:|---:|:---|:---|:---|:---|:---|:---|:---|
+| 0.8157966 | 1.0000 | 0.9032146 | 0.6112500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Neosetophoma | unidentified |
+| 0.7997837 | 1.0000 | 0.8943062 | 0.6112500 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | unidentified |
+| 0.9687471 | 0.8000 | 0.8803395 | 0.6112500 | corn | Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_rugulosus |
+| 0.9854665 | 0.6000 | 0.7689472 | 0.6112500 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_suttonii |
+| 0.5800218 | 1.0000 | 0.7615916 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Clonostachys | unidentified |
+| 0.9644979 | 0.6000 | 0.7607225 | 0.6112500 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
+| 0.9562682 | 0.6000 | 0.7574701 | 0.6112500 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Cheilymenia | Cheilymenia_stercorea |
+| 0.7044973 | 0.8000 | 0.7507315 | 0.6112500 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.9310896 | 0.6000 | 0.7474314 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
+| 0.8948179 | 0.6000 | 0.7327283 | 0.6112500 | corn | Chytridiomycota | Rhizophydiomycetes | Rhizophydiales | Alphamycetaceae | Betamyces | unidentified |
+| 0.8777264 | 0.6000 | 0.7256968 | 0.6112500 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Pseudaleuria | unidentified |
+| 0.8745120 | 0.6000 | 0.7243668 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Microascales | Microascaceae | Kernia | Kernia_columnaris |
+| 0.8683753 | 0.6000 | 0.7218207 | 0.6112500 | corn | Ascomycota | Pezizomycetes | Pezizales | Ascodesmidaceae | Eleutherascus | Eleutherascus_lectardii |
+| 0.8514497 | 0.6000 | 0.7147516 | 0.6112500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_terricola |
+| 0.7894737 | 0.6000 | 0.6882472 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_inaequale |
+| 1.0000000 | 0.4000 | 0.6324555 | 0.6112500 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_dolichospermus |
+| 0.8389182 | 1.0000 | 0.9159248 | 0.5760000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | unidentified |
+| 1.0000000 | 0.6000 | 0.7745967 | 0.5400000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
+| 0.6738526 | 1.0000 | 0.8208852 | 0.4707692 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima |
+| 0.9711102 | 1.0000 | 0.9854492 | 0.4500000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans |
+| 0.9879341 | 0.8000 | 0.8890148 | 0.4500000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.7826463 | 1.0000 | 0.8846730 | 0.4500000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea |
+| 0.9516129 | 0.8000 | 0.8725195 | 0.4500000 | corn | Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_limonispora |
+| 1.0000000 | 0.6000 | 0.7745967 | 0.4500000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii |
+| 1.0000000 | 0.6000 | 0.7745967 | 0.4500000 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Kochiomyces | unidentified |
+| 0.8996070 | 1.0000 | 0.9484762 | 0.1440000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 1.0000000 | 1.0000 | 1.0000000 | 0.0900000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_apala |
+| 0.9978110 | 1.0000 | 0.9989049 | 0.0900000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans |
+| 0.9605279 | 1.0000 | 0.9800653 | 0.0900000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.9880823 | 0.8000 | 0.8890815 | 0.0900000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Lecythophora | unidentified |
+| 0.6650008 | 1.0000 | 0.8154758 | 0.6112500 | remnant | Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | unidentified |
+| 0.8822144 | 0.7500 | 0.8134254 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_decumbens |
+| 0.6126900 | 1.0000 | 0.7827452 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Gliomastix | Gliomastix_roseogrisea |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_xanthothrix |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Savoryellales | Savoryellaceae | Savoryella | Savoryella_paucispora |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Chytridiomycota | Rhizophydiomycetes | Rhizophydiales | Halomycetaceae | Paranamyces | unidentified |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Ascomycota | Leotiomycetes | Thelebolales | Pseudeurotiaceae | Gymnostellatospora | unidentified |
+| 0.9609121 | 0.5000 | 0.6931494 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Microascales | Microascaceae | Cephalotrichum | unidentified |
+| 0.9494949 | 0.5000 | 0.6890192 | 0.6112500 | remnant | Chytridiomycota | Rhizophlyctidomycetes | Rhizophlyctidales | Rhizophlyctidaceae | Rhizophlyctis | unidentified |
+| 0.8669951 | 0.5000 | 0.6584053 | 0.6112500 | remnant | Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Minimelanolocus | Minimelanolocus_asiaticus |
+| 0.7126953 | 0.9375 | 0.8174056 | 0.2400000 | restored | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+
+Indicator species analysis, saprotrophs

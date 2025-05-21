@@ -809,15 +809,19 @@ leveneTest(residuals(patho_ab_lm) ~ patho_div$field_type) %>% as.data.frame() %>
 #' Model results, group means, and post-hoc, with arithmetic means from emmeans
 summary(patho_ab_lm)
 patho_ab_em <- emmeans(patho_ab_lm, ~ field_type, type = "response")
+#' Figure could show raw abundances or rclr transformed. The latter is less intuitive, but 
+#' the former may not match the results of statistical tests. Try a dot and line plot to handle
+#' negative values and show rclr means...
 #+ patho_fig,fig.width=4,fig.height=4
 patho_ab_fig <- 
-  patho_div %>% 
-  group_by(field_type) %>% 
-  summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
-  ggplot(aes(x = field_type, y = seq_ab)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = seq_ab, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Sequence abundance") +
+  # patho_div %>% 
+  # group_by(field_type) %>% 
+  # summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
+  ggplot(summary(patho_ab_em), aes(x = field_type, y = emmean)) +
+  # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0, linewidth = lw) +
+  geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
+  labs(x = NULL, y = "Seq. abund. (LRT)") +
   scale_fill_manual(values = c("gray", "black", "white")) +
   theme_cor +
   theme(legend.position = "none",
@@ -978,25 +982,25 @@ plot(sapro_rich_lm) # heavy residual structure, poor qq alignment, borderline le
 distribution_prob(sapro_rich_lm)
 #' residuals distribution normal or close, response showing group divisions and count 
 #' overdispersion (binomial family)
-leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% 
+leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>% 
   kable(format = "pandoc", caption = "Response var in groups")
-leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() %>% 
+leveneTest(residuals(sapro_rich_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% 
   kable(format = "pandoc", caption = "Residuals var in groups")
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 #' LM-log transformation did not improve fit (not shown). Despite lack of unequal variance,
 #' does gamma glm improve other diagnostics?
-sapro_glm  <- glm(richness ~ sqrt(depth) + field_type, family = Gamma(link = "log"), data = sapro_div)
-sapro_glm_diag <- glm.diag(sapro_glm)
-glm.diag.plots(sapro_glm, sapro_glm_diag) 
+sapro_rich_glm  <- glm(richness ~ sqrt(depth) + field_type, family = Gamma(link = "log"), data = sapro_div)
+sapro_glm_diag <- glm.diag(sapro_rich_glm)
+glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 #' scale-location much more uniform but still a little heavy tails,
 #' qqplot shows much better fit; leverage point now ~0.3
-performance::check_overdispersion(sapro_glm) # not detected
-sapro_glm_sim <- simulateResiduals(sapro_glm)
+performance::check_overdispersion(sapro_rich_glm) # not detected
+sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 #' Gamma glm is the best choice; no high-leverage point
 
 #' Model results, group means, and post-hoc
-summary(sapro_glm)
+summary(sapro_rich_glm)
 #' Sequence depth is significant; richness doesn't vary in groups. View trend:
 sapro_div %>% 
   group_by(field_type) %>% 
@@ -1008,8 +1012,8 @@ sapro_div %>%
  
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case, back-transformed.
-sapro_rich_em <- emmeans(sapro_glm, ~ field_type, type = "response")
-#+ patho_richness_fig,fig.width=4,fig.height=4
+sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
+#+ sapro_richness_fig,fig.width=4,fig.height=4
 sapro_rich_fig <- 
   ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
@@ -1058,11 +1062,9 @@ sapro_shan_fig <-
 
 #' 
 #' ## Sequence abundance
-#' Use log ratio transformed data to detrend compositional data before differential analysis. Use depth as covariate. 
-sapro_ab_lm <- lm(saprotroph ~ sqrt(depth) + field_type, data = its_gulr_pfg %>% 
-                    left_join(sapro_div %>% select(field_name, depth), by = join_by(field_name)))
-
-
+#' Use log ratio transformed data to detrend compositional data before differential analysis. 
+#' Transformation also corrects for different sample depths; no covariate needed. 
+sapro_ab_lm <- lm(saprotroph ~ field_type, data = its_gulr_pfg)
 par(mfrow = c(2,2))
 plot(sapro_ab_lm) 
 #' variance differs slightly in groups. Tails on qq plot diverge. Variance unequal but not bad, 
@@ -1071,21 +1073,52 @@ distribution_prob(sapro_ab_lm)
 #' Residuals distribution fits normal, so do residuals
 leveneTest(residuals(sapro_ab_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
 #' Residuals distribution does not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
-#' Model results, group means, and post-hoc, with arithmetic means from emmeans
-summary(patho_ab_lm)
-patho_ab_em <- emmeans(patho_ab_lm, ~ field_type, type = "response")
-#+ patho_fig,fig.width=4,fig.height=4
-patho_ab_fig <- 
-  patho_div %>% 
-  group_by(field_type) %>% 
-  summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
-  ggplot(aes(x = field_type, y = seq_ab)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = seq_ab, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Sequence abundance") +
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal (aka homoscedastic 
+#' by group).
+#'  
+#' Try a model that 
+#' handles the heavy tails on the residual distribution better? Transformed data has values < 0, 
+#' so gamma glm is not available. Try robust regression (robust M-estimator with bisquare ψ).
+sapro_ab_rlm <- rlm(saprotroph ~ field_type, data = its_gulr_pfg)
+par(mfrow = c(2,2))
+plot(sapro_ab_rlm) 
+#' Minor visual improvements to fit 
+distribution_prob(sapro_ab_rlm)
+#' Residuals distribution fits normal, so do residuals
+leveneTest(residuals(sapro_ab_rlm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+broom::tidy(sapro_ab_lm, conf.int = TRUE)
+broom::tidy(sapro_ab_rlm, conf.int = TRUE) # rlm produces a better fit
+#' Points with a high Cook's statistic remain high, but have less leverage. 
+#' Iteratively re-weighted least squares (rlm) lowers leverage for the two extreme sites, 
+#' but their Cook’s distances remain ≈ 0.5 because the robust fit reduces the 
+#' residual scale estimate, inflating studentised residuals. Coefficient estimates 
+#' changed little, confirming results are not driven by those points.
+#' 
+#' Produce model results, group means, and post-hoc, with arithmetic means from emmeans
+summary(sapro_ab_rlm)
+sapro_ab_em <- emmeans(sapro_ab_rlm, ~ field_type, type = "response", vcov. = vcov(sapro_ab_rlm))
+#+ sapro_ab_em_summary,echo=FALSE
+kable(summary(sapro_ab_em),
+      format = "pandoc",
+      caption = "Confidence level used: 0.95")
+#+ sapro_ab_em_posthoc,echo=FALSE
+kable(pairs(sapro_ab_em),
+      format = "pandoc",
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' Aligning statistical result with visual appearance requires a dot line plot
+#+ sapro_ab_fig,fig.width=4,fig.height=4
+sapro_ab_fig <- 
+  # sapro_div %>% 
+  # group_by(field_type) %>% 
+  # summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
+  ggplot(summary(sapro_ab_em), aes(x = field_type, y = emmean)) +
+  # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0, linewidth = lw) +
+  geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
+  geom_text(aes(y = asymp.UCL, label = c("a", "b", "c")), vjust = -1.5, family = "serif", size = 4) + 
+  labs(x = NULL, y = "Seq. abund. (LRT)") +
   scale_fill_manual(values = c("gray", "black", "white")) +
+  lims(y = c(-0.6, 0.7)) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -1095,18 +1128,18 @@ patho_ab_fig <-
 #' ## Beta Diversity
 #' Abundances were transformed by row proportions in sites before producing a distance matrix per
 #' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
-#+ patho_ord
-d_patho <- patho %>% 
+#+ sapro_ord
+d_sapro <- sapro %>% 
   data.frame(row.names = 1) %>% 
   decostand("total") %>%
   vegdist("bray")
-mva_patho <- mva(d = d_patho, corr = "lingoes")
-#+ patho_ord_results
+mva_sapro <- mva(d = d_sapro)
+#+ sapro_ord_results
 mva_patho$dispersion_test
 mva_patho$permanova
 mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' Lingoes correction was needed. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
+#' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
 #' a PERMANOVA test. 
 #' 
@@ -1116,23 +1149,23 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 #' communities in restored and remnant fields. 
 #' 
 #' Plotting results: 
-patho_ord_data <- mva_patho$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_patho_centers <- patho_ord_data %>% 
+sapro_ord_data <- mva_sapro$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_sapro_centers <- sapro_ord_data %>% 
   group_by(field_type) %>% 
   summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
   mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
-patho_ord <- 
-  ggplot(patho_ord_data, aes(x = Axis.1, y = Axis.2)) +
+sapro_ord <- 
+  ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
-  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
   scale_fill_manual(values = c("gray", "black", "white")) +
   labs(
-    x = paste0("Axis 1 (", mva_patho$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_patho$axis_pct[2], "%)")) +
+    x = paste0("Axis 1 (", mva_sapro$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_sapro$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -1142,14 +1175,14 @@ patho_ord <-
 
 #' 
 #' ## Unified figure
-#+ fig4_patchwork,warning=FALSE
-fig4_ls <- (patho_rich_fig / plot_spacer() / patho_ab_fig) +
+#+ fig5_patchwork,warning=FALSE
+fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ab_fig) +
   plot_layout(heights = c(1,0.01,1)) 
-fig4 <- (fig4_ls | plot_spacer() | patho_ord) +
+fig5 <- (fig5_ls | plot_spacer() | sapro_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
   plot_annotation(tag_levels = 'a') 
-#+ fig4,warning=FALSE,fig.height=4,fig.width=6.5
-fig4
+#+ fig5,warning=FALSE,fig.height=4,fig.width=6.5
+fig5
 #' **Fig 4.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
 #' **a** OTU richness and **b** sequence abundance are shown as columns with 95 % CIs.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
@@ -1159,9 +1192,9 @@ fig4
 #' percent variation explained. Colours/shading: corn = grey, restored = black,
 #' remnant = white.
 
-#+ fig4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig4.png"),
-       plot = fig4,
+#+ fig5_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+ggsave(root_path("figs", "fig5.png"),
+       plot = fig5,
        width = 6.5,
        height = 4,
        units = "in",
@@ -1187,3 +1220,4 @@ sapro_ind %>%
   select(-otu_num, -primary_lifestyle, -p.value) %>%
   arrange(field_type, -p_val_adj) %>%
   kable(format = "pandoc", caption = paste("Indicator species analysis, saprotrophs"))
+
