@@ -22,7 +22,7 @@
 #' based on soil properties.
 #' 
 #' # Packages and libraries
-packages_needed <- c("tidyverse", "knitr", "vegan")
+packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -39,14 +39,8 @@ conflict_prefer("diversity", "vegan")
 #+ graphics_styles
 source(root_path("resources", "styles.R"))
 
-#' 
-#' # Functions
-#' ## Confidence intervals
-#' Calculate upper and lower confidence intervals with alpha=0.05
-#+ ci_function
-ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
-ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
-#' 
+#+ functions
+source(root_path("code", "functions.R"))
 
 #' 
 #' #' # Data
@@ -68,7 +62,10 @@ soil_ft_avg <-
     summarize(avg_qty = mean(qty), .groups = "drop") %>% 
     pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
     left_join(soil_units, by = join_by(soil_property)) %>% 
-    select(soil_property, units, everything())
+    select(soil_property, units, everything()) %>% 
+  rowwise() %>% mutate(cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)),
+                       across(where(is.numeric), ~ round(.x, 2))) %>% 
+  arrange(-cv)
     
 
 
@@ -91,15 +88,17 @@ soil_cor <-
     data.frame(cor(soil_z, site_sco)) %>% 
     mutate(PCA_correlation = sqrt(PC1^2 + PC2^2)) %>% 
     arrange(-PCA_correlation) %>% 
-    rownames_to_column(var = "soil_property")
+    rownames_to_column(var = "soil_property") %>% 
+  mutate(across(where(is.numeric), ~ round(.x,)))
 
 #' Use the variable correlations to sort the soil property averages in a table 
 #' highlighting field types:
 soil_ft_avg %>% 
-    left_join(soil_cor %>% select(soil_property, PCA_correlation), by = join_by(soil_property)) %>% 
-    arrange(-PCA_correlation) %>% 
-    mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
-    select(PCA_correlation, everything()) %>% 
+    left_join(soil_cor %>% select(soil_property, PCA_corr = PCA_correlation), by = join_by(soil_property)) %>% 
+  rowwise() %>% 
+    mutate(cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)), 
+           across(where(is.numeric), ~ round(.x, 2))) %>% 
+  arrange(-cv) %>% 
     kable(format = "pandoc")
 
 
@@ -113,86 +112,41 @@ soil_ord_scores <-
     rownames_to_column(var = "field_name") %>%
     left_join(sites, by = join_by(field_name))
 
+soil_ord_ft_centers <- soil_ord_scores %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
+         across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 
-soilperm <- function(clust_vec, clust_var) {
-    #' ### Permanova
-    soil_d <- dist(site_sco)
-    
-    # Test multivariate dispersions
-    soil_disper <- betadisper(soil_d, clust_vec, bias.adjust = TRUE)
-    soil_mvdisper <- permutest(soil_disper, pairwise = TRUE, permutations = 1999)
-    # Global PERMANOVA
-    soil_gl_permtest <- adonis2(
-        as.formula(paste("soil_d ~", clust_var)),
-        data = soil_ord_scores,
-        permutations = 1999,
-        by = "terms")
-    # Pairwise PERMANOVA
-    group_var <- as.character(clust_vec)
-    groups <- as.data.frame(t(combn(unique(group_var), m = 2)))
-    soil_contrasts <- data.frame(
-        group1 = groups$V1,
-        group2 = groups$V2,
-        R2 = NA,
-        F_value = NA,
-        df1 = NA,
-        df2 = NA,
-        p_value = NA
-    )
-    for (i in seq(nrow(soil_contrasts))) {
-        group_subset <-
-            group_var == soil_contrasts$group1[i] |
-            group_var == soil_contrasts$group2[i]
-        contrast_d <- as.matrix(soil_d)[group_subset, group_subset]
-        fit <- adonis2(
-            contrast_d ~ group_var[group_subset],
-            permutations = 1999,
-            by = "terms")
-        # Prepare contrasts table
-        soil_contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
-        soil_contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
-        soil_contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
-        soil_contrasts$df2[i] <- fit[grep("Residual", rownames(fit)), "Df"]
-        soil_contrasts$p_value[i] <- fit[grep("group_var", rownames(fit)), 5]
-    }
-    soil_contrasts$p_value_adj <- p.adjust(soil_contrasts$p_value, method = "fdr") %>% round(., 4)
-    
-    out = list(
-        mvdisper = soil_mvdisper,
-        gl_permtest = soil_gl_permtest,
-        contrasts = soil_contrasts
-    )
-    
-    return(out)
-}
+soil_ord_reg_centers <- soil_ord_scores %>% 
+  group_by(region) %>% 
+  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
+         across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 
 
-soilperm_field_type <- soilperm(soil_ord_scores$field_type, "field_type")
-soilperm_field_type$gl_permtest
-ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-    geom_polygon(data = soil_ord_scores %>% group_by(field_type) %>% slice(chull(PC1, PC2)),
-                 aes(group = field_type), fill = "transparent", color = "black") +
-    geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw) +
-    scale_fill_manual(values = c("gray", "black", "white")) +
-    scale_shape_manual(values = c(22:25)) +
-    labs(
-        x = paste0("Axis 1 (", eig_prop[1], "%)"),
-        y = paste0("Axis 2 (", eig_prop[2], "%)")) +
-    theme_ord +
-    theme(legend.position = "none")
+
 
 
 soilperm_region <- soilperm(soil_ord_scores$region, "region")
 soilperm_region$gl_permtest
+segs_regions <- soil_ord_scores %>%
+  left_join(soil_ord_reg_centers, by = join_by(region)) %>% 
+  select(x = PC1, y = PC2, xend = mean_PC1, yend = mean_PC2)
+
+soil_ord_regions <- 
 ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-    geom_polygon(data = soil_ord_scores %>% group_by(region) %>% slice(chull(PC1, PC2)),
-                 aes(group = region), fill = "transparent", color = "black") +
+    # geom_polygon(data = soil_ord_scores %>% group_by(region) %>% slice(chull(PC1, PC2)),
+    #              aes(group = region), fill = "transparent", color = "black") + 
+  geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
+  geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region)) +
     geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw) +
     scale_fill_manual(values = c("gray", "black", "white")) +
     scale_shape_manual(values = c(22:25)) +
-    labs(
-        x = paste0("Axis 1 (", eig_prop[1], "%)"),
-        y = paste0("Axis 2 (", eig_prop[2], "%)")) +
+    # labs(
+    #     x = paste0("Axis 1 (", eig_prop[1], "%)"),
+    #     y = paste0("Axis 2 (", eig_prop[2], "%)")) +
+  labs(x = NULL, y = NULL) +
     theme_ord +
     theme(legend.position = "none")
 
@@ -202,27 +156,52 @@ ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
 
 
 #' Plotting results: 
-soil_ord_centers <- soil_ord_scores %>% 
-    group_by(field_type) %>% 
-    summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-    mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
-           across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
-soil_ord <- 
+
+soil_ord_ftypes <- 
     ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-    geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw) +
-    geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
-    geom_linerange(data = soil_ord_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
-    geom_linerange(data = soil_ord_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
-    geom_point(data = soil_ord_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+    # geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw) +
+    # geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+    geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
+    geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
+    geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = FALSE, shape = TRUE)) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
     scale_fill_manual(values = c("gray", "black", "white")) +
     scale_shape_manual(values = c(22:25)) +
-    labs(
-        x = paste0("Axis 1 (", eig_prop[1], "%)"),
-        y = paste0("Axis 2 (", eig_prop[2], "%)")) +
+    # labs(
+    #     x = paste0("Axis 1 (", eig_prop[1], "%)"),
+    #     y = paste0("Axis 2 (", eig_prop[2], "%)")) +
+  labs(x = NULL, y = NULL) +
     theme_ord +
     guides(fill = guide_legend(position = "inside"),
            shape = guide_legend(position = "inside")) +
     theme(legend.justification = c(0.03, 0.98),
           legend.box = "horizontal")
 #+ soil_ord_plot,warning=FALSE,fig.height=5,fig.width=5,fig.align='center',echo=FALSE
-soil_ord
+soil_ord_ftypes
+
+
+figS2_layout <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
+  plot_layout(widths = c(1, 0.01, 1)) &
+  theme(axis.title = element_blank())
+
+figS2 <- figS2_layout +
+  plot_annotation(tag_levels = 'a',
+                  theme = theme(
+                    plot.margin = margin(5.5, 5.5, 30, 30),   # extra room for the labels
+                    axis.title.x = element_text(size = 12, face = "bold", margin = margin(t = 15)),
+                    axis.title.y = element_text(size = 12, face = "bold", angle = 90,
+                                                margin = margin(r = 15))
+                  )) + labs(x = "test", y = "test")
+
+
+
+
+figS2
+
+ggsave(root_path("figs", "figS2.png"),
+       plot = figS2,
+       width = 6.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
