@@ -368,7 +368,7 @@ d_its <- spe$its_avg %>%
     data.frame(row.names = 1) %>% 
     decostand("total") %>%
     vegdist("bray")
-mva_its <- mva(d = d_its)
+mva_its <- mva(d = d_its, env = sites)
 #+ its_ord_results
 mva_its$dispersion_test
 mva_its$permanova
@@ -909,6 +909,10 @@ ggsave(root_path("figs", "fig4.png"),
 
 
 
+
+
+
+
 # Pathogen indicator species
 patho_ind <- inspan("plant_pathogen")
 patho_ind %>% 
@@ -952,6 +956,9 @@ plot(gf_patho_lm)
 distribution_prob(gf_patho_lm)
 #' Response and residuals normal, no transformations warranted and linear model appropriate.
 summary(gf_patho_lm)
+
+
+
 
 
 
@@ -1221,3 +1228,16 @@ sapro_ind %>%
   arrange(field_type, -p_val_adj) %>%
   kable(format = "pandoc", caption = paste("Indicator species analysis, saprotrophs"))
 
+
+guildseq(spe$its_avg, "saprotroph") %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+  left_join(spe_meta$its, by = join_by(otu_num)) %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  select(-otu_ID, -otu_num, -primary_lifestyle, -field_name) %>%
+  filter(species != "unidentified", abund > 0) %>% 
+  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1)) %>% 
+  select(phylum:species, corn, restored, remnant) %>% 
+  rowwise() %>% 
+  mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
+  arrange(-avg) %>% select(-avg) %>% 
+  kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types")

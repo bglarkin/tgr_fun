@@ -66,12 +66,8 @@ soil_ft_avg <-
   rowwise() %>% mutate(cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)),
                        across(where(is.numeric), ~ round(.x, 2))) %>% 
   arrange(-cv)
-    
-
-
 
 #' ## PCA ordination, variable correlations, and PERMANOVA
-
 soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
 soil_pca <- rda(soil_z)
 summary(soil_pca)
@@ -80,10 +76,7 @@ plot(soil_pca)
 #' 
 #' ## Soil variable loadings and correlations
 #' Which soil properties explain the most variation among sites?
-
-
 site_sco <- scores(soil_pca, display = "sites", choices = c(1,2))
-
 soil_cor <- 
     data.frame(cor(soil_z, site_sco)) %>% 
     mutate(PCA_correlation = sqrt(PC1^2 + PC2^2)) %>% 
@@ -101,18 +94,15 @@ soil_ft_avg %>%
   arrange(-cv) %>% 
     kable(format = "pandoc")
 
-
 #' Axis 1 & 2 eigenvalue proportions
 eig_prop <- round(summary(soil_pca)$cont$importance[2, 1:2] * 100, 1)
-
 soil_ord_scores <-
     site_sco %>%
     data.frame() %>% 
     rownames_to_column(var = "field_name") %>%
     left_join(sites, by = join_by(field_name))
 
-
-
+#' PERMANOVA and plots with sites clustered in regions
 soilperm_region <- soilperm(soil_ord_scores$region, "region")
 soilperm_region$mvdisper
 soilperm_region$gl_permtest
@@ -142,7 +132,7 @@ ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.03, 0.90))
 
-
+#' PERMANOVA and plots with sites clustered in field types
 soilperm_ft <- soilperm(soil_ord_scores$field_type, "field_type")
 soilperm_ft$mvdisper
 soilperm_ft$gl_permtest
@@ -170,16 +160,12 @@ soil_ord_ftypes <-
   theme(legend.title = element_text(size = 8), legend.position = "top",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(-0.03, 0.90))
-#+ figS2,warning=FALSE,fig.height=3.5,fig.width=6.5
 
+#+ figS2,warning=FALSE,fig.height=3.5,fig.width=6.5
 figS2 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
   plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
   plot_annotation(tag_levels = 'a')
-
-
-
 figS2
-
 ggsave(root_path("figs", "figS2.png"),
        plot = figS2,
        width = 7.5,

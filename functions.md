@@ -2,12 +2,13 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 21 May, 2025
+Last updated: 23 May, 2025
 
 - [Description](#description)
   - [Alpha diversity calculations](#alpha-diversity-calculations)
   - [Confidence intervals](#confidence-intervals)
   - [Multivariate analysis](#multivariate-analysis)
+  - [Permanova on soil data](#permanova-on-soil-data)
   - [Model distribution
     probabilities](#model-distribution-probabilities)
   - [Filter spe to a guild](#filter-spe-to-a-guild)
@@ -134,6 +135,64 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
   
   return(out)
   
+}
+```
+
+## Permanova on soil data
+
+Simplified version of `mva()` for use with the soil properties data
+
+``` r
+soilperm <- function(clust_vec, clust_var) {
+  #' ### Permanova
+  soil_d <- dist(site_sco)
+  
+  # Test multivariate dispersions
+  soil_disper <- betadisper(soil_d, clust_vec, bias.adjust = TRUE)
+  soil_mvdisper <- permutest(soil_disper, pairwise = TRUE, permutations = 1999)
+  # Global PERMANOVA
+  soil_gl_permtest <- adonis2(
+    as.formula(paste("soil_d ~", clust_var)),
+    data = soil_ord_scores,
+    permutations = 1999,
+    by = "terms")
+  # Pairwise PERMANOVA
+  group_var <- as.character(clust_vec)
+  groups <- as.data.frame(t(combn(unique(group_var), m = 2)))
+  soil_contrasts <- data.frame(
+    group1 = groups$V1,
+    group2 = groups$V2,
+    R2 = NA,
+    F_value = NA,
+    df1 = NA,
+    df2 = NA,
+    p_value = NA
+  )
+  for (i in seq(nrow(soil_contrasts))) {
+    group_subset <-
+      group_var == soil_contrasts$group1[i] |
+      group_var == soil_contrasts$group2[i]
+    contrast_d <- as.matrix(soil_d)[group_subset, group_subset]
+    fit <- adonis2(
+      contrast_d ~ group_var[group_subset],
+      permutations = 1999,
+      by = "terms")
+    # Prepare contrasts table
+    soil_contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
+    soil_contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
+    soil_contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
+    soil_contrasts$df2[i] <- fit[grep("Residual", rownames(fit)), "Df"]
+    soil_contrasts$p_value[i] <- fit[grep("group_var", rownames(fit)), 5]
+  }
+  soil_contrasts$p_value_adj <- p.adjust(soil_contrasts$p_value, method = "fdr") %>% round(., 4)
+  
+  out = list(
+    mvdisper = soil_mvdisper,
+    gl_permtest = soil_gl_permtest,
+    contrasts = soil_contrasts
+  )
+  
+  return(out)
 }
 ```
 

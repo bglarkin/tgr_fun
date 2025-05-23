@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 21 May, 2025
+Last updated: 23 May, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -756,7 +756,7 @@ d_its <- spe$its_avg %>%
     data.frame(row.names = 1) %>% 
     decostand("total") %>%
     vegdist("bray")
-mva_its <- mva(d = d_its)
+mva_its <- mva(d = d_its, env = sites)
 ```
 
 ``` r
@@ -770,7 +770,7 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999  0.065 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999  0.055 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -778,8 +778,8 @@ mva_its$dispersion_test
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##              corn restored remnant
-    ## corn              0.067500  0.1205
-    ## restored 0.068726           0.1420
+    ## corn              0.066500   0.129
+    ## restored 0.068726            0.120
     ## remnant  0.126039 0.135570
 
 ``` r
@@ -793,7 +793,7 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0290 *  
+    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0260 *  
     ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
@@ -808,8 +808,8 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
-| 3   | corn     | remnant |   2.858 | 0.281 |      0.0015 |
-| 2   | restored | remnant |   1.062 | 0.054 |      0.3310 |
+| 3   | corn     | remnant |   2.858 | 0.281 |      0.0053 |
+| 2   | restored | remnant |   1.062 | 0.054 |      0.3430 |
 
 Pairwise permanova contrasts
 
@@ -1395,14 +1395,14 @@ mva_amf$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9435
+    ## Groups     2 0.000418 0.0002089 0.0647   1999  0.933
     ## Residuals 22 0.071014 0.0032279                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.85000   0.915
-    ## restored 0.85873            0.725
+    ## corn              0.84700  0.9120
+    ## restored 0.85873           0.7205
     ## remnant  0.89942  0.71821
 
 ``` r
@@ -1416,7 +1416,7 @@ mva_amf$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1425    
+    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1305    
     ## field_type   2  0.21243 0.24757 3.7307 0.0010 ***
     ## Residual    21  0.59788 0.69677                  
     ## Total       24  0.85808 1.00000                  
@@ -1432,7 +1432,7 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.478 | 0.250 |      0.0015 |
 | 3   | corn     | remnant |   4.655 | 0.355 |      0.0023 |
-| 2   | restored | remnant |   0.442 | 0.023 |      0.8620 |
+| 2   | restored | remnant |   0.442 | 0.023 |      0.8515 |
 
 Pairwise permanova contrasts
 
@@ -2067,14 +2067,14 @@ mva_patho$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.015563 0.0077814 1.4865   1999 0.2395
+    ## Groups     2 0.015563 0.0077814 1.4865   1999 0.2375
     ## Residuals 22 0.115164 0.0052347                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.10200   0.315
-    ## restored 0.10559            0.761
+    ## corn              0.10550  0.3225
+    ## restored 0.10559           0.7735
     ## remnant  0.30990  0.77814
 
 ``` r
@@ -2088,7 +2088,7 @@ mva_patho$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1250    
+    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1225    
     ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
     ## Residual    21   2.3587 0.69121                  
     ## Total       24   3.4124 1.00000                  
@@ -2103,8 +2103,8 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
-| 3   | corn     | remnant |   5.690 | 0.453 |      0.0090 |
-| 2   | restored | remnant |   0.768 | 0.040 |      0.6200 |
+| 3   | corn     | remnant |   5.690 | 0.453 |      0.0098 |
+| 2   | restored | remnant |   0.768 | 0.040 |      0.6210 |
 
 Pairwise permanova contrasts
 
@@ -2175,25 +2175,24 @@ Colours/shading: corn = grey, restored = black, remnant = white.
 
 | A | B | stat | p_val_adj | field_type | phylum | class | order | family | genus | species |
 |---:|---:|---:|---:|:---|:---|:---|:---|:---|:---|:---|
-| 1.0000000 | 0.40 | 0.6324555 | 0.4282200 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Stenocarpella | unidentified |
-| 0.9658793 | 0.60 | 0.7612671 | 0.2684000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Lectera | unidentified |
-| 0.7371032 | 1.00 | 0.8585472 | 0.1830000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
-| 0.7457627 | 1.00 | 0.8635755 | 0.1753750 | corn | Ascomycota | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
-| 0.8630287 | 0.80 | 0.8309169 | 0.1753750 | corn | Ascomycota | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
-| 1.0000000 | 0.60 | 0.7745967 | 0.1372500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola |
-| 0.8861696 | 1.00 | 0.9413658 | 0.0915000 | corn | Ascomycota | Sordariomycetes | Magnaporthales | Magnaporthaceae | Gaeumannomyces | unidentified |
-| 0.9918904 | 0.80 | 0.8907931 | 0.0653571 | corn | Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
-| 0.9552239 | 0.80 | 0.8741734 | 0.0610000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | unidentified |
-| 1.0000000 | 0.80 | 0.8944272 | 0.0549000 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | unidentified |
-| 1.0000000 | 0.80 | 0.8944272 | 0.0549000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
-| 0.9812387 | 1.00 | 0.9905749 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola |
-| 0.9553209 | 1.00 | 0.9774052 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
-| 0.9023836 | 1.00 | 0.9499387 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
-| 0.8965517 | 0.50 | 0.6695341 | 0.3660000 | remnant | Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides |
-| 0.7768055 | 1.00 | 0.8813657 | 0.2418214 | remnant | Ascomycota | Dothideomycetes | Pleosporales | Massarinaceae | Stagonospora | unidentified |
-| 0.7444885 | 1.00 | 0.8628374 | 0.0915000 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Ilyonectria | unidentified |
-| 0.7660806 | 0.75 | 0.7579977 | 0.4282200 | restored | Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Pseudopithomyces | unidentified |
-| 0.5818028 | 1.00 | 0.7627600 | 0.4036765 | restored | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
+| 0.9658793 | 0.60 | 0.7612671 | 0.3145312 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Lectera | unidentified |
+| 0.8630287 | 0.80 | 0.8309169 | 0.2352857 | corn | Ascomycota | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
+| 0.7457627 | 1.00 | 0.8635755 | 0.1677500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
+| 0.7371032 | 1.00 | 0.8585472 | 0.1677500 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
+| 1.0000000 | 0.60 | 0.7745967 | 0.0813333 | corn | Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola |
+| 0.8861696 | 1.00 | 0.9413658 | 0.0800625 | corn | Ascomycota | Sordariomycetes | Magnaporthales | Magnaporthaceae | Gaeumannomyces | unidentified |
+| 0.9918904 | 0.80 | 0.8907931 | 0.0392143 | corn | Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
+| 0.9552239 | 0.80 | 0.8741734 | 0.0392143 | corn | Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | unidentified |
+| 0.9812387 | 1.00 | 0.9905749 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola |
+| 0.9553209 | 1.00 | 0.9774052 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
+| 0.9023836 | 1.00 | 0.9499387 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
+| 1.0000000 | 0.80 | 0.8944272 | 0.0183000 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | unidentified |
+| 1.0000000 | 0.80 | 0.8944272 | 0.0183000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
+| 0.8965517 | 0.50 | 0.6695341 | 0.3552353 | remnant | Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides |
+| 0.7768055 | 1.00 | 0.8813657 | 0.1900385 | remnant | Ascomycota | Dothideomycetes | Pleosporales | Massarinaceae | Stagonospora | unidentified |
+| 0.7444885 | 1.00 | 0.8628374 | 0.0823500 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Ilyonectria | unidentified |
+| 0.7660806 | 0.75 | 0.7579977 | 0.4099200 | restored | Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Pseudopithomyces | unidentified |
+| 0.5818028 | 1.00 | 0.7627600 | 0.3145312 | restored | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
 
 Indicator species analysis, plant pathogens
 
@@ -2840,14 +2839,14 @@ mva_patho$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.015563 0.0077814 1.4865   1999 0.2395
+    ## Groups     2 0.015563 0.0077814 1.4865   1999 0.2375
     ## Residuals 22 0.115164 0.0052347                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.10200   0.315
-    ## restored 0.10559            0.761
+    ## corn              0.10550  0.3225
+    ## restored 0.10559           0.7735
     ## remnant  0.30990  0.77814
 
 ``` r
@@ -2861,7 +2860,7 @@ mva_patho$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1250    
+    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1225    
     ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
     ## Residual    21   2.3587 0.69121                  
     ## Total       24   3.4124 1.00000                  
@@ -2876,8 +2875,8 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
-| 3   | corn     | remnant |   5.690 | 0.453 |      0.0090 |
-| 2   | restored | remnant |   0.768 | 0.040 |      0.6200 |
+| 3   | corn     | remnant |   5.690 | 0.453 |      0.0098 |
+| 2   | restored | remnant |   0.768 | 0.040 |      0.6210 |
 
 Pairwise permanova contrasts
 
@@ -2948,46 +2947,345 @@ Colours/shading: corn = grey, restored = black, remnant = white.
 
 | A | B | stat | p_val_adj | field_type | phylum | class | order | family | genus | species |
 |---:|---:|---:|---:|:---|:---|:---|:---|:---|:---|:---|
-| 0.8157966 | 1.0000 | 0.9032146 | 0.6112500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Neosetophoma | unidentified |
-| 0.7997837 | 1.0000 | 0.8943062 | 0.6112500 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | unidentified |
-| 0.9687471 | 0.8000 | 0.8803395 | 0.6112500 | corn | Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_rugulosus |
-| 0.9854665 | 0.6000 | 0.7689472 | 0.6112500 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_suttonii |
-| 0.5800218 | 1.0000 | 0.7615916 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Clonostachys | unidentified |
-| 0.9644979 | 0.6000 | 0.7607225 | 0.6112500 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
-| 0.9562682 | 0.6000 | 0.7574701 | 0.6112500 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Cheilymenia | Cheilymenia_stercorea |
-| 0.7044973 | 0.8000 | 0.7507315 | 0.6112500 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 0.9310896 | 0.6000 | 0.7474314 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
-| 0.8948179 | 0.6000 | 0.7327283 | 0.6112500 | corn | Chytridiomycota | Rhizophydiomycetes | Rhizophydiales | Alphamycetaceae | Betamyces | unidentified |
-| 0.8777264 | 0.6000 | 0.7256968 | 0.6112500 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Pseudaleuria | unidentified |
-| 0.8745120 | 0.6000 | 0.7243668 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Microascales | Microascaceae | Kernia | Kernia_columnaris |
-| 0.8683753 | 0.6000 | 0.7218207 | 0.6112500 | corn | Ascomycota | Pezizomycetes | Pezizales | Ascodesmidaceae | Eleutherascus | Eleutherascus_lectardii |
-| 0.8514497 | 0.6000 | 0.7147516 | 0.6112500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_terricola |
-| 0.7894737 | 0.6000 | 0.6882472 | 0.6112500 | corn | Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_inaequale |
-| 1.0000000 | 0.4000 | 0.6324555 | 0.6112500 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_dolichospermus |
-| 0.8389182 | 1.0000 | 0.9159248 | 0.5760000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | unidentified |
-| 1.0000000 | 0.6000 | 0.7745967 | 0.5400000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
-| 0.6738526 | 1.0000 | 0.8208852 | 0.4707692 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima |
-| 0.9711102 | 1.0000 | 0.9854492 | 0.4500000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans |
-| 0.9879341 | 0.8000 | 0.8890148 | 0.4500000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 0.7826463 | 1.0000 | 0.8846730 | 0.4500000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea |
-| 0.9516129 | 0.8000 | 0.8725195 | 0.4500000 | corn | Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_limonispora |
-| 1.0000000 | 0.6000 | 0.7745967 | 0.4500000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii |
-| 1.0000000 | 0.6000 | 0.7745967 | 0.4500000 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Kochiomyces | unidentified |
-| 0.8996070 | 1.0000 | 0.9484762 | 0.1440000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 1.0000000 | 1.0000 | 1.0000000 | 0.0900000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_apala |
-| 0.9978110 | 1.0000 | 0.9989049 | 0.0900000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans |
-| 0.9605279 | 1.0000 | 0.9800653 | 0.0900000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 0.9880823 | 0.8000 | 0.8890815 | 0.0900000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Lecythophora | unidentified |
-| 0.6650008 | 1.0000 | 0.8154758 | 0.6112500 | remnant | Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | unidentified |
-| 0.8822144 | 0.7500 | 0.8134254 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_decumbens |
-| 0.6126900 | 1.0000 | 0.7827452 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Gliomastix | Gliomastix_roseogrisea |
-| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_xanthothrix |
-| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Savoryellales | Savoryellaceae | Savoryella | Savoryella_paucispora |
-| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Chytridiomycota | Rhizophydiomycetes | Rhizophydiales | Halomycetaceae | Paranamyces | unidentified |
-| 1.0000000 | 0.5000 | 0.7071068 | 0.6112500 | remnant | Ascomycota | Leotiomycetes | Thelebolales | Pseudeurotiaceae | Gymnostellatospora | unidentified |
-| 0.9609121 | 0.5000 | 0.6931494 | 0.6112500 | remnant | Ascomycota | Sordariomycetes | Microascales | Microascaceae | Cephalotrichum | unidentified |
-| 0.9494949 | 0.5000 | 0.6890192 | 0.6112500 | remnant | Chytridiomycota | Rhizophlyctidomycetes | Rhizophlyctidales | Rhizophlyctidaceae | Rhizophlyctis | unidentified |
-| 0.8669951 | 0.5000 | 0.6584053 | 0.6112500 | remnant | Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Minimelanolocus | Minimelanolocus_asiaticus |
-| 0.7126953 | 0.9375 | 0.8174056 | 0.2400000 | restored | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.8157966 | 1.0000 | 0.9032146 | 0.6123711 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Neosetophoma | unidentified |
+| 0.7997837 | 1.0000 | 0.8943062 | 0.6123711 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | unidentified |
+| 0.9687471 | 0.8000 | 0.8803395 | 0.6123711 | corn | Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_rugulosus |
+| 0.5800218 | 1.0000 | 0.7615916 | 0.6123711 | corn | Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Clonostachys | unidentified |
+| 0.9644979 | 0.6000 | 0.7607225 | 0.6123711 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
+| 0.9562682 | 0.6000 | 0.7574701 | 0.6123711 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Cheilymenia | Cheilymenia_stercorea |
+| 0.7044973 | 0.8000 | 0.7507315 | 0.6123711 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.6868476 | 0.8000 | 0.7412679 | 0.6123711 | corn | Ascomycota | Pezizomycetes | Pezizales | Ascodesmidaceae | Cephaliophora | unidentified |
+| 0.8948179 | 0.6000 | 0.7327283 | 0.6123711 | corn | Chytridiomycota | Rhizophydiomycetes | Rhizophydiales | Alphamycetaceae | Betamyces | unidentified |
+| 0.8777264 | 0.6000 | 0.7256968 | 0.6123711 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Pseudaleuria | unidentified |
+| 0.8745120 | 0.6000 | 0.7243668 | 0.6123711 | corn | Ascomycota | Sordariomycetes | Microascales | Microascaceae | Kernia | Kernia_columnaris |
+| 0.8683753 | 0.6000 | 0.7218207 | 0.6123711 | corn | Ascomycota | Pezizomycetes | Pezizales | Ascodesmidaceae | Eleutherascus | Eleutherascus_lectardii |
+| 0.7894737 | 0.6000 | 0.6882472 | 0.6123711 | corn | Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_inaequale |
+| 1.0000000 | 0.4000 | 0.6324555 | 0.6123711 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
+| 1.0000000 | 0.4000 | 0.6324555 | 0.6123711 | corn | Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | unidentified |
+| 0.8514497 | 0.6000 | 0.7147516 | 0.5600000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_terricola |
+| 0.9854665 | 0.6000 | 0.7689472 | 0.5175000 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_suttonii |
+| 0.8389182 | 1.0000 | 0.9159248 | 0.4320000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | unidentified |
+| 0.6738526 | 1.0000 | 0.8208852 | 0.4320000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima |
+| 1.0000000 | 0.6000 | 0.7745967 | 0.4320000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii |
+| 1.0000000 | 0.6000 | 0.7745967 | 0.4320000 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Kochiomyces | unidentified |
+| 0.9879341 | 0.8000 | 0.8890148 | 0.4254545 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.7826463 | 1.0000 | 0.8846730 | 0.4254545 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea |
+| 1.0000000 | 0.6000 | 0.7745967 | 0.4254545 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
+| 0.9711102 | 1.0000 | 0.9854492 | 0.4050000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans |
+| 0.8996070 | 1.0000 | 0.9484762 | 0.4050000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.9516129 | 0.8000 | 0.8725195 | 0.4050000 | corn | Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_limonispora |
+| 0.9880823 | 0.8000 | 0.8890815 | 0.1800000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Lecythophora | unidentified |
+| 1.0000000 | 1.0000 | 1.0000000 | 0.1200000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_apala |
+| 0.9978110 | 1.0000 | 0.9989049 | 0.1200000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans |
+| 0.9605279 | 1.0000 | 0.9800653 | 0.1200000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.6650008 | 1.0000 | 0.8154758 | 0.6123711 | remnant | Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | unidentified |
+| 0.8822144 | 0.7500 | 0.8134254 | 0.6123711 | remnant | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_decumbens |
+| 0.6126900 | 1.0000 | 0.7827452 | 0.6123711 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Gliomastix | Gliomastix_roseogrisea |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.6123711 | remnant | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_xanthothrix |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.6123711 | remnant | Chytridiomycota | Rhizophydiomycetes | Rhizophydiales | Halomycetaceae | Paranamyces | unidentified |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.6123711 | remnant | Ascomycota | Leotiomycetes | Thelebolales | Pseudeurotiaceae | Gymnostellatospora | unidentified |
+| 0.9609121 | 0.5000 | 0.6931494 | 0.6123711 | remnant | Ascomycota | Sordariomycetes | Microascales | Microascaceae | Cephalotrichum | unidentified |
+| 0.9494949 | 0.5000 | 0.6890192 | 0.6123711 | remnant | Chytridiomycota | Rhizophlyctidomycetes | Rhizophlyctidales | Rhizophlyctidaceae | Rhizophlyctis | unidentified |
+| 0.8669951 | 0.5000 | 0.6584053 | 0.6123711 | remnant | Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Minimelanolocus | Minimelanolocus_asiaticus |
+| 1.0000000 | 0.5000 | 0.7071068 | 0.5505882 | remnant | Ascomycota | Sordariomycetes | Savoryellales | Savoryellaceae | Savoryella | Savoryella_paucispora |
+| 0.7126953 | 0.9375 | 0.8174056 | 0.2160000 | restored | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
 
 Indicator species analysis, saprotrophs
+
+| phylum | class | order | family | genus | species | corn | restored | remnant |
+|:---|:---|:---|:---|:---|:---|---:|---:|---:|
+| Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans | 377.3 | 11.7 | 6.2 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_exigua | 71.0 | 186.0 | 118.3 |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_flanaganii | 210.8 | 91.8 | 28.5 |
+| Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea | 215.2 | 52.2 | 14.5 |
+| Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Apodus | Apodus_deciduus | 94.2 | 80.9 | 40.6 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Mariannaea | Mariannaea_punicea | 35.2 | 53.1 | 35.8 |
+| Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_rugulosus | 113.6 | 7.8 | 0.7 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima | 81.7 | 12.8 | 26.8 |
+| Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Cercophora | Cercophora_coronata | 74.0 | 7.9 | 3.4 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_lagopides | 1.9 | 60.0 | 1.3 |
+| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Chloridium | Chloridium_aseptatum | 31.9 | 19.9 | 5.3 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Albifimbria | Albifimbria_verrucaria | 1.3 | 8.0 | 44.2 |
+| Basidiomycota | Tremellomycetes | Filobasidiales | Piskurozymaceae | Solicoccozyma | Solicoccozyma_terricola | 14.9 | 28.4 | 6.9 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_verrucispermus | 40.7 | 5.1 | 2.0 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_alpina | 9.6 | 21.6 | 10.9 |
+| Ascomycota | Dothideomycetes | Pleosporales | Lindgomycetaceae | Clohesyomyces | Clohesyomyces_aquaticus | 7.6 | 26.7 | 5.0 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Achroiostachys | Achroiostachys_betulicola | 4.3 | 14.7 | 16.9 |
+| Basidiomycota | Agaricomycetes | Agaricales | Strophariaceae | Deconica | Deconica_xeroderma | 2.2 | 29.5 | 0.5 |
+| Basidiomycota | Tremellomycetes | Tremellales | Trimorphomycetaceae | Saitozyma | Saitozyma_podzolica | 1.5 | 17.1 | 13.2 |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_terricola | 11.2 | 8.6 | 7.7 |
+| Chytridiomycota | Rhizophlyctidomycetes | Rhizophlyctidales | Rhizophlyctidaceae | Rhizophlyctis | Rhizophlyctis_rosea | 13.5 | 7.6 | 6.3 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Striatibotrys | Striatibotrys_eucylindrospora | 7.4 | 10.1 | 6.3 |
+| Ascomycota | Leotiomycetes | Helotiales | Hyaloscyphaceae | Clathrosphaerina | Clathrosphaerina_zalewskii | 0.6 | 14.4 | 7.3 |
+| Ascomycota | Dothideomycetes | Pleosporales | Lentitheciaceae | Keissleriella | Keissleriella_cladophila | 11.2 | 8.3 | 2.8 |
+| Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_verticillata | 9.2 | 3.6 | 7.7 |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_moseri | 9.4 | 7.8 | 2.0 |
+| Basidiomycota | Tremellomycetes | Trichosporonales | Trichosporonaceae | Apiotrichum | Apiotrichum_dulcitum | 8.1 | 6.1 | 4.0 |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | Pluteus_liliputianus | 4.5 | 6.8 | 6.4 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Striaticonidium | Striaticonidium_brachysporum | 5.0 | 5.7 | 4.3 |
+| Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_curvuloides | 2.9 | 7.6 | 4.2 |
+| Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Paracylindrocarpon | Paracylindrocarpon_aloicola | 4.7 | 5.3 | 3.6 |
+| Ascomycota | Leotiomycetes | Helotiales | Helotiaceae | Scytalidium | Scytalidium_circinatum | 3.9 | 7.7 | 1.6 |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Minimelanolocus | Minimelanolocus_melanicus | 2.5 | 9.7 | 1.0 |
+| Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_canina | 4.4 | 6.6 | 1.1 |
+| Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_decumbens | 0.2 | 2.1 | 9.4 |
+| Ascomycota | Sordariomycetes | Hypocreales | Hypocreaceae | Monocillium | Monocillium_mucidum | 0.6 | 5.2 | 5.5 |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Vishniacozyma | Vishniacozyma_victoriae | 0.9 | 5.8 | 4.8 |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Xylodon | Xylodon_hyphodontinus | 0.4 | 2.9 | 7.9 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_antarctica | 1.6 | 2.3 | 3.0 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_ambigua | 2.0 | 2.1 | 1.9 |
+| Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Chordomyces | Chordomyces_antarcticus | 0.5 | 3.3 | 1.4 |
+| Ascomycota | Sordariomycetes | Savoryellales | Savoryellaceae | Savoryella | Savoryella_paucispora | 2.1 | 1.8 | 1.3 |
+| Ascomycota | Sordariomycetes | Microascales | Microascaceae | Kernia | Kernia_columnaris | 3.3 | 1.1 | 0.6 |
+| Ascomycota | Leotiomycetes | Helotiales | Helotiaceae | Hymenoscyphus | Hymenoscyphus_menthae | 2.8 | 0.7 | 0.9 |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Xylodon | Xylodon_hastifer | 0.7 | 0.4 | 3.5 |
+| Chytridiomycota | Spizellomycetes | Spizellomycetales | Powellomycetaceae | Powellomyces | Powellomyces_hirtus | 3.0 | 0.8 | 0.8 |
+| Chytridiomycota | Spizellomycetes | Spizellomycetales | Powellomycetaceae | Fimicolochytrium | Fimicolochytrium_jonesii | 2.6 | 1.1 | 0.2 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_flocculosus | 2.1 | 0.4 | 0.7 |
+| Ascomycota | Sordariomycetes | Hypocreales | Hypocreaceae | Monocillium | Monocillium_griseo-ochraceum | 0.7 | 1.8 | 0.5 |
+| Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | Mrakia_frigida | 1.0 | 0.4 | 1.2 |
+| Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Valsonectria | Valsonectria_pulchella | 0.8 | 0.4 | 0.5 |
+| Ascomycota | Eurotiomycetes | Onygenales | Onygenaceae | Aphanoascus | Aphanoascus_keratinophilus | 0.4 | 0.4 | 0.7 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Striaticonidium | Striaticonidium_cinctum | NA | 10.3 | 101.0 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_tenuipes | NA | 31.8 | 12.9 |
+| Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Dictyosporium | Dictyosporium_heptasporum | NA | 9.0 | 7.7 |
+| Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Gliomastix | Gliomastix_roseogrisea | NA | 4.3 | 5.1 |
+| Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_fimbriatum | NA | 13.7 | 8.5 |
+| Ascomycota | Saccharomycetes | Saccharomycetales | Debaryomycetaceae | Schwanniomyces | Schwanniomyces_occidentalis | NA | 4.0 | 3.9 |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Phialophora | Phialophora_livistonae | NA | 4.9 | 5.3 |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Paraphaeosphaeria | Paraphaeosphaeria_michotii | NA | 3.4 | 3.3 |
+| Ascomycota | Dothideomycetes | Pleosporales | Lentitheciaceae | Keissleriella | Keissleriella_quadriseptata | NA | 2.5 | 5.1 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_californica | NA | 6.8 | 1.5 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_rosea | NA | 11.7 | 13.8 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_paraensis | NA | 5.4 | NA |
+| Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_punctatus | NA | 1.2 | NA |
+| Ascomycota | Geoglossomycetes | Geoglossales | Geoglossaceae | Glutinoglossum | Glutinoglossum_triseptatum | NA | 6.9 | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Minimelanolocus | Minimelanolocus_obscurus | 1.7 | 1.4 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Niessliaceae | Niesslia | Niesslia_dimorphospora | NA | 2.5 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Dictyosporium | Dictyosporium_stellatum | NA | 1.4 | NA |
+| Basidiobolomycota | Basidiobolomycetes | Basidiobolales | Basidiobolaceae | Basidiobolus | Basidiobolus_ranarum | NA | 1.7 | 0.8 |
+| Ascomycota | Dothideomycetes | Tubeufiales | Tubeufiaceae | Helicomyces | Helicomyces_roseus | NA | 1.9 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_falcata | NA | 2.9 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_poliopus | NA | 1.0 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Lentitheciaceae | Keissleriella | Keissleriella_taminensis | NA | 0.4 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_longistriatum | NA | 1.1 | 0.3 |
+| Ascomycota | Geoglossomycetes | Geoglossales | Geoglossaceae | Glutinoglossum | Glutinoglossum_heptaseptatum | NA | 0.7 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Nidulariaceae | Cyathus | Cyathus_stercoreus | 21.6 | 97.9 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Montagnula | Montagnula_scabiosae | NA | 58.4 | NA |
+| Basidiomycota | Agaricomycetes | Trechisporales | Hydnodontaceae | Trechispora | Trechispora_bispora | 0.4 | 46.8 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Marasmiaceae | Marasmius | Marasmius_leucorotalis | NA | 16.4 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_limonispora | 7.4 | 1.2 | NA |
+| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Sporoschisma | Sporoschisma_hemipsilum | 0.6 | 3.7 | NA |
+| Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Cheilymenia | Cheilymenia_stercorea | 5.5 | 1.2 | NA |
+| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Pseudolachnea | Pseudolachnea_fraxini | NA | 4.0 | NA |
+| Ascomycota | Pezizomycetes | Pezizales | Ascodesmidaceae | Eleutherascus | Eleutherascus_lectardii | 1.7 | 0.6 | NA |
+| Ascomycota | Eurotiomycetes | Eurotiales | Trichocomaceae | Talaromyces | Talaromyces_ucrainicus | 1.8 | 1.8 | NA |
+| Ascomycota | Sordariomycetes | Phomatosporales | Phomatosporaceae | Phomatospora | Phomatospora_biseriata | 1.4 | 1.1 | NA |
+| Basidiomycota | Tremellomycetes | Tremellales | Tremellaceae | Bulleromyces | Bulleromyces_albus | NA | 1.2 | NA |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Xylodon | Xylodon_sambuci | NA | 3.8 | 0.3 |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Dioszegia | Dioszegia_changbaiensis | NA | 1.2 | 0.4 |
+| Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Scutellinia | Scutellinia_torrentis | 0.5 | 1.1 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_globosa | 0.6 | 0.5 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Dictyosporium | Dictyosporium_elegans | NA | 0.4 | 0.4 |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Vishniacozyma | Vishniacozyma_heimaeyensis | NA | 1.5 | NA |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Vishniacozyma | Vishniacozyma_dimennae | NA | 0.5 | 0.2 |
+| Ascomycota | Eurotiomycetes | Eurotiales | Trichocomaceae | Thermomyces | Thermomyces_stellatus | 0.4 | 0.8 | NA |
+| Basidiomycota | Agaricomycetes | Polyporales | Irpicaceae | Irpex | Irpex_lacteus | NA | 0.5 | 0.2 |
+| Ascomycota | Dothideomycetes | Pleosporales | Thyridariaceae | Parathyridaria | Parathyridaria_rosae | NA | 0.6 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_patouillardii | NA | 0.5 | 0.4 |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Cladophialophora | Cladophialophora_chaetospira | NA | 0.4 | NA |
+| Basidiomycota | Tremellomycetes | Filobasidiales | Piskurozymaceae | Piskurozyma | Piskurozyma_taiwanensis | NA | 0.7 | NA |
+| Basidiomycota | Tremellomycetes | Tremellales | Trimorphomycetaceae | Saitozyma | Saitozyma_flava | NA | 0.3 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Volvariella | Volvariella_pusilla | NA | 0.2 | NA |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Xylodon | Xylodon_flaviporus | NA | 0.2 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans | 74.1 | 1.0 | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_suttonii | 22.4 | 1.6 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_udicola | 54.5 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_apala | 21.4 | 0.5 | NA |
+| Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_acuminatus | 15.0 | 0.4 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_deliquescens | 18.7 | 1.3 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_friesii | 14.8 | 1.9 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | Psathyrella_riparia | 3.6 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Parasola | Parasola_lilatincta | 0.2 | 2.1 | NA |
+| Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_dolichospermus | 12.8 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_pseudomarcescibilis | 3.6 | NA | NA |
+| Basidiomycota | Microbotryomycetes | Kriegeriales | Camptobasidiaceae | Glaciozyma | Glaciozyma_antarctica | 0.3 | 1.3 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | Pluteus_longistriatus | 1.6 | NA | NA |
+| Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_pseudodichotomus | 0.8 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_confundens | 1.1 | 1.2 | NA |
+| Ascomycota | Dothideomycetes | Jahnulales | Aliquandostipitaceae | Xylomyces | Xylomyces_aquaticus | 1.2 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | Psathyrella_gordonii | 0.8 | NA | NA |
+| Basidiomycota | Agaricomycetes | Polyporales | Podoscyphaceae | Hypochnicium | Hypochnicium_multiforme | 0.5 | NA | NA |
+| Ascomycota | Sordariomycetes | Microascales | Halosphaeriaceae | Cirrenalia | Cirrenalia_iberica | 0.4 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_rugosobispora | 0.4 | 0.2 | NA |
+| Basidiomycota | Agaricostilbomycetes | Agaricostilbales | Chionosphaeraceae | Kurtzmanomyces | Kurtzmanomyces_tardus | 0.2 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | Psathyrella_subsingeri | NA | 3.4 | 38.6 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_argentea | NA | 45.7 | 13.0 |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Minimelanolocus | Minimelanolocus_asiaticus | NA | 2.7 | 4.4 |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_incanum | NA | NA | 8.2 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_beljakovae | NA | NA | 1.9 |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Westerdykella | Westerdykella_dispersa | NA | 0.7 | 0.6 |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | Pluteus_aureovenatus | NA | NA | 0.8 |
+| Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_medicaginicola | NA | NA | 0.7 |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_flocculosum | NA | NA | 0.5 |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_siennophylla | NA | 0.7 | 12.7 |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | Pluteus_multiformis | NA | 2.2 | NA |
+| Ascomycota | Dothideomycetes | Minutisphaerales | Minutisphaeraceae | Minutisphaera | Minutisphaera_japonica | NA | 3.4 | NA |
+| Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Scutellinia | Scutellinia_scutellata | 2.5 | 0.7 | NA |
+| Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Melanocarpus | Melanocarpus_albomyces | NA | 0.9 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Mariannaea | Mariannaea_dimorpha | NA | 0.4 | NA |
+| Ascomycota | Dothideomycetes | Capnodiales | Dissoconiaceae | Dissoconium | Dissoconium_eucalypti | NA | 0.7 | NA |
+| Chytridiomycota | Rhizophydiomycetes | Rhizophydiales | Alphamycetaceae | Betamyces | Betamyces_americae-meridionalis | NA | 0.5 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii | 21.6 | NA | NA |
+| Chytridiomycota | Rhizophlyctidomycetes | Rhizophlyctidales | Sonoraphlyctidaceae | Sonoraphlyctis | Sonoraphlyctis_ranzonii | 11.2 | NA | NA |
+| Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_inaequale | 2.5 | 6.4 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Sporormiella | Sporormiella_megalospora | 2.2 | NA | NA |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Lyomyces | Lyomyces_mascarensis | 0.5 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_brunneosericeum | 0.2 | NA | NA |
+| Basidiomycota | Agaricomycetes | Thelephorales | Thelephoraceae | Amaurodon | Amaurodon_mustialaensis | 0.3 | NA | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_fusarioides | 1.2 | 4.0 | NA |
+| Ascomycota | Eurotiomycetes | Onygenales | Onygenaceae | Xanthothecium | Xanthothecium_peruvianum | 0.8 | 1.9 | NA |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_capitata | 4.1 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Pleurotaceae | Pleurotus | Pleurotus_ostreatus | 0.6 | NA | 0.4 |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_undulatosporum | 1.2 | NA | NA |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Vishniacozyma | Vishniacozyma_globispora | 0.5 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_semitalis | 0.2 | NA | NA |
+| Basidiomycota | Geminibasidiomycetes | Geminibasidiales | Geminibasidiaceae | Basidioascus | Basidioascus_persicus | 0.2 | NA | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Myrothecium | Myrothecium_verrucaria | NA | NA | 212.3 |
+| Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_discoidea | NA | 9.4 | 5.3 |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Xylodon | Xylodon_borealis | NA | 8.9 | 1.6 |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Westerdykella | Westerdykella_nigra | NA | 8.2 | 1.2 |
+| Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_hadriani | NA | 0.9 | 8.6 |
+| Basidiomycota | Agaricomycetes | Trechisporales | Hydnodontaceae | Trechispora | Trechispora_sp | NA | 4.5 | 0.9 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Penicillifer | Penicillifer_diparietisporus | NA | 0.9 | 0.2 |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_mesospora | NA | 3.4 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_xenobia | NA | 1.2 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Cucurbitariaceae | Pyrenochaeta | Pyrenochaeta_inflorescentiae | NA | 1.1 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Agaricaceae | Agaricus | Agaricus_porphyrocephalus_var.\_pallidus | NA | 0.7 | 1.7 |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_setastipes | NA | 1.3 | NA |
+| Ascomycota | Saccharomycetes | Saccharomycetales | Lipomycetaceae | Lipomyces | Lipomyces_starkeyi | NA | 0.7 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Agaricaceae | Coprinus | Coprinus_phaeopunctatus | NA | 0.6 | NA |
+| Basidiomycota | Agaricomycetes | Polyporales | Phanerochaetaceae | Hyphodermella | Hyphodermella_rosae | NA | 0.2 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_fumosa | NA | 82.0 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_dumetorum | NA | 8.1 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Parabambusicolaceae | Paratrimmatostroma | Paratrimmatostroma_kunmingensis | NA | 2.4 | NA |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Vishniacozyma | Vishniacozyma_tephrensis | NA | 1.6 | NA |
+| Basidiomycota | Atractiellomycetes | Atractiellales | Hoehnelomycetaceae | Atractiella | Atractiella_rhizophila | NA | 1.2 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_aloeticola | NA | 0.8 | NA |
+| Ascomycota | Orbiliomycetes | Orbiliales | Orbiliaceae | Orbilia | Orbilia_cardui | NA | 0.8 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_heptemerus | NA | 0.6 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_enderlei | NA | 0.4 | NA |
+| Basidiomycota | Microbotryomycetes | Sporidiobolales | Sporidiobolaceae | Rhodosporidiobolus | Rhodosporidiobolus_poonsookiae | NA | 0.2 | NA |
+| Ascomycota | Sordariomycetes | Xylariales | Xylariaceae | Xylaria | Xylaria_oxyacanthae | NA | 114.2 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Pholiotina | Pholiotina_dasypus | NA | 3.0 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Sporormiella | Sporormiella_intermedia | NA | 0.7 | NA |
+| Ascomycota | Leotiomycetes | Rhytismatales | Rhytismataceae | Coccomyces | Coccomyces_australis | NA | 0.3 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Niessliaceae | Niesslia | Niesslia_indica | NA | 0.4 | NA |
+| Basidiomycota | Agaricomycetes | Trechisporales | Hydnodontaceae | Trechispora | Trechispora_invisitata | NA | 2.6 | 0.7 |
+| Ascomycota | Eurotiomycetes | Onygenales | Onygenaceae | Arachnotheca | Arachnotheca_glomerata | NA | 1.3 | 5.2 |
+| Basidiomycota | Agaricomycetes | Polyporales | Phanerochaetaceae | Phanerochaete | Phanerochaete_tuberculata | NA | 2.0 | NA |
+| Ascomycota | Leotiomycetes | Helotiales | Hyaloscyphaceae | Arbusculina | Arbusculina_fragmentans | NA | 1.7 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_strossmayeri | NA | 0.4 | NA |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_cystojenkinii | NA | 0.3 | 1.8 |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | Pluteus_hongoi | NA | 0.2 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_urticicola | NA | 33.5 | NA |
+| Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Paragibellulopsis | Paragibellulopsis_chrysanthemi | NA | 8.5 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_sanvitalense | NA | 0.9 | NA |
+| Ascomycota | Saccharomycetes | Saccharomycetales | Metschnikowiaceae | Clavispora | Clavispora_lusitaniae | NA | 0.6 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_dysthaloides | NA | 0.6 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Hygrophoraceae | Hygrocybe | Hygrocybe_glutinipes | NA | 5.3 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Pseudolophiotremataceae | Pseudolophiotrema | Pseudolophiotrema_elymicola | NA | 0.5 | 4.1 |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Hyphodontia | Hyphodontia_arguta | NA | 2.5 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Tetraplosphaeriaceae | Tetraplosphaeria | Tetraplosphaeria_sasicola | NA | 1.4 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Parabambusicolaceae | Multiseptospora | Multiseptospora_thailandica | NA | 0.6 | NA |
+| Mucoromycota | Mucoromycetes | Mucorales | Mucoraceae | Mucor | Mucor_irregularis | NA | 0.5 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Hodophilus | Hodophilus_smithii | NA | 0.3 | NA |
+| Basidiomycota | Agaricomycetes | Polyporales | Meripilaceae | Rigidoporus | Rigidoporus_piceicola | NA | 0.2 | NA |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_chienii | 1.9 | 1.1 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Clonostachys | Clonostachys_phyllophila | 2.5 | 0.8 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | Pluteus_cinereofuscus | 3.6 | NA | NA |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_simplex | 0.5 | 1.4 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_cinerea | 0.8 | 0.5 | NA |
+| Basidiomycota | Agaricomycetes | Geastrales | Geastraceae | Geastrum | Geastrum_floriforme | 0.9 | NA | NA |
+| Ascomycota | Eurotiomycetes | Eurotiales | Trichocomaceae | Talaromyces | Talaromyces_tiftonensis | 0.5 | NA | NA |
+| Ascomycota | Sordariomycetes | Xylariales | Xylariaceae | Nemania | Nemania_aenea | 0.5 | NA | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_xanthothrix | NA | NA | 259.4 |
+| Basidiomycota | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | Pluteus_thomsonii | NA | NA | 2.4 |
+| Basidiomycota | Agaricomycetes | Boletales | Coniophoraceae | Coniophora | Coniophora_fusispora | NA | NA | 2.1 |
+| Ascomycota | Dothideomycetes | Pleosporales | Biatriosporaceae | Biatriospora | Biatriospora_mackinnonii | NA | NA | 1.2 |
+| Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Neodendryphiella | Neodendryphiella_michoacanensis | NA | 0.3 | 0.4 |
+| Basidiomycota | Agaricomycetes | Agaricales | Marasmiaceae | Marasmius | Marasmius_graminum | NA | NA | 1.0 |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Phialophora | Phialophora_cyclaminis | 2.0 | NA | 0.5 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavulinopsis | Clavulinopsis_luteoalba | NA | NA | 0.9 |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Westerdykella | Westerdykella_reniformis | NA | 0.4 | 0.9 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Ramariopsis | Ramariopsis_flavescens | NA | NA | 0.7 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_neonigrita | NA | NA | 0.7 |
+| Ascomycota | Orbiliomycetes | Orbiliales | Orbiliaceae | Dactylella | Dactylella_arnaudii | NA | NA | 0.3 |
+| Ascomycota | Dothideomycetes | Tubeufiales | Tubeufiaceae | Helicoma | Helicoma_isiola | NA | NA | 0.3 |
+| Mucoromycota | Mucoromycetes | Mucorales | Cunninghamellaceae | Absidia | Absidia_spinosa | NA | NA | 0.2 |
+| Basidiomycota | Agaricomycetes | Agaricales | Agaricaceae | Chlorophyllum | Chlorophyllum_agaricoides | NA | NA | 0.2 |
+| Ascomycota | Sordariomycetes | Phomatosporales | Phomatosporaceae | Phomatospora | Phomatospora_striatigera | 92.7 | 0.5 | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Trichomeriaceae | Knufia | Knufia_tsunedae | NA | 3.9 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_rickeniana | NA | 1.6 | NA |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_polygonia | 0.3 | 1.2 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_isomera | NA | 1.6 | NA |
+| Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Lysurus | Lysurus_cruciatus | NA | 0.7 | NA |
+| Ascomycota | Sordariomycetes | Myrmecridiales | Myrmecridiaceae | Myrmecridium | Myrmecridium_phragmitis | NA | 0.8 | NA |
+| Ascomycota | Sordariomycetes | Microascales | Microascaceae | Microascus | Microascus_verrucosus | NA | 1.0 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_africana | NA | 0.6 | NA |
+| Mucoromycota | Mucoromycetes | Mucorales | Rhizopodaceae | Rhizopus | Rhizopus_arrhizus | NA | 0.4 | NA |
+| Basidiomycota | Agaricomycetes | Hymenochaetales | Schizoporaceae | Xylodon | Xylodon_erastii | NA | 0.2 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Acericola | Acericola_italica | NA | 2.5 | NA |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleraceae | Genolevuria | Genolevuria_amylolytica | NA | 1.4 | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_gamsii | NA | 1.0 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Nigrosabulum | Nigrosabulum_globosum | NA | 0.4 | NA |
+| Ascomycota | Dothideomycetes | Venturiales | Sympoventuriaceae | Veronaeopsis | Veronaeopsis_simplex | NA | 0.3 | NA |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Thelonectria | Thelonectria_rubi | NA | 0.2 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Clitopilus | Clitopilus_scyphoides | NA | 37.5 | 0.4 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_globulifera | NA | 12.8 | 1.0 |
+| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Chaetosphaeria | Chaetosphaeria_fusiformis | NA | NA | 7.6 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Ramariopsis | Ramariopsis_crocea | NA | NA | 10.1 |
+| Mucoromycota | Umbelopsidomycetes | Umbelopsidales | Umbelopsidaceae | Umbelopsis | Umbelopsis_dimorpha | NA | 0.2 | 5.3 |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_persica | NA | 2.1 | 1.5 |
+| Ascomycota | Geoglossomycetes | Geoglossales | Geoglossaceae | Trichoglossum | Trichoglossum_walteri | NA | NA | 3.9 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | Psathyrella_squamosa | NA | NA | 3.4 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_zollingeri | NA | NA | 1.5 |
+| Basidiomycota | Agaricomycetes | Cantharellales | Botryobasidiaceae | Botryobasidium | Botryobasidium_laeve | NA | NA | 1.3 |
+| Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | Chaetomium_cupreum | NA | NA | 1.3 |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Dioszegia | Dioszegia_rishiriensis | NA | 0.9 | 0.2 |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleraceae | Fonsecazyma | Fonsecazyma_mujuensis | NA | NA | 1.0 |
+| Basidiomycota | Agaricomycetes | Polyporales | Irpicaceae | Ceriporia | Ceriporia_reticulata | NA | NA | 0.9 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_horticola | NA | 0.3 | 0.2 |
+| Ascomycota | Sordariomycetes | Myrmecridiales | Myrmecridiaceae | Myrmecridium | Myrmecridium_iridis | NA | NA | 0.5 |
+| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Codinaea | Codinaea_lambertiae | NA | NA | 0.2 |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Phialophora | Phialophora_foetens | NA | 21.8 | NA |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_gemmifera | NA | 9.8 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_macrospora | NA | 6.5 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_sericeum | NA | 3.5 | NA |
+| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Dinemasporium | Dinemasporium_morbidum | NA | 1.6 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Hygrophoraceae | Hygrocybe | Hygrocybe_singeri | NA | 1.3 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Strophariaceae | Stropharia | Stropharia_rugosoannulata | NA | 0.8 | NA |
+| Basidiomycota | Agaricomycetes | Geastrales | Geastraceae | Geastrum | Geastrum_morganii | NA | 0.8 | NA |
+| Ascomycota | Leotiomycetes | Helotiales | Helotiaceae | Cyathicula | Cyathicula_culmicola | NA | 0.6 | NA |
+| Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Phialophora | Phialophora_hyalina | NA | 0.5 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Lophiotremataceae | Lophiotrema | Lophiotrema_eburnoides | NA | 0.2 | NA |
+| Ascomycota | Pezizomycetes | Pezizales | Ascobolaceae | Ascobolus | Ascobolus_crenulatus | NA | 0.2 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | Psathyrella_complutensis | NA | 29.2 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Agaricaceae | Leucoagaricus | Leucoagaricus_leucothites | NA | 9.1 | NA |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Bimuria | Bimuria_novae-zelandiae | NA | 1.1 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Entoloma | Entoloma_halophilum | NA | 1.3 | NA |
+| Ascomycota | Saccharomycetes | Saccharomycetales | Debaryomycetaceae | Schwanniomyces | Schwanniomyces_vanrijiae | NA | 0.5 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Parasola | Parasola_crataegi | NA | 0.5 | NA |
+| Ascomycota | Pezizomycetes | Pezizales | Pezizaceae | Peziza | Peziza_fimeti | NA | 0.4 | NA |
+| Ascomycota | Sordariomycetes | Microascales | Microascaceae | Yunnania | Yunnania_carbonaria | 0.7 | 0.2 | NA |
+| Basidiomycota | Tremellomycetes | Tremellales | Bulleribasidiaceae | Dioszegia | Dioszegia_hungarica | NA | 0.6 | NA |
+| Ascomycota | Eurotiomycetes | Onygenales | Onygenaceae | Myriodontium | Myriodontium_keratinophilum | NA | 0.3 | NA |
+| Basidiomycota | Agaricomycetes | Geastrales | Sphaerobolaceae | Sphaerobolus | Sphaerobolus_ingoldii | 7.5 | NA | NA |
+| Chytridiomycota | Spizellomycetes | Spizellomycetales | Powellomycetaceae | Geranomyces | Geranomyces_tanneri | 1.5 | NA | NA |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_hypsicladia | NA | 2.7 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_canoceps | NA | 1.9 | NA |
+| Basidiomycota | Tremellomycetes | Filobasidiales | Filobasidiaceae | Filobasidium | Filobasidium_wieringae | NA | 0.6 | NA |
+| Basidiomycota | Agaricomycetes | Agaricales | Lyophyllaceae | Fibulochlamys | Fibulochlamys_chilensis | NA | 0.3 | NA |
+| Basidiomycota | Microbotryomycetes | Sporidiobolales | Sporidiobolaceae | Rhodotorula | Rhodotorula_graminis | NA | 0.2 | NA |
+
+Named saprotroph species and abundances in field types
