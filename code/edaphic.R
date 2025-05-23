@@ -5,10 +5,7 @@
 #' output:
 #'   github_document:
 #'     toc: true
-#'     toc_depth: 3
-#'     df_print: paged
-#'     fig_width: 8
-#'     fig_height: 7
+#'     toc_depth: 2
 #' ---
 #'
 #' # Description
