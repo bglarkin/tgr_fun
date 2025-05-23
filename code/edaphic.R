@@ -22,7 +22,7 @@
 #' based on soil properties.
 #' 
 #' # Packages and libraries
-packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork")
+packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -89,12 +89,12 @@ soil_cor <-
     mutate(PCA_correlation = sqrt(PC1^2 + PC2^2)) %>% 
     arrange(-PCA_correlation) %>% 
     rownames_to_column(var = "soil_property") %>% 
-  mutate(across(where(is.numeric), ~ round(.x,)))
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
 
 #' Use the variable correlations to sort the soil property averages in a table 
 #' highlighting field types:
 soil_ft_avg %>% 
-    left_join(soil_cor %>% select(soil_property, PCA_corr = PCA_correlation), by = join_by(soil_property)) %>% 
+    left_join(soil_cor %>% select(soil_property, PCA_cor = PCA_correlation), by = join_by(soil_property)) %>% 
   rowwise() %>% 
     mutate(cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)), 
            across(where(is.numeric), ~ round(.x, 2))) %>% 
@@ -105,12 +105,48 @@ soil_ft_avg %>%
 #' Axis 1 & 2 eigenvalue proportions
 eig_prop <- round(summary(soil_pca)$cont$importance[2, 1:2] * 100, 1)
 
-
 soil_ord_scores <-
     site_sco %>%
     data.frame() %>% 
     rownames_to_column(var = "field_name") %>%
     left_join(sites, by = join_by(field_name))
+
+
+
+soilperm_region <- soilperm(soil_ord_scores$region, "region")
+soilperm_region$mvdisper
+soilperm_region$gl_permtest
+soilperm_region$contrasts
+
+soil_ord_reg_centers <- soil_ord_scores %>% 
+  group_by(region) %>% 
+  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
+         across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
+segs_regions <- soil_ord_scores %>%
+  left_join(soil_ord_reg_centers, by = join_by(region)) %>% 
+  select(x = PC1, y = PC2, xend = mean_PC1, yend = mean_PC2)
+
+soil_ord_regions <- 
+ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
+  geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
+  geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region), size = 3) +
+    geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = FALSE, shape = TRUE)) +
+    scale_fill_manual(name = "Field Type", values = c("gray", "black", "white")) +
+    scale_shape_manual(name = "Region", values = c(22:25)) +
+  xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
+  ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
+    theme_ord +
+  guides(fill = guide_legend(override.aes = list(shape = 21))) +
+  theme(legend.title = element_text(size = 8), legend.position = "top",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.03, 0.90))
+
+
+soilperm_ft <- soilperm(soil_ord_scores$field_type, "field_type")
+soilperm_ft$mvdisper
+soilperm_ft$gl_permtest
+soilperm_ft$contrasts
 
 soil_ord_ft_centers <- soil_ord_scores %>% 
   group_by(field_type) %>% 
@@ -118,82 +154,27 @@ soil_ord_ft_centers <- soil_ord_scores %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 
-soil_ord_reg_centers <- soil_ord_scores %>% 
-  group_by(region) %>% 
-  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
-         across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
-
-
-
-
-
-soilperm_region <- soilperm(soil_ord_scores$region, "region")
-soilperm_region$gl_permtest
-segs_regions <- soil_ord_scores %>%
-  left_join(soil_ord_reg_centers, by = join_by(region)) %>% 
-  select(x = PC1, y = PC2, xend = mean_PC1, yend = mean_PC2)
-
-soil_ord_regions <- 
-ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-    # geom_polygon(data = soil_ord_scores %>% group_by(region) %>% slice(chull(PC1, PC2)),
-    #              aes(group = region), fill = "transparent", color = "black") + 
-  geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
-  geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region)) +
-    geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw) +
-    scale_fill_manual(values = c("gray", "black", "white")) +
-    scale_shape_manual(values = c(22:25)) +
-    # labs(
-    #     x = paste0("Axis 1 (", eig_prop[1], "%)"),
-    #     y = paste0("Axis 2 (", eig_prop[2], "%)")) +
-  labs(x = NULL, y = NULL) +
-    theme_ord +
-    theme(legend.position = "none")
-
-
-
-
-
-
-#' Plotting results: 
-
 soil_ord_ftypes <- 
     ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-    # geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw) +
-    # geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
-    geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = FALSE, shape = TRUE)) +
+    geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE, shape = TRUE)) +
+  geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = TRUE, shape = FALSE)) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
-    scale_fill_manual(values = c("gray", "black", "white")) +
-    scale_shape_manual(values = c(22:25)) +
-    # labs(
-    #     x = paste0("Axis 1 (", eig_prop[1], "%)"),
-    #     y = paste0("Axis 2 (", eig_prop[2], "%)")) +
-  labs(x = NULL, y = NULL) +
+    scale_fill_manual(name = "Field Type", values = c("gray", "black", "white")) +
+    scale_shape_manual(name = "Region", values = c(22:25)) +
+  xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
+  ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
     theme_ord +
-    guides(fill = guide_legend(position = "inside"),
-           shape = guide_legend(position = "inside")) +
-    theme(legend.justification = c(0.03, 0.98),
-          legend.box = "horizontal")
-#+ soil_ord_plot,warning=FALSE,fig.height=5,fig.width=5,fig.align='center',echo=FALSE
-soil_ord_ftypes
+  guides(fill = guide_legend(override.aes = list(shape = 21))) +
+  theme(legend.title = element_text(size = 8), legend.position = "top",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(-0.03, 0.90))
+#+ figS2,warning=FALSE,fig.height=3.5,fig.width=6.5
 
-
-figS2_layout <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
-  plot_layout(widths = c(1, 0.01, 1)) &
-  theme(axis.title = element_blank())
-
-figS2 <- figS2_layout +
-  plot_annotation(tag_levels = 'a',
-                  theme = theme(
-                    plot.margin = margin(5.5, 5.5, 30, 30),   # extra room for the labels
-                    axis.title.x = element_text(size = 12, face = "bold", margin = margin(t = 15)),
-                    axis.title.y = element_text(size = 12, face = "bold", angle = 90,
-                                                margin = margin(r = 15))
-                  )) + labs(x = "test", y = "test")
-
+figS2 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
+  plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
+  plot_annotation(tag_levels = 'a')
 
 
 
@@ -201,7 +182,7 @@ figS2
 
 ggsave(root_path("figs", "figS2.png"),
        plot = figS2,
-       width = 6.5,
-       height = 4,
+       width = 7.5,
+       height = 4.25,
        units = "in",
        dpi = 600)
