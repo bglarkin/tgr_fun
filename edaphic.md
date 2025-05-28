@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 23 May, 2025
+Last updated: 28 May, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -199,40 +199,45 @@ soilperm_region$mvdisper
     ## 
     ## Response: Distances
     ##           Df  Sum Sq Mean Sq      F N.Perm Pr(>F)
-    ## Groups     3  2.1805 0.72682 0.9061   1999  0.464
+    ## Groups     3  2.1805 0.72682 0.9061   1999 0.4545
     ## Residuals 21 16.8447 0.80213                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##         BM      FG      FL     LP
-    ## BM         0.25100 0.60950 0.9195
-    ## FG 0.24801         0.30550 0.5850
-    ## FL 0.49846 0.32847         0.8060
+    ## BM         0.23850 0.60100 0.9270
+    ## FG 0.24801         0.30500 0.5645
+    ## FL 0.49846 0.32847         0.8220
     ## LP 0.90173 0.50644 0.76747
 
 ``` r
 soilperm_region$gl_permtest
 ```
 
-<div data-pagedtable="false">
-
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Df"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["SumOfSqs"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["R2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["F"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Pr(>F)"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"3","2":"14.37445","3":"0.4068966","4":"4.802326","5":"0.001","_rn_":"region"},{"1":"21","2":"20.95259","3":"0.5931034","4":"NA","5":"NA","_rn_":"Residual"},{"1":"24","2":"35.32704","3":"1.0000000","4":"NA","5":"NA","_rn_":"Total"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-
-</div>
+    ## Permutation test for adonis under reduced model
+    ## Terms added sequentially (first to last)
+    ## Permutation: free
+    ## Number of permutations: 1999
+    ## 
+    ## adonis2(formula = as.formula(paste("soil_d ~", clust_var)), data = soil_ord_scores, permutations = 1999, by = "terms")
+    ##          Df SumOfSqs     R2      F Pr(>F)   
+    ## region    3   14.374 0.4069 4.8023 0.0025 **
+    ## Residual 21   20.953 0.5931                 
+    ## Total    24   35.327 1.0000                 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
 soilperm_region$contrasts
 ```
 
-<div data-pagedtable="false">
-
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":["group1"],"name":[1],"type":["chr"],"align":["left"]},{"label":["group2"],"name":[2],"type":["chr"],"align":["left"]},{"label":["R2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["F_value"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["df1"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["df2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["p_value_adj"],"name":[8],"type":["dbl"],"align":["right"]}],"data":[{"1":"BM","2":"FG","3":"0.422","4":"7.307","5":"1","6":"10","7":"0.0035","8":"0.0105"},{"1":"BM","2":"FL","3":"0.350","4":"8.608","5":"1","6":"16","7":"0.0015","8":"0.0090"},{"1":"BM","2":"LP","3":"0.031","4":"0.348","5":"1","6":"11","7":"0.7685","8":"0.7685"},{"1":"FG","2":"FL","3":"0.184","4":"2.251","5":"1","6":"10","7":"0.0995","8":"0.1194"},{"1":"FG","2":"LP","3":"0.403","4":"3.381","5":"1","6":"5","7":"0.0330","8":"0.0495"},{"1":"FL","2":"LP","3":"0.353","4":"5.999","5":"1","6":"11","7":"0.0060","8":"0.0120"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-
-</div>
+    ##   group1 group2    R2 F_value df1 df2 p_value p_value_adj
+    ## 1     BM     FG 0.422   7.307   1  10  0.0060      0.0120
+    ## 2     BM     FL 0.350   8.608   1  16  0.0015      0.0090
+    ## 3     BM     LP 0.031   0.348   1  11  0.7895      0.7895
+    ## 4     FG     FL 0.184   2.251   1  10  0.1050      0.1260
+    ## 5     FG     LP 0.403   3.381   1   5  0.0305      0.0458
+    ## 6     FL     LP 0.353   5.999   1  11  0.0035      0.0105
 
 ``` r
 soil_ord_reg_centers <- soil_ord_scores %>% 
@@ -274,39 +279,41 @@ soilperm_ft$mvdisper
     ## 
     ## Response: Distances
     ##           Df Sum Sq Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.6288 0.31442 0.9035   1999  0.406
+    ## Groups     2 0.6288 0.31442 0.9035   1999  0.431
     ## Residuals 22 7.6560 0.34800                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.50300  0.6490
-    ## restored 0.51780           0.1745
+    ## corn              0.53000   0.661
+    ## restored 0.51780            0.188
     ## remnant  0.65358  0.17408
 
 ``` r
 soilperm_ft$gl_permtest
 ```
 
-<div data-pagedtable="false">
-
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Df"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["SumOfSqs"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["R2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["F"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Pr(>F)"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"2","2":"13.27672","3":"0.3758232","4":"6.623213","5":"0.001","_rn_":"field_type"},{"1":"22","2":"22.05032","3":"0.6241768","4":"NA","5":"NA","_rn_":"Residual"},{"1":"24","2":"35.32704","3":"1.0000000","4":"NA","5":"NA","_rn_":"Total"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-
-</div>
+    ## Permutation test for adonis under reduced model
+    ## Terms added sequentially (first to last)
+    ## Permutation: free
+    ## Number of permutations: 1999
+    ## 
+    ## adonis2(formula = as.formula(paste("soil_d ~", clust_var)), data = soil_ord_scores, permutations = 1999, by = "terms")
+    ##            Df SumOfSqs      R2      F Pr(>F)    
+    ## field_type  2   13.277 0.37582 6.6232  5e-04 ***
+    ## Residual   22   22.050 0.62418                  
+    ## Total      24   35.327 1.00000                  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
 soilperm_ft$contrasts
 ```
 
-<div data-pagedtable="false">
-
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":["group1"],"name":[1],"type":["chr"],"align":["left"]},{"label":["group2"],"name":[2],"type":["chr"],"align":["left"]},{"label":["R2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["F_value"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["df1"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["df2"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["p_value_adj"],"name":[8],"type":["dbl"],"align":["right"]}],"data":[{"1":"restored","2":"corn","3":"0.399","4":"12.616","5":"1","6":"19","7":"0.0005","8":"0.0015"},{"1":"restored","2":"remnant","3":"0.037","4":"0.695","5":"1","6":"18","7":"0.4255","8":"0.4255"},{"1":"corn","2":"remnant","3":"0.462","4":"6.009","5":"1","6":"7","7":"0.0175","8":"0.0263"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-
-</div>
+    ##     group1  group2    R2 F_value df1 df2 p_value p_value_adj
+    ## 1 restored    corn 0.399  12.616   1  19  0.0005      0.0015
+    ## 2 restored remnant 0.037   0.695   1  18  0.4130      0.4130
+    ## 3     corn remnant 0.462   6.009   1   7  0.0135      0.0203
 
 ``` r
 soil_ord_ft_centers <- soil_ord_scores %>% 

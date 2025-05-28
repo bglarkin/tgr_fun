@@ -94,6 +94,9 @@ spe_meta <- list(
 pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FALSE) %>% 
   select(field_name, C4_grass, forb)
 
+#' ## Soil properties
+soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
+
 #' # Data wrangling
 # Data wrangling ———————— ####
 #' 
@@ -429,13 +432,147 @@ fig2
 #' percent variation explained. Colours/shading: corn = grey, restored = black,
 #' remnant = white.
 
-#+ fig2_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+#+ fig2_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig2.png"),
        plot = fig2,
        width = 6.5,
        height = 4,
        units = "in",
        dpi = 600)
+
+#' ## Constrained Analysis
+#' Test explanatory variables for correlation with site ordination. Using plant data, 
+#' so the analysis is restricted to Wisconsin sites. Edaphic variables are too numerous 
+#' to include individually, so transform micro nutrients using PCA. Forb and grass 
+#' cover is highly collinear; use the grass-forb index produced previously with PCA. 
+soil_micro_pca <- 
+  soil %>% 
+  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+  filter(field_type == "restored", !(region %in% "FL")) %>% 
+  select(field_name, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na, -field_key, -field_type, -region) %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand(method = "standardize") %>% 
+  rda()
+summary(soil_micro_pca) # 70% on first two axes
+soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites") %>% 
+  data.frame() %>% 
+  rename(soil_micro_1 = PC1, soil_micro_2 = PC2) %>% 
+  rownames_to_column(var = "field_name")
+
+soil_macro <- 
+  soil %>% 
+  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+  filter(field_type == "restored", !(region %in% "FL")) %>% 
+  select(-c(field_key, field_type, region, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na))
+
+#' Assemble explanatory variables and begin iterative selection process. 
+#' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
+#' detected. Then run forward selection in `dbrda()`. 
+env <- sites %>% 
+  filter(field_type == "restored", !(region %in% "FL")) %>% 
+  select(field_name, dist_axis_1) %>% # 90% on axis 1
+  left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
+  left_join(soil_macro, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% # 92% on axis 1
+  select(-starts_with("field_key"), -soil_micro_1) %>%
+  column_to_rownames(var = "field_name") %>% 
+  decostand(method = "standardize")
+env %>%
+  select(-dist_axis_1) %>% 
+  cor() %>% 
+  solve() %>% 
+  diag() %>% 
+  sort()
+#' OM and soil_micro_1 with high VIF. Removing soil_micro_1 maintains OM in the model.
+#' No overfitting detected in full model; proceed with forward selection. 
+env_cov <- env$dist_axis_1
+env_expl <- env %>% select(-dist_axis_1)
+
+spe_its_wi_resto <- spe$its_avg %>% 
+  filter(field_name %in% rownames(env)) %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand("total")
+
+mod_null <- dbrda(spe_its_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+mod_full <- dbrda(spe_its_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+mod_step <- ordistep(mod_null, 
+                     scope = formula(mod_full), 
+                     direction = "forward", 
+                     permutations = 1999, 
+                     trace = FALSE)
+
+#' ### Constrained Analysis Results
+mod_step
+(mod_glax <- anova(mod_step, permutations = 1999))
+(mod_inax <- anova(mod_step, by = "axis", permutations = 1999))
+(mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
+mod_step$anova %>% kable(, format = "pandoc")
+#' Based on permutation tests with n=1999 permutations, the model shows a significant 
+#' correlation between the site ordination on fungal communities
+#' and the selected explanatory variables (p=0.001). The first two constrained axes are 
+#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=21% of the community 
+#' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
+#' individual p values and statistics. 
+#' 
+#' Create the figure:
+mod_pars <- 
+  dbrda(
+    spe_its_wi_resto ~ gf_index + pH + Condition(env_cov),
+    data = env_expl,
+    distance = "bray"
+  )
+mod_pars_eig <- round(mod_pars$CCA$eig * 100, 1)
+
+mod_scor <- scores(
+  mod_pars,
+  choices = c(1, 2),
+  display = c("bp", "sites"),
+  tidy = FALSE
+)
+mod_scor_site <- mod_scor$sites %>% 
+  data.frame() %>%
+  rownames_to_column(var = "field_name") %>% 
+  left_join(sites, by = join_by(field_name))
+mod_scor_bp <- mod_scor$biplot %>% 
+  data.frame() %>% 
+  rownames_to_column(var = "envvar") %>% 
+  mutate(
+    origin = 0,
+    m = dbRDA2 / dbRDA1, 
+    d = sqrt(dbRDA1^2 + dbRDA2^2), 
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
+    labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
+    laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+
+#+ fig6,warning=FALSE,fig.height=4,fig.width=4
+fig6 <- 
+  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  geom_point(fill = "black", size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+  geom_segment(data = mod_scor_bp, 
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = "gray20") +
+  geom_text(data = mod_scor_bp, 
+            aes(x = labx, y = laby, label = c("grass—forb\nindex", "pH")), 
+            nudge_x = c(-0.2,-0.06), nudge_y = c(0.08,0.1),
+            size = 3, color = "gray20") +
+  labs(
+    x = paste0("Constr. Axis 1 (", mod_pars_eig[1], "%)"),
+    y = paste0("Constr. Axis 2 (", mod_pars_eig[2], "%)")) +
+  theme_ord
+
+#+ fig6_save,warning=FALSE,echo=FALSE
+ggsave(
+  root_path("figs", "fig6.png"),
+  plot = fig6,
+  width = 4,
+  height = 4,
+  units = "in",
+  dpi = 600
+)
 
 #' 
 #' # Arbuscular mycorrhizal fungi
@@ -904,24 +1041,17 @@ ggsave(root_path("figs", "fig4.png"),
        units = "in",
        dpi = 600)
 
-
-
-
-
-
-
-
-
-
-# Pathogen indicator species
+#' ## Pathogen Indicator Species
+#' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
+#' research may make the indicator stats less appropriate for other use.
 patho_ind <- inspan("plant_pathogen")
 patho_ind %>% 
   select(-otu_num, -primary_lifestyle, -p.value) %>% 
-  arrange(field_type, -p_val_adj) %>% 
+  arrange(field_type, p_val_adj) %>% 
   kable(format = "pandoc", caption = paste("Indicator species analysis, plant pathogens"))
 
-
-guildseq(spe$its_avg, "plant_pathogen") %>% 
+patho_abund_ft <- 
+  guildseq(spe$its_avg, "plant_pathogen") %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its, by = join_by(otu_num)) %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
@@ -931,13 +1061,13 @@ guildseq(spe$its_avg, "plant_pathogen") %>%
   select(phylum:species, corn, restored, remnant) %>% 
   rowwise() %>% 
   mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
-  arrange(-avg) %>% select(-avg) %>% 
-  kable(format = "pandoc", caption = "Named pathogen species and abundances in field types")
+  arrange(-avg)
+patho_abund_ft %>% 
+  filter(avg >= 10) %>% 
+  kable(format = "pandoc", caption = "Named pathogen species and abundances in field types\n(Mean abundance >= 10 shown)")
 
-
-
-# Pathogens and plants
-# Formally incorporate into this script later...
+#' ## Pathogen—Plant Correlations
+#' Whole-soil fungi correlated with grass and forbs; investigate whether pathogens do specifically.
 ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x = gf_index, y = plant_pathogen)) +
   geom_smooth(method = "lm") +
   geom_point(shape = 1, size = 7) +
@@ -945,7 +1075,7 @@ ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x 
   labs(x = "Index: C4_grass <—> Forb abundance", y = "Sequence abundance, plant pathogens") +
   theme_classic()
 
-
+#' Model the relationship
 gf_patho_lm <- lm(plant_pathogen ~ gf_index, data = its_gulr_pfg %>% filter(field_type == "restored", region != "FL"))
 #' Diagnostics
 par(mfrow = c(2,2))
@@ -956,18 +1086,6 @@ plot(gf_patho_lm)
 distribution_prob(gf_patho_lm)
 #' Response and residuals normal, no transformations warranted and linear model appropriate.
 summary(gf_patho_lm)
-
-
-
-
-
-
-
-
-
-
-
-
 
 #' 
 #' # Putative saprotrophs
@@ -1207,29 +1325,16 @@ ggsave(root_path("figs", "fig5.png"),
        units = "in",
        dpi = 600)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# saprotrophs
+#' ## Saprotroph Indicator Species
 sapro_ind <- inspan("saprotroph")
-sapro_ind %>% 
+sapro_ind_table <- 
+  sapro_ind %>% 
   select(-otu_num, -primary_lifestyle, -p.value) %>%
-  arrange(field_type, -p_val_adj) %>%
-  kable(format = "pandoc", caption = paste("Indicator species analysis, saprotrophs"))
-
-
-guildseq(spe$its_avg, "saprotroph") %>% 
+  arrange(field_type, p_val_adj)
+sapro_ind_table[1:20, ] %>% 
+  kable(format = "pandoc", caption = paste("Indicator species analysis, saprotrophs\n(First 20 rows shown)"))
+sapro_abund_ft <- 
+  guildseq(spe$its_avg, "saprotroph") %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its, by = join_by(otu_num)) %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
@@ -1239,5 +1344,7 @@ guildseq(spe$its_avg, "saprotroph") %>%
   select(phylum:species, corn, restored, remnant) %>% 
   rowwise() %>% 
   mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
-  arrange(-avg) %>% select(-avg) %>% 
-  kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types")
+  arrange(-avg)
+sapro_abund_ft %>% 
+  filter(avg >= 10) %>% 
+  kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types\n(Mean abundance >= 10 shown)")

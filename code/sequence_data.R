@@ -17,6 +17,7 @@
 #' - Export UNIFRAC tables for AMF
 #' - Evaluate sampling effort with rarefaction and accumulation
 
+#'
 #' # Resources
 
 #' ## Packages

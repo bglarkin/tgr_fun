@@ -2,9 +2,11 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 23 May, 2025
+Last updated: 28 May, 2025
 
 - [Description](#description)
+- [Resources](#resources)
+  - [Packages](#packages)
   - [Styles](#styles)
 - [Functions](#functions)
   - [Root path function](#root-path-function)
@@ -28,8 +30,11 @@ Last updated: 23 May, 2025
 - Apply fungal traits
 - Create sample and site OTU tables
 - Export UNIFRAC tables for AMF
-- Evaluate sampling effort with rarefaction and accumulation \#
-  Resources \## Packages
+- Evaluate sampling effort with rarefaction and accumulation
+
+# Resources
+
+## Packages
 
 ``` r
 packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", "rlang")
