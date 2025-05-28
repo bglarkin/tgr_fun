@@ -510,7 +510,7 @@ mod_step$anova %>% kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, the model shows a significant 
 #' correlation between the site ordination on fungal communities
 #' and the selected explanatory variables (p=0.001). The first two constrained axes are 
-#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=21% of the community 
+#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community 
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
 #' individual p values and statistics. 
 #' 
