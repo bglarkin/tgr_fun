@@ -18,9 +18,10 @@
 #' pairwise LSMs via *emmeans*.
 #' 
 #' **Beta diversity** – Workflow after [Song 2015](https://doi.org/10.1371/journal.pone.0127234):  
-#'  1. PCoA of Bray (ITS) or UNIFRAC (18S) distances,  
-#'  2. homogeneity test diagnostics 
-#'  3. PERMANOVA (+ pairwise) 
+#'  1. PCoA of Bray (ITS) or UNIFRAC (18S) distances
+#'  1. homogeneity test diagnostics 
+#'  1. PERMANOVA (+ pairwise) 
+#' 
 #' Cartesian inter‑site distance enters models as a covariate per [Redondo 2020](https://doi.org/10.1093/femsec/fiaa082).
 #' 
 #' # Packages and libraries
@@ -53,7 +54,7 @@ source(root_path("resources", "styles.R"))
 # Data ———————— ####
 #' 
 #' ## Site metadata and design
-sites <- read_csv(paste0(getwd(), "/clean_data/sites.csv"), show_col_types = FALSE) %>% 
+sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 
 #' 
@@ -127,6 +128,7 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
 #' 
 #' ### Wrangle species and metadata
 #' Raw and log ratio transformed abundances
+#' 
 #' #### Whole soil fungi
 its_guab <- 
   spe$its_avg %>% 
@@ -193,7 +195,7 @@ amf_ps <- phyloseq(
 #' 
 #' ## Fatty Acids: Biomass
 #' Use only 18.2 for soil fungi
-fa <- read_csv(file.path(getwd(), "clean_data/plfa.csv"), show_col_types = FALSE) %>% 
+fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
     rename(fungi_18.2 = fa_18.2) %>% 
     select(field_name, fungi_18.2, amf) %>%
     left_join(
@@ -203,7 +205,8 @@ fa <- read_csv(file.path(getwd(), "clean_data/plfa.csv"), show_col_types = FALSE
 
 #' 
 #' # Functions
-#' Executed from a separate script to save lines here
+#' Executed from a separate script to save lines here; to view the function navigate to 
+#' `functions.R` in the code folder, accessible from the root dir of the repo.
 # Functions ———————— ####
 source(root_path("code", "functions.R"))
 
@@ -297,7 +300,7 @@ augment(its_shan_lm) %>%
 
 #' Model results, group means, and post-hoc
 summary(its_shan_lm)
-#' Sequence depth is not a significant predictor of Shannon diversity
+#' Sequence depth is not a significant predictor of Shannon diversity.
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 #' Arithmetic means calculated in this case.
 its_shan_em <- emmeans(its_shan_lm, ~ field_type, type = "response")
@@ -514,7 +517,7 @@ mod_step$anova %>% kable(, format = "pandoc")
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
 #' individual p values and statistics. 
 #' 
-#' Create the figure:
+#' Create the figure, combine with pathogen-plant correlation figure in patchwork later:
 mod_pars <- 
   dbrda(
     spe_its_wi_resto ~ gf_index + pH + Condition(env_cov),
@@ -1348,3 +1351,4 @@ sapro_abund_ft <-
 sapro_abund_ft %>% 
   filter(avg >= 10) %>% 
   kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types\n(Mean abundance >= 10 shown)")
+
