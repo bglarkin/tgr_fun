@@ -122,9 +122,9 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
 
 #' ## Permanova on soil data
 #' Simplified version of `mva()` for use with the soil properties data
-soilperm <- function(clust_vec, clust_var) {
+soilperm <- function(clust_vec, clust_var, sco) {
   #' ### Permanova
-  soil_d <- dist(site_sco)
+  soil_d <- dist(sco)
   
   # Test multivariate dispersions
   soil_disper <- betadisper(soil_d, clust_vec, bias.adjust = TRUE)
@@ -257,4 +257,36 @@ inspan <- function(guild, nperm=1999) {
   
   return(out)
   
+}
+
+#' ## Calculate pairwise distances among sites and present summary statistics
+#' Function `reg_dist_stats()` requires a haversine distance matrix, site metadata, 
+#' and is filtered by regions to produce the desired output. 
+reg_dist_stats <- function(dist_mat,
+                           sites_df,
+                           filt_rg) {
+  dm  <- round(as.matrix(dist_mat) / 1000, 1)
+  idx <- which(upper.tri(dm), arr.ind = TRUE)
+  
+  pairs <- tibble(site1 = rownames(dm)[idx[, 1]],
+                  site2 = colnames(dm)[idx[, 2]],
+                  dist  = dm[idx])
+  
+  meta <- sites_df %>%
+    select(site = field_key, ft = field_type, rg = region) %>% 
+    mutate(site = as.character(site)) %>% 
+    filter(rg == filt_rg)
+  
+  pairs %>%
+    filter(site1 %in% meta$site, site2 %in% meta$site) %>% 
+    left_join(meta %>% select(site, ft), by = c("site1" = "site")) %>% rename(ft1 = ft) %>%
+    left_join(meta %>% select(site, ft), by = c("site2" = "site")) %>% rename(ft2 = ft) %>%
+    mutate(group_pair = paste(pmin(ft1, ft2), pmax(ft1, ft2), sep = "-")) %>%
+    group_by(group_pair) %>%
+    summarize(
+      min_dist = min(dist, na.rm = TRUE),
+      median_dist = median(dist, na.rm = TRUE),
+      max_dist = max(dist, na.rm = TRUE),
+      .groups = "drop"
+    )
 }

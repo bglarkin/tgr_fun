@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style type="text/css">
+@font-face {
+font-family: octicons-link;
+src: url(data:font/woff;charset=utf-8;base64,d09GRgABAAAAAAZwABAAAAAACFQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEU0lHAAAGaAAAAAgAAAAIAAAAAUdTVUIAAAZcAAAACgAAAAoAAQAAT1MvMgAAAyQAAABJAAAAYFYEU3RjbWFwAAADcAAAAEUAAACAAJThvmN2dCAAAATkAAAABAAAAAQAAAAAZnBnbQAAA7gAAACyAAABCUM+8IhnYXNwAAAGTAAAABAAAAAQABoAI2dseWYAAAFsAAABPAAAAZwcEq9taGVhZAAAAsgAAAA0AAAANgh4a91oaGVhAAADCAAAABoAAAAkCA8DRGhtdHgAAAL8AAAADAAAAAwGAACfbG9jYQAAAsAAAAAIAAAACABiATBtYXhwAAACqAAAABgAAAAgAA8ASm5hbWUAAAToAAABQgAAAlXu73sOcG9zdAAABiwAAAAeAAAAME3QpOBwcmVwAAAEbAAAAHYAAAB/aFGpk3jaTY6xa8JAGMW/O62BDi0tJLYQincXEypYIiGJjSgHniQ6umTsUEyLm5BV6NDBP8Tpts6F0v+k/0an2i+itHDw3v2+9+DBKTzsJNnWJNTgHEy4BgG3EMI9DCEDOGEXzDADU5hBKMIgNPZqoD3SilVaXZCER3/I7AtxEJLtzzuZfI+VVkprxTlXShWKb3TBecG11rwoNlmmn1P2WYcJczl32etSpKnziC7lQyWe1smVPy/Lt7Kc+0vWY/gAgIIEqAN9we0pwKXreiMasxvabDQMM4riO+qxM2ogwDGOZTXxwxDiycQIcoYFBLj5K3EIaSctAq2kTYiw+ymhce7vwM9jSqO8JyVd5RH9gyTt2+J/yUmYlIR0s04n6+7Vm1ozezUeLEaUjhaDSuXHwVRgvLJn1tQ7xiuVv/ocTRF42mNgZGBgYGbwZOBiAAFGJBIMAAizAFoAAABiAGIAznjaY2BkYGAA4in8zwXi+W2+MjCzMIDApSwvXzC97Z4Ig8N/BxYGZgcgl52BCSQKAA3jCV8CAABfAAAAAAQAAEB42mNgZGBg4f3vACQZQABIMjKgAmYAKEgBXgAAeNpjYGY6wTiBgZWBg2kmUxoDA4MPhGZMYzBi1AHygVLYQUCaawqDA4PChxhmh/8ODDEsvAwHgMKMIDnGL0x7gJQCAwMAJd4MFwAAAHjaY2BgYGaA4DAGRgYQkAHyGMF8NgYrIM3JIAGVYYDT+AEjAwuDFpBmA9KMDEwMCh9i/v8H8sH0/4dQc1iAmAkALaUKLgAAAHjaTY9LDsIgEIbtgqHUPpDi3gPoBVyRTmTddOmqTXThEXqrob2gQ1FjwpDvfwCBdmdXC5AVKFu3e5MfNFJ29KTQT48Ob9/lqYwOGZxeUelN2U2R6+cArgtCJpauW7UQBqnFkUsjAY/kOU1cP+DAgvxwn1chZDwUbd6CFimGXwzwF6tPbFIcjEl+vvmM/byA48e6tWrKArm4ZJlCbdsrxksL1AwWn/yBSJKpYbq8AXaaTb8AAHja28jAwOC00ZrBeQNDQOWO//sdBBgYGRiYWYAEELEwMTE4uzo5Zzo5b2BxdnFOcALxNjA6b2ByTswC8jYwg0VlNuoCTWAMqNzMzsoK1rEhNqByEyerg5PMJlYuVueETKcd/89uBpnpvIEVomeHLoMsAAe1Id4AAAAAAAB42oWQT07CQBTGv0JBhagk7HQzKxca2sJCE1hDt4QF+9JOS0nbaaYDCQfwCJ7Au3AHj+LO13FMmm6cl7785vven0kBjHCBhfpYuNa5Ph1c0e2Xu3jEvWG7UdPDLZ4N92nOm+EBXuAbHmIMSRMs+4aUEd4Nd3CHD8NdvOLTsA2GL8M9PODbcL+hD7C1xoaHeLJSEao0FEW14ckxC+TU8TxvsY6X0eLPmRhry2WVioLpkrbp84LLQPGI7c6sOiUzpWIWS5GzlSgUzzLBSikOPFTOXqly7rqx0Z1Q5BAIoZBSFihQYQOOBEdkCOgXTOHA07HAGjGWiIjaPZNW13/+lm6S9FT7rLHFJ6fQbkATOG1j2OFMucKJJsxIVfQORl+9Jyda6Sl1dUYhSCm1dyClfoeDve4qMYdLEbfqHf3O/AdDumsjAAB42mNgYoAAZQYjBmyAGYQZmdhL8zLdDEydARfoAqIAAAABAAMABwAKABMAB///AA8AAQAAAAAAAAAAAAAAAAABAAAAAA==) format('woff');
+}
+body {
+-webkit-text-size-adjust: 100%;
+text-size-adjust: 100%;
+color: #333;
+font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+font-size: 16px;
+line-height: 1.6;
+word-wrap: break-word;
+}
+a {
+background-color: transparent;
+}
+a:active,
+a:hover {
+outline: 0;
+}
+strong {
+font-weight: bold;
+}
+h1 {
+font-size: 2em;
+margin: 0.67em 0;
+}
+img {
+border: 0;
+}
+hr {
+box-sizing: content-box;
+height: 0;
+}
+pre {
+overflow: auto;
+}
+code,
+kbd,
+pre {
+font-family: monospace, monospace;
+font-size: 1em;
+}
+input {
+color: inherit;
+font: inherit;
+margin: 0;
+}
+html input[disabled] {
+cursor: default;
+}
+input {
+line-height: normal;
+}
+input[type="checkbox"] {
+box-sizing: border-box;
+padding: 0;
+}
+table {
+border-collapse: collapse;
+border-spacing: 0;
+}
+td,
+th {
+padding: 0;
+}
+* {
+box-sizing: border-box;
+}
+input {
+font: 13px / 1.4 Helvetica, arial, nimbussansl, liberationsans, freesans, clean, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+a {
+color: #4078c0;
+text-decoration: none;
+}
+a:hover,
+a:active {
+text-decoration: underline;
+}
+hr {
+height: 0;
+margin: 15px 0;
+overflow: hidden;
+background: transparent;
+border: 0;
+border-bottom: 1px solid #ddd;
+}
+hr:before {
+display: table;
+content: "";
+}
+hr:after {
+display: table;
+clear: both;
+content: "";
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+margin-top: 15px;
+margin-bottom: 15px;
+line-height: 1.1;
+}
+h1 {
+font-size: 30px;
+}
+h2 {
+font-size: 21px;
+}
+h3 {
+font-size: 16px;
+}
+h4 {
+font-size: 14px;
+}
+h5 {
+font-size: 12px;
+}
+h6 {
+font-size: 11px;
+}
+blockquote {
+margin: 0;
+}
+ul,
+ol {
+padding: 0;
+margin-top: 0;
+margin-bottom: 0;
+}
+ol ol,
+ul ol {
+list-style-type: lower-roman;
+}
+ul ul ol,
+ul ol ol,
+ol ul ol,
+ol ol ol {
+list-style-type: lower-alpha;
+}
+dd {
+margin-left: 0;
+}
+code {
+font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+font-size: 12px;
+}
+pre {
+margin-top: 0;
+margin-bottom: 0;
+font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+.select::-ms-expand {
+opacity: 0;
+}
+.octicon {
+font: normal normal normal 16px/1 octicons-link;
+display: inline-block;
+text-decoration: none;
+text-rendering: auto;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+}
+.octicon-link:before {
+content: '\f05c';
+}
+.markdown-body:before {
+display: table;
+content: "";
+}
+.markdown-body:after {
+display: table;
+clear: both;
+content: "";
+}
+.markdown-body>*:first-child {
+margin-top: 0 !important;
+}
+.markdown-body>*:last-child {
+margin-bottom: 0 !important;
+}
+a:not([href]) {
+color: inherit;
+text-decoration: none;
+}
+.anchor {
+display: inline-block;
+padding-right: 2px;
+margin-left: -18px;
+}
+.anchor:focus {
+outline: none;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+margin-top: 1em;
+margin-bottom: 16px;
+font-weight: bold;
+line-height: 1.4;
+}
+h1 .octicon-link,
+h2 .octicon-link,
+h3 .octicon-link,
+h4 .octicon-link,
+h5 .octicon-link,
+h6 .octicon-link {
+color: #000;
+vertical-align: middle;
+visibility: hidden;
+}
+h1:hover .anchor,
+h2:hover .anchor,
+h3:hover .anchor,
+h4:hover .anchor,
+h5:hover .anchor,
+h6:hover .anchor {
+text-decoration: none;
+}
+h1:hover .anchor .octicon-link,
+h2:hover .anchor .octicon-link,
+h3:hover .anchor .octicon-link,
+h4:hover .anchor .octicon-link,
+h5:hover .anchor .octicon-link,
+h6:hover .anchor .octicon-link {
+visibility: visible;
+}
+h1 {
+padding-bottom: 0.3em;
+font-size: 2.25em;
+line-height: 1.2;
+border-bottom: 1px solid #eee;
+}
+h1 .anchor {
+line-height: 1;
+}
+h2 {
+padding-bottom: 0.3em;
+font-size: 1.75em;
+line-height: 1.225;
+border-bottom: 1px solid #eee;
+}
+h2 .anchor {
+line-height: 1;
+}
+h3 {
+font-size: 1.5em;
+line-height: 1.43;
+}
+h3 .anchor {
+line-height: 1.2;
+}
+h4 {
+font-size: 1.25em;
+}
+h4 .anchor {
+line-height: 1.2;
+}
+h5 {
+font-size: 1em;
+}
+h5 .anchor {
+line-height: 1.1;
+}
+h6 {
+font-size: 1em;
+color: #777;
+}
+h6 .anchor {
+line-height: 1.1;
+}
+p,
+blockquote,
+ul,
+ol,
+dl,
+table,
+pre {
+margin-top: 0;
+margin-bottom: 16px;
+}
+hr {
+height: 4px;
+padding: 0;
+margin: 16px 0;
+background-color: #e7e7e7;
+border: 0 none;
+}
+ul,
+ol {
+padding-left: 2em;
+}
+ul ul,
+ul ol,
+ol ol,
+ol ul {
+margin-top: 0;
+margin-bottom: 0;
+}
+li>p {
+margin-top: 16px;
+}
+dl {
+padding: 0;
+}
+dl dt {
+padding: 0;
+margin-top: 16px;
+font-size: 1em;
+font-style: italic;
+font-weight: bold;
+}
+dl dd {
+padding: 0 16px;
+margin-bottom: 16px;
+}
+blockquote {
+padding: 0 15px;
+color: #777;
+border-left: 4px solid #ddd;
+}
+blockquote>:first-child {
+margin-top: 0;
+}
+blockquote>:last-child {
+margin-bottom: 0;
+}
+table {
+display: block;
+width: 100%;
+overflow: auto;
+word-break: normal;
+word-break: keep-all;
+}
+table th {
+font-weight: bold;
+}
+table th,
+table td {
+padding: 6px 13px;
+border: 1px solid #ddd;
+}
+table tr {
+background-color: #fff;
+border-top: 1px solid #ccc;
+}
+table tr:nth-child(2n) {
+background-color: #f8f8f8;
+}
+img {
+max-width: 100%;
+box-sizing: content-box;
+background-color: #fff;
+}
+code {
+padding: 0;
+padding-top: 0.2em;
+padding-bottom: 0.2em;
+margin: 0;
+font-size: 85%;
+background-color: rgba(0,0,0,0.04);
+border-radius: 3px;
+}
+code:before,
+code:after {
+letter-spacing: -0.2em;
+content: "\00a0";
+}
+pre>code {
+padding: 0;
+margin: 0;
+font-size: 100%;
+word-break: normal;
+white-space: pre;
+background: transparent;
+border: 0;
+}
+.highlight {
+margin-bottom: 16px;
+}
+.highlight pre,
+pre {
+padding: 16px;
+overflow: auto;
+font-size: 85%;
+line-height: 1.45;
+background-color: #f7f7f7;
+border-radius: 3px;
+}
+.highlight pre {
+margin-bottom: 0;
+word-break: normal;
+}
+pre {
+word-wrap: normal;
+}
+pre code {
+display: inline;
+max-width: initial;
+padding: 0;
+margin: 0;
+overflow: initial;
+line-height: inherit;
+word-wrap: normal;
+background-color: transparent;
+border: 0;
+}
+pre code:before,
+pre code:after {
+content: normal;
+}
+kbd {
+display: inline-block;
+padding: 3px 5px;
+font-size: 11px;
+line-height: 10px;
+color: #555;
+vertical-align: middle;
+background-color: #fcfcfc;
+border: solid 1px #ccc;
+border-bottom-color: #bbb;
+border-radius: 3px;
+box-shadow: inset 0 -1px 0 #bbb;
+}
+.pl-c {
+color: #969896;
+}
+.pl-c1,
+.pl-s .pl-v {
+color: #0086b3;
+}
+.pl-e,
+.pl-en {
+color: #795da3;
+}
+.pl-s .pl-s1,
+.pl-smi {
+color: #333;
+}
+.pl-ent {
+color: #63a35c;
+}
+.pl-k {
+color: #a71d5d;
+}
+.pl-pds,
+.pl-s,
+.pl-s .pl-pse .pl-s1,
+.pl-sr,
+.pl-sr .pl-cce,
+.pl-sr .pl-sra,
+.pl-sr .pl-sre {
+color: #183691;
+}
+.pl-v {
+color: #ed6a43;
+}
+.pl-id {
+color: #b52a1d;
+}
+.pl-ii {
+background-color: #b52a1d;
+color: #f8f8f8;
+}
+.pl-sr .pl-cce {
+color: #63a35c;
+font-weight: bold;
+}
+.pl-ml {
+color: #693a17;
+}
+.pl-mh,
+.pl-mh .pl-en,
+.pl-ms {
+color: #1d3e81;
+font-weight: bold;
+}
+.pl-mq {
+color: #008080;
+}
+.pl-mi {
+color: #333;
+font-style: italic;
+}
+.pl-mb {
+color: #333;
+font-weight: bold;
+}
+.pl-md {
+background-color: #ffecec;
+color: #bd2c00;
+}
+.pl-mi1 {
+background-color: #eaffea;
+color: #55a532;
+}
+.pl-mdr {
+color: #795da3;
+font-weight: bold;
+}
+.pl-mo {
+color: #1d3e81;
+}
+kbd {
+display: inline-block;
+padding: 3px 5px;
+font: 11px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+line-height: 10px;
+color: #555;
+vertical-align: middle;
+background-color: #fcfcfc;
+border: solid 1px #ccc;
+border-bottom-color: #bbb;
+border-radius: 3px;
+box-shadow: inset 0 -1px 0 #bbb;
+}
+.task-list-item {
+list-style-type: none;
+}
+.task-list-item+.task-list-item {
+margin-top: 3px;
+}
+.task-list-item input {
+margin: 0 0.35em 0.25em -1.6em;
+vertical-align: middle;
+}
+:checked+.radio-label {
+z-index: 1;
+position: relative;
+border-color: #4078c0;
+}
+.sourceLine {
+display: inline-block;
+}
+code .kw { color: #000000; }
+code .dt { color: #ed6a43; }
+code .dv { color: #009999; }
+code .bn { color: #009999; }
+code .fl { color: #009999; }
+code .ch { color: #009999; }
+code .st { color: #183691; }
+code .co { color: #969896; }
+code .ot { color: #0086b3; }
+code .al { color: #a61717; }
+code .fu { color: #63a35c; }
+code .er { color: #a61717; background-color: #e3d2d2; }
+code .wa { color: #000000; }
+code .cn { color: #008080; }
+code .sc { color: #008080; }
+code .vs { color: #183691; }
+code .ss { color: #183691; }
+code .im { color: #000000; }
+code .va {color: #008080; }
+code .cf { color: #000000; }
+code .op { color: #000000; }
+code .bu { color: #000000; }
+code .ex { color: #000000; }
+code .pp { color: #999999; }
+code .at { color: #008080; }
+code .do { color: #969896; }
+code .an { color: #008080; }
+code .cv { color: #008080; }
+code .in { color: #008080; }
+</style>
+<style>
+body {
+box-sizing: border-box;
+min-width: 200px;
+max-width: 980px;
+margin: 0 auto;
+padding: 45px;
+padding-top: 0px;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<h1 id="supplement-functions">Supplement: Functions</h1>
+<p>Beau Larkin</p>
+<p>Last updated: 23 October, 2025</p>
+<ul>
+<li><a href="#description">Description</a>
+<ul>
+<li><a href="#alpha-diversity-calculations">Alpha diversity
+calculations</a></li>
+<li><a href="#confidence-intervals">Confidence intervals</a></li>
+<li><a href="#multivariate-analysis">Multivariate analysis</a></li>
+<li><a href="#permanova-on-soil-data">Permanova on soil data</a></li>
+<li><a href="#model-distribution-probabilities">Model distribution
+probabilities</a></li>
+<li><a href="#filter-spe-to-a-guild">Filter spe to a guild</a></li>
+<li><a href="#perform-indicator-species-analysis">Perform Indicator
+Species Analysis</a></li>
+<li><a href="#calculate-pairwise-distances-among-sites-and-present-summary-statistics">Calculate
+pairwise distances among sites and present summary statistics</a></li>
+</ul></li>
+</ul>
+<h1 id="description">Description</h1>
+<p>Functions that accompany the repository, sourced from this file to
+save space elsewhere</p>
+<h2 id="alpha-diversity-calculations">Alpha diversity calculations</h2>
+<p>Returns a dataframe of alpha diversity (richness, Shannon’s) for
+analysis and plotting.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>calc_div <span class="ot">&lt;-</span> <span class="cf">function</span>(spe) {</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  div_data <span class="ot">&lt;-</span> </span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>    spe <span class="sc">%&gt;%</span> </span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>    <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>      <span class="at">depth =</span> <span class="fu">sum</span>(<span class="fu">c_across</span>(<span class="fu">starts_with</span>(<span class="st">&quot;otu&quot;</span>))),</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>      <span class="at">richness =</span> <span class="fu">sum</span>(<span class="fu">c_across</span>(<span class="fu">starts_with</span>(<span class="st">&quot;otu&quot;</span>)) <span class="sc">&gt;</span> <span class="dv">0</span>),</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>      <span class="at">shannon =</span> <span class="fu">exp</span>(<span class="fu">diversity</span>(<span class="fu">c_across</span>(<span class="fu">starts_with</span>(<span class="st">&quot;otu&quot;</span>))))</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;otu&quot;</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>    <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>    <span class="fu">left_join</span>(sites <span class="sc">%&gt;%</span> <span class="fu">select</span>(field_type, field_name), <span class="at">by =</span> <span class="fu">join_by</span>(field_name)) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">starts_with</span>(<span class="st">&quot;field&quot;</span>), <span class="sc">~</span> <span class="fu">factor</span>(.x, <span class="at">ordered =</span> <span class="cn">FALSE</span>)))</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>  </span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>  <span class="fu">return</span>(div_data)</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>  </span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>}</span></code></pre></div>
+<h2 id="confidence-intervals">Confidence intervals</h2>
+<p>Calculate upper and lower confidence intervals with alpha=0.05</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>ci_u <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {(<span class="fu">sd</span>(x) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">length</span>(x))) <span class="sc">*</span> <span class="fu">qnorm</span>(<span class="fl">0.975</span>)}</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>ci_l <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {(<span class="fu">sd</span>(x) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">length</span>(x))) <span class="sc">*</span> <span class="fu">qnorm</span>(<span class="fl">0.025</span>)}</span></code></pre></div>
+<h2 id="multivariate-analysis">Multivariate analysis</h2>
+<p>Ordination → dispersion check → global &amp; pairwise PERMANOVA →
+envfit. Args: <em>d</em> dist, <em>env</em> metadata, <em>corr</em> PCoA
+correction, <em>nperm</em> permutations.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>mva <span class="ot">&lt;-</span> <span class="cf">function</span>(d, <span class="at">env=</span>sites, <span class="at">corr=</span><span class="st">&quot;none&quot;</span>, <span class="at">nperm=</span><span class="dv">1999</span>) {</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="co"># Ordination</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">pcoa</span>(d, <span class="at">correction =</span> corr)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  p_vals <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(p<span class="sc">$</span>values) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;Dim&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Dim =</span> <span class="fu">as.integer</span>(Dim))</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  p_eig <span class="ot">&lt;-</span> p_vals[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="fu">grep</span>(<span class="st">&quot;Rel&quot;</span>, <span class="fu">colnames</span>(p_vals))] <span class="sc">%&gt;%</span> <span class="fu">round</span>(., <span class="dv">3</span>) <span class="sc">*</span> <span class="dv">100</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  p_vec <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(p<span class="sc">$</span>vectors)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  p_sco <span class="ot">&lt;-</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>    p_vec[, <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>] <span class="sc">%&gt;%</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;field_name&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>    <span class="fu">left_join</span>(env, <span class="at">by =</span> <span class="fu">join_by</span>(field_name))</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>  p_fit <span class="ot">&lt;-</span> <span class="fu">envfit</span>(</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>    p_vec <span class="sc">~</span> yr_since, </span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>    <span class="fu">data.frame</span>(env, <span class="at">row.names =</span> <span class="dv">1</span>), </span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>    <span class="at">choices =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>),</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>    <span class="at">na.rm =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>    <span class="at">permutations =</span> nperm)</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  p_fit_sco <span class="ot">&lt;-</span> <span class="fu">scores</span>(p_fit, <span class="at">display =</span> <span class="st">&quot;bp&quot;</span>)</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>  <span class="co"># Test multivariate dispersions</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>  disper <span class="ot">&lt;-</span> <span class="fu">betadisper</span>(d, env<span class="sc">$</span>field_type, <span class="at">bias.adjust =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>  mvdisper <span class="ot">&lt;-</span> <span class="fu">permutest</span>(disper, <span class="at">pairwise =</span> <span class="cn">TRUE</span>, <span class="at">permutations =</span> nperm)</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>  <span class="co"># Global PERMANOVA</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>  gl_permtest <span class="ot">&lt;-</span> <span class="fu">adonis2</span>(</span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>    d <span class="sc">~</span> dist_axis_1 <span class="sc">+</span> field_type,</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>    <span class="at">data =</span> env,</span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>    <span class="at">permutations =</span> nperm,</span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">&quot;terms&quot;</span>)</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>  <span class="co"># Pairwise PERMANOVA</span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>  group_var <span class="ot">&lt;-</span> <span class="fu">as.character</span>(env<span class="sc">$</span>field_type)</span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>  groups <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">t</span>(<span class="fu">combn</span>(<span class="fu">unique</span>(group_var), <span class="at">m =</span> <span class="dv">2</span>)))</span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>  contrasts <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>    <span class="at">group1 =</span> groups<span class="sc">$</span>V1,</span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>    <span class="at">group2 =</span> groups<span class="sc">$</span>V2,</span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>    <span class="at">R2 =</span> <span class="cn">NA</span>,</span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>    <span class="at">F_value =</span> <span class="cn">NA</span>,</span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>    <span class="at">df1 =</span> <span class="cn">NA</span>,</span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>    <span class="at">df2 =</span> <span class="cn">NA</span>,</span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>    <span class="at">p_value =</span> <span class="cn">NA</span></span>
+<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>  )</span>
+<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq</span>(<span class="fu">nrow</span>(contrasts))) {</span>
+<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>    group_subset <span class="ot">&lt;-</span></span>
+<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a>      group_var <span class="sc">==</span> contrasts<span class="sc">$</span>group1[i] <span class="sc">|</span></span>
+<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a>      group_var <span class="sc">==</span> contrasts<span class="sc">$</span>group2[i]</span>
+<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>    <span class="co"># Contrast matrices for Unifrac and Bray distance aren&#39;t compatible</span></span>
+<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>    contrast_matrix <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(d)[group_subset, group_subset]</span>
+<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">adonis2</span>(</span>
+<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a>      contrast_matrix <span class="sc">~</span> env<span class="sc">$</span>dist_axis_1[group_subset] <span class="sc">+</span> group_var[group_subset],</span>
+<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a>      <span class="at">permutations =</span> nperm,</span>
+<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a>      <span class="at">by =</span> <span class="st">&quot;terms&quot;</span>)</span>
+<span id="cb3-51"><a href="#cb3-51" tabindex="-1"></a>    <span class="co"># Prepare contrasts table</span></span>
+<span id="cb3-52"><a href="#cb3-52" tabindex="-1"></a>    contrasts<span class="sc">$</span>R2[i] <span class="ot">&lt;-</span> <span class="fu">round</span>(fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;R2&quot;</span>], <span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb3-53"><a href="#cb3-53" tabindex="-1"></a>    contrasts<span class="sc">$</span>F_value[i] <span class="ot">&lt;-</span> <span class="fu">round</span>(fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;F&quot;</span>], <span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb3-54"><a href="#cb3-54" tabindex="-1"></a>    contrasts<span class="sc">$</span>df1[i] <span class="ot">&lt;-</span> fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;Df&quot;</span>]</span>
+<span id="cb3-55"><a href="#cb3-55" tabindex="-1"></a>    contrasts<span class="sc">$</span>df2[i] <span class="ot">&lt;-</span> fit[<span class="fu">grep</span>(<span class="st">&quot;Residual&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;Df&quot;</span>]</span>
+<span id="cb3-56"><a href="#cb3-56" tabindex="-1"></a>    contrasts<span class="sc">$</span>p_value[i] <span class="ot">&lt;-</span> fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="dv">5</span>]</span>
+<span id="cb3-57"><a href="#cb3-57" tabindex="-1"></a>  }</span>
+<span id="cb3-58"><a href="#cb3-58" tabindex="-1"></a>  contrasts<span class="sc">$</span>p_value_adj <span class="ot">&lt;-</span> <span class="fu">p.adjust</span>(contrasts<span class="sc">$</span>p_value, <span class="at">method =</span> <span class="st">&quot;fdr&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">round</span>(., <span class="dv">4</span>)</span>
+<span id="cb3-59"><a href="#cb3-59" tabindex="-1"></a>  </span>
+<span id="cb3-60"><a href="#cb3-60" tabindex="-1"></a>  <span class="co"># Results</span></span>
+<span id="cb3-61"><a href="#cb3-61" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb3-62"><a href="#cb3-62" tabindex="-1"></a>    <span class="at">correction_note    =</span> p<span class="sc">$</span>note,</span>
+<span id="cb3-63"><a href="#cb3-63" tabindex="-1"></a>    <span class="at">ordination_values  =</span> p_vals[<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>, ],</span>
+<span id="cb3-64"><a href="#cb3-64" tabindex="-1"></a>    <span class="at">axis_pct           =</span> p_eig,</span>
+<span id="cb3-65"><a href="#cb3-65" tabindex="-1"></a>    <span class="at">ordination_scores  =</span> p_sco,</span>
+<span id="cb3-66"><a href="#cb3-66" tabindex="-1"></a>    <span class="at">dispersion_test    =</span> mvdisper,</span>
+<span id="cb3-67"><a href="#cb3-67" tabindex="-1"></a>    <span class="at">permanova          =</span> gl_permtest,</span>
+<span id="cb3-68"><a href="#cb3-68" tabindex="-1"></a>    <span class="at">pairwise_contrasts =</span> contrasts,</span>
+<span id="cb3-69"><a href="#cb3-69" tabindex="-1"></a>    <span class="at">vector_fit_result  =</span> p_fit,</span>
+<span id="cb3-70"><a href="#cb3-70" tabindex="-1"></a>    <span class="at">vector_fit_scores  =</span> p_fit_sco</span>
+<span id="cb3-71"><a href="#cb3-71" tabindex="-1"></a>  )</span>
+<span id="cb3-72"><a href="#cb3-72" tabindex="-1"></a>  </span>
+<span id="cb3-73"><a href="#cb3-73" tabindex="-1"></a>  <span class="fu">return</span>(out)</span>
+<span id="cb3-74"><a href="#cb3-74" tabindex="-1"></a>  </span>
+<span id="cb3-75"><a href="#cb3-75" tabindex="-1"></a>}</span></code></pre></div>
+<h2 id="permanova-on-soil-data">Permanova on soil data</h2>
+<p>Simplified version of <code>mva()</code> for use with the soil
+properties data</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>soilperm <span class="ot">&lt;-</span> <span class="cf">function</span>(clust_vec, clust_var, sco) {</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="co">#&#39; </span><span class="al">###</span><span class="co"> Permanova</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  soil_d <span class="ot">&lt;-</span> <span class="fu">dist</span>(sco)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  </span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="co"># Test multivariate dispersions</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  soil_disper <span class="ot">&lt;-</span> <span class="fu">betadisper</span>(soil_d, clust_vec, <span class="at">bias.adjust =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  soil_mvdisper <span class="ot">&lt;-</span> <span class="fu">permutest</span>(soil_disper, <span class="at">pairwise =</span> <span class="cn">TRUE</span>, <span class="at">permutations =</span> <span class="dv">1999</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  <span class="co"># Global PERMANOVA</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  soil_gl_permtest <span class="ot">&lt;-</span> <span class="fu">adonis2</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>    <span class="fu">as.formula</span>(<span class="fu">paste</span>(<span class="st">&quot;soil_d ~&quot;</span>, clust_var)),</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>    <span class="at">data =</span> soil_ord_scores,</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>    <span class="at">permutations =</span> <span class="dv">1999</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">&quot;terms&quot;</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>  <span class="co"># Pairwise PERMANOVA</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>  group_var <span class="ot">&lt;-</span> <span class="fu">as.character</span>(clust_vec)</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>  groups <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">t</span>(<span class="fu">combn</span>(<span class="fu">unique</span>(group_var), <span class="at">m =</span> <span class="dv">2</span>)))</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>  soil_contrasts <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>    <span class="at">group1 =</span> groups<span class="sc">$</span>V1,</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>    <span class="at">group2 =</span> groups<span class="sc">$</span>V2,</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>    <span class="at">R2 =</span> <span class="cn">NA</span>,</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>    <span class="at">F_value =</span> <span class="cn">NA</span>,</span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>    <span class="at">df1 =</span> <span class="cn">NA</span>,</span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>    <span class="at">df2 =</span> <span class="cn">NA</span>,</span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>    <span class="at">p_value =</span> <span class="cn">NA</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>  )</span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq</span>(<span class="fu">nrow</span>(soil_contrasts))) {</span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>    group_subset <span class="ot">&lt;-</span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>      group_var <span class="sc">==</span> soil_contrasts<span class="sc">$</span>group1[i] <span class="sc">|</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>      group_var <span class="sc">==</span> soil_contrasts<span class="sc">$</span>group2[i]</span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>    contrast_d <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(soil_d)[group_subset, group_subset]</span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">adonis2</span>(</span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>      contrast_d <span class="sc">~</span> group_var[group_subset],</span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>      <span class="at">permutations =</span> <span class="dv">1999</span>,</span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>      <span class="at">by =</span> <span class="st">&quot;terms&quot;</span>)</span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>    <span class="co"># Prepare contrasts table</span></span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>    soil_contrasts<span class="sc">$</span>R2[i] <span class="ot">&lt;-</span> <span class="fu">round</span>(fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;R2&quot;</span>], <span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a>    soil_contrasts<span class="sc">$</span>F_value[i] <span class="ot">&lt;-</span> <span class="fu">round</span>(fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;F&quot;</span>], <span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a>    soil_contrasts<span class="sc">$</span>df1[i] <span class="ot">&lt;-</span> fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;Df&quot;</span>]</span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a>    soil_contrasts<span class="sc">$</span>df2[i] <span class="ot">&lt;-</span> fit[<span class="fu">grep</span>(<span class="st">&quot;Residual&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="st">&quot;Df&quot;</span>]</span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>    soil_contrasts<span class="sc">$</span>p_value[i] <span class="ot">&lt;-</span> fit[<span class="fu">grep</span>(<span class="st">&quot;group_var&quot;</span>, <span class="fu">rownames</span>(fit)), <span class="dv">5</span>]</span>
+<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a>  }</span>
+<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a>  soil_contrasts<span class="sc">$</span>p_value_adj <span class="ot">&lt;-</span> <span class="fu">p.adjust</span>(soil_contrasts<span class="sc">$</span>p_value, <span class="at">method =</span> <span class="st">&quot;fdr&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">round</span>(., <span class="dv">4</span>)</span>
+<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a>  </span>
+<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a>  out <span class="ot">=</span> <span class="fu">list</span>(</span>
+<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a>    <span class="at">mvdisper =</span> soil_mvdisper,</span>
+<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a>    <span class="at">gl_permtest =</span> soil_gl_permtest,</span>
+<span id="cb4-47"><a href="#cb4-47" tabindex="-1"></a>    <span class="at">contrasts =</span> soil_contrasts</span>
+<span id="cb4-48"><a href="#cb4-48" tabindex="-1"></a>  )</span>
+<span id="cb4-49"><a href="#cb4-49" tabindex="-1"></a>  </span>
+<span id="cb4-50"><a href="#cb4-50" tabindex="-1"></a>  <span class="fu">return</span>(out)</span>
+<span id="cb4-51"><a href="#cb4-51" tabindex="-1"></a>}</span></code></pre></div>
+<h2 id="model-distribution-probabilities">Model distribution
+probabilities</h2>
+<p>Probable distributions of response and residuals. Package performance
+prints javascript which doesn’t render on github documents.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>distribution_prob <span class="ot">&lt;-</span> <span class="cf">function</span>(df) {</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">print</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>    performance<span class="sc">::</span><span class="fu">check_distribution</span>(df) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>      <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>      <span class="fu">select</span>(Distribution, p_Residuals) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>      <span class="fu">arrange</span>(<span class="sc">-</span>p_Residuals) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>      <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>      <span class="fu">kable</span>(<span class="at">format =</span> <span class="st">&quot;pandoc&quot;</span>))</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="fu">print</span>(</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>    performance<span class="sc">::</span><span class="fu">check_distribution</span>(df) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>      <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>      <span class="fu">select</span>(Distribution, p_Response) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>      <span class="fu">arrange</span>(<span class="sc">-</span>p_Response) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>      <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>      <span class="fu">kable</span>(<span class="at">format =</span> <span class="st">&quot;pandoc&quot;</span>))</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>}</span></code></pre></div>
+<h2 id="filter-spe-to-a-guild">Filter spe to a guild</h2>
+<p>Create samp-spe matrix of sequence abundance in a guild</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>guildseq <span class="ot">&lt;-</span> <span class="cf">function</span>(spe, guild) {</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  guab <span class="ot">&lt;-</span> </span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    spe <span class="sc">%&gt;%</span> </span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="fu">starts_with</span>(<span class="st">&quot;otu&quot;</span>), <span class="at">names_to =</span> <span class="st">&quot;otu_num&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;abund&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>    <span class="fu">left_join</span>(spe_meta<span class="sc">$</span>its <span class="sc">%&gt;%</span> <span class="fu">select</span>(otu_num, primary_lifestyle), <span class="at">by =</span> <span class="fu">join_by</span>(otu_num)) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>    <span class="fu">filter</span>(primary_lifestyle <span class="sc">==</span> guild) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>primary_lifestyle) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> otu_num, <span class="at">values_from =</span> abund)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>  <span class="fu">return</span>(guab)</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>}</span></code></pre></div>
+<h2 id="perform-indicator-species-analysis">Perform Indicator Species
+Analysis</h2>
+<p>Function <code>inspan()</code> takes a combined species and sites
+data frame and filters OTUs for indicators of field types.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>inspan <span class="ot">&lt;-</span> <span class="cf">function</span>(guild, <span class="at">nperm=</span><span class="dv">1999</span>) {</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  data <span class="ot">&lt;-</span> <span class="fu">guildseq</span>(spe<span class="sc">$</span>its_avg, guild) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    <span class="fu">left_join</span>(sites, <span class="at">by =</span> <span class="fu">join_by</span>(field_name))</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  spe <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    data <span class="sc">%&gt;%</span> <span class="fu">select</span>(field_name, <span class="fu">starts_with</span>(<span class="st">&quot;otu&quot;</span>)),</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>    <span class="at">row.names =</span> <span class="dv">1</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  )</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  grp <span class="ot">=</span> data<span class="sc">$</span>field_type</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  mp <span class="ot">&lt;-</span> <span class="fu">multipatt</span>(</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>    spe, grp, <span class="at">max.order =</span> <span class="dv">1</span>, </span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>    <span class="at">control =</span> <span class="fu">how</span>(<span class="at">nperm =</span> nperm))</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>  si <span class="ot">&lt;-</span> mp<span class="sc">$</span>sign <span class="sc">%&gt;%</span> </span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>    <span class="fu">select</span>(index, stat, p.value) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">field_type =</span> <span class="fu">case_when</span>(index <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">&quot;corn&quot;</span>, </span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>                                  index <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">&quot;restored&quot;</span>, </span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>                                  index <span class="sc">==</span> <span class="dv">3</span> <span class="sc">~</span> <span class="st">&quot;remnant&quot;</span>),</span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>           <span class="at">p_val_adj =</span> <span class="fu">p.adjust</span>(p.value, <span class="st">&quot;fdr&quot;</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>    <span class="fu">filter</span>(p.value <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;otu_num&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>index) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a>    <span class="fu">as_tibble</span>()</span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a>  A  <span class="ot">&lt;-</span> mp<span class="sc">$</span>A <span class="sc">%&gt;%</span> </span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a>    <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;otu_num&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> corn<span class="sc">:</span>remnant, </span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a>                 <span class="at">names_to =</span> <span class="st">&quot;field_type&quot;</span>, </span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a>                 <span class="at">values_to =</span> <span class="st">&quot;A&quot;</span>)</span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a>  B <span class="ot">&lt;-</span> mp<span class="sc">$</span>B <span class="sc">%&gt;%</span> </span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a>    <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;otu_num&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> corn<span class="sc">:</span>remnant, </span>
+<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a>                 <span class="at">names_to =</span> <span class="st">&quot;field_type&quot;</span>, </span>
+<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a>                 <span class="at">values_to =</span> <span class="st">&quot;B&quot;</span>)</span>
+<span id="cb7-34"><a href="#cb7-34" tabindex="-1"></a>  out <span class="ot">&lt;-</span> </span>
+<span id="cb7-35"><a href="#cb7-35" tabindex="-1"></a>    si <span class="sc">%&gt;%</span> </span>
+<span id="cb7-36"><a href="#cb7-36" tabindex="-1"></a>    <span class="fu">left_join</span>(A, <span class="at">by =</span> <span class="fu">join_by</span>(otu_num, field_type)) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-37"><a href="#cb7-37" tabindex="-1"></a>    <span class="fu">left_join</span>(B, <span class="at">by =</span> <span class="fu">join_by</span>(otu_num, field_type)) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-38"><a href="#cb7-38" tabindex="-1"></a>    <span class="fu">left_join</span>(spe_meta<span class="sc">$</span>its <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>otu_ID), <span class="at">by =</span> <span class="fu">join_by</span>(otu_num)) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-39"><a href="#cb7-39" tabindex="-1"></a>    <span class="fu">select</span>(otu_num, A, B, stat, p.value, p_val_adj, </span>
+<span id="cb7-40"><a href="#cb7-40" tabindex="-1"></a>           field_type, primary_lifestyle, <span class="fu">everything</span>()) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-41"><a href="#cb7-41" tabindex="-1"></a>    <span class="fu">arrange</span>(field_type, <span class="sc">-</span>stat)</span>
+<span id="cb7-42"><a href="#cb7-42" tabindex="-1"></a>  </span>
+<span id="cb7-43"><a href="#cb7-43" tabindex="-1"></a>  <span class="fu">return</span>(out)</span>
+<span id="cb7-44"><a href="#cb7-44" tabindex="-1"></a>  </span>
+<span id="cb7-45"><a href="#cb7-45" tabindex="-1"></a>}</span></code></pre></div>
+<h2 id="calculate-pairwise-distances-among-sites-and-present-summary-statistics">Calculate
+pairwise distances among sites and present summary statistics</h2>
+<p>Function <code>reg_dist_stats()</code> requires a haversine distance
+matrix, site metadata, and is filtered by regions to produce the desired
+output.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>reg_dist_stats <span class="ot">&lt;-</span> <span class="cf">function</span>(dist_mat,</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>                           sites_df,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                           filt_rg) {</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  dm  <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">as.matrix</span>(dist_mat) <span class="sc">/</span> <span class="dv">1000</span>, <span class="dv">1</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="fu">upper.tri</span>(dm), <span class="at">arr.ind =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  </span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  pairs <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">site1 =</span> <span class="fu">rownames</span>(dm)[idx[, <span class="dv">1</span>]],</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>                  <span class="at">site2 =</span> <span class="fu">colnames</span>(dm)[idx[, <span class="dv">2</span>]],</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>                  <span class="at">dist  =</span> dm[idx])</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  </span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>  meta <span class="ot">&lt;-</span> sites_df <span class="sc">%&gt;%</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>    <span class="fu">select</span>(<span class="at">site =</span> field_key, <span class="at">ft =</span> field_type, <span class="at">rg =</span> region) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">site =</span> <span class="fu">as.character</span>(site)) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>    <span class="fu">filter</span>(rg <span class="sc">==</span> filt_rg)</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>  </span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>  pairs <span class="sc">%&gt;%</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>    <span class="fu">filter</span>(site1 <span class="sc">%in%</span> meta<span class="sc">$</span>site, site2 <span class="sc">%in%</span> meta<span class="sc">$</span>site) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a>    <span class="fu">left_join</span>(meta <span class="sc">%&gt;%</span> <span class="fu">select</span>(site, ft), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;site1&quot;</span> <span class="ot">=</span> <span class="st">&quot;site&quot;</span>)) <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">ft1 =</span> ft) <span class="sc">%&gt;%</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a>    <span class="fu">left_join</span>(meta <span class="sc">%&gt;%</span> <span class="fu">select</span>(site, ft), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;site2&quot;</span> <span class="ot">=</span> <span class="st">&quot;site&quot;</span>)) <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">ft2 =</span> ft) <span class="sc">%&gt;%</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">group_pair =</span> <span class="fu">paste</span>(<span class="fu">pmin</span>(ft1, ft2), <span class="fu">pmax</span>(ft1, ft2), <span class="at">sep =</span> <span class="st">&quot;-&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a>    <span class="fu">group_by</span>(group_pair) <span class="sc">%&gt;%</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a>    <span class="fu">summarize</span>(</span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a>      <span class="at">min_dist =</span> <span class="fu">min</span>(dist, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a>      <span class="at">median_dist =</span> <span class="fu">median</span>(dist, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a>      <span class="at">max_dist =</span> <span class="fu">max</span>(dist, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a>      <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a>    )</span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a>}</span></code></pre></div>
+
+</body>
+</html>
