@@ -8,6 +8,7 @@ Soil fungi response to tallgrass prairie restoration in Illinois and Wisconsin
 - [Fungal Ecology](fungal_ecology.md) comprises analyses of alpha and beta diversity,
 correlations with plant abundance, and constrained analysis of explanatory variables.
 - [Edaphic](edaphic.md) describes soil chemical properties and displays differences among sites.
+- [Sites](sites.md) displays site metadata and maps.
 - Custom [Functions](functions.md) are housed separately to save space in other scripts. 
 - Raw [Code](code) is housed in a separate directory to reduce root directory clutter.
 - The [Resources](resources) folder contains the style sheet for figures, sidecar figure
