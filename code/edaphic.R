@@ -94,27 +94,20 @@ soil_ft_avg %>%
 #' Axis 1 & 2 eigenvalue proportions
 eig_prop <- round(summary(soil_pca)$cont$importance[2, 1:2] * 100, 1)
 soil_ord_scores <-
-    site_sco %>%
-    data.frame() %>% 
+    data.frame(site_sco) %>%
     rownames_to_column(var = "field_name") %>%
     left_join(sites, by = join_by(field_name))
 
-#' PERMANOVA and plots with sites clustered in regions
-soilperm_region <- soilperm(soil_ord_scores$region, "region", site_sco)
-soilperm_region$mvdisper
-soilperm_region$gl_permtest
-soilperm_region$contrasts
-
-soil_ord_reg_centers <- soil_ord_scores %>% 
-  group_by(region) %>% 
-  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+soil_ord_reg_centers <- soil_ord_scores %>%
+  group_by(region) %>%
+  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 segs_regions <- soil_ord_scores %>%
-  left_join(soil_ord_reg_centers, by = join_by(region)) %>% 
+  left_join(soil_ord_reg_centers, by = join_by(region)) %>%
   select(x = PC1, y = PC2, xend = mean_PC1, yend = mean_PC2)
 
-soil_ord_regions <- 
+soil_ord_regions <-
   ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
   geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
   geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region), size = 3) +
@@ -130,18 +123,18 @@ soil_ord_regions <-
         plot.tag.position = c(0.03, 0.90))
 
 #' PERMANOVA and plots with sites clustered in field types
-soilperm_ft <- soilperm(soil_ord_scores$field_type, "field_type", site_sco)
+soilperm_ft <- soilperm(soil_ord_scores, "field_type")
 soilperm_ft$mvdisper
 soilperm_ft$gl_permtest
 soilperm_ft$contrasts
 
-soil_ord_ft_centers <- soil_ord_scores %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+soil_ord_ft_centers <- soil_ord_scores %>%
+  group_by(field_type) %>%
+  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 
-soil_ord_ftypes <- 
+soil_ord_ftypes <-
     ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +

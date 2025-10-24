@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 23 October, 2025
+Last updated: 24 October, 2025
 
 - [Description](#description)
   - [Alpha diversity calculations](#alpha-diversity-calculations)
@@ -28,7 +28,7 @@ Returns a dataframe of alpha diversity (richness, Shannon’s) for
 analysis and plotting.
 
 ``` r
-calc_div <- function(spe) {
+calc_div <- function(spe, site_dat) {
   div_data <- 
     spe %>% 
     rowwise() %>% 
@@ -39,7 +39,7 @@ calc_div <- function(spe) {
     ) %>% 
     select(-starts_with("otu")) %>% 
     as_tibble() %>% 
-    left_join(sites %>% select(field_type, field_name), by = join_by(field_name)) %>% 
+    left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
     mutate(across(starts_with("field"), ~ factor(.x, ordered = FALSE)))
   
   return(div_data)
@@ -63,7 +63,10 @@ Args: *d* dist, *env* metadata, *corr* PCoA correction, *nperm*
 permutations.
 
 ``` r
-mva <- function(d, env=sites, corr="none", nperm=1999) {
+mva <- function(d, env, corr="none", nperm=1999) {
+  if (!"dist_axis_1" %in% names(env)) {
+    stop("`env` is missing `dist_axis_1` — did you compute and pass the updated object?")
+  }
   # Ordination
   p <- pcoa(d, correction = corr)
   p_vals <- data.frame(p$values) %>% 
@@ -145,17 +148,22 @@ mva <- function(d, env=sites, corr="none", nperm=1999) {
 Simplified version of `mva()` for use with the soil properties data
 
 ``` r
-soilperm <- function(clust_vec, clust_var, sco) {
+soilperm <- function(ord_scores, clust_var) {
   #' ### Permanova
-  soil_d <- dist(sco)
-  
+  soil_d <- ord_scores %>% 
+    select(field_name, PC1, PC2) %>% 
+    column_to_rownames("field_name") %>% 
+    dist()
+  clust_vec <- ord_scores %>% 
+    select({{clust_var}}) %>% 
+    pull()
   # Test multivariate dispersions
   soil_disper <- betadisper(soil_d, clust_vec, bias.adjust = TRUE)
   soil_mvdisper <- permutest(soil_disper, pairwise = TRUE, permutations = 1999)
   # Global PERMANOVA
   soil_gl_permtest <- adonis2(
     as.formula(paste("soil_d ~", clust_var)),
-    data = soil_ord_scores,
+    data = ord_scores,
     permutations = 1999,
     by = "terms")
   # Pairwise PERMANOVA
@@ -227,11 +235,11 @@ distribution_prob <- function(df) {
 Create samp-spe matrix of sequence abundance in a guild
 
 ``` r
-guildseq <- function(spe, guild) {
+guildseq <- function(spe, meta, guild) {
   guab <- 
     spe %>% 
     pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-    left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
+    left_join(meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
     filter(primary_lifestyle == guild) %>% 
     select(-primary_lifestyle) %>% 
     pivot_wider(names_from = otu_num, values_from = abund)
@@ -245,9 +253,9 @@ Function `inspan()` takes a combined species and sites data frame and
 filters OTUs for indicators of field types.
 
 ``` r
-inspan <- function(guild, nperm=1999) {
-  data <- guildseq(spe$its_avg, guild) %>% 
-    left_join(sites, by = join_by(field_name))
+inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
+  data <- guildseq(spe, meta, guild) %>% 
+    left_join(site_dat, by = join_by(field_name))
   spe <- data.frame(
     data %>% select(field_name, starts_with("otu")),
     row.names = 1
@@ -282,7 +290,7 @@ inspan <- function(guild, nperm=1999) {
     si %>% 
     left_join(A, by = join_by(otu_num, field_type)) %>% 
     left_join(B, by = join_by(otu_num, field_type)) %>% 
-    left_join(spe_meta$its %>% select(-otu_ID), by = join_by(otu_num)) %>% 
+    left_join(meta %>% select(-otu_ID), by = join_by(otu_num)) %>% 
     select(otu_num, A, B, stat, p.value, p_val_adj, 
            field_type, primary_lifestyle, everything()) %>% 
     arrange(field_type, -stat)

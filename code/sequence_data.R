@@ -27,14 +27,14 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 
-#' ## Styles
-#+ graphics_styles
-source(root_path("resources", "styles.R"))
-
 #' # Functions
 
 #' ## Root path function
 root_path <- function(...) rprojroot::find_rstudio_root_file(...)
+
+#' ## Styles
+#+ graphics_styles
+source(root_path("resources", "styles.R"))
 
 #' ## ETL: clean OTU data and return formatted objects
 #+ function_etl

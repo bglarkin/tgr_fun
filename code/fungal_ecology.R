@@ -66,7 +66,7 @@ field_dist_pcoa <- pcoa(field_dist)
 field_dist_pcoa$values[c(1,2), c(1,2)] %>% 
     kable(format = "pandoc")
 #' First axis of geographic distance PCoA explains 91% of the variation among sites. 
-sites$dist_axis_1 = field_dist_pcoa$vectors[, 1]
+sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
 
 #' 
 #' ## Sites-species tables
@@ -217,7 +217,7 @@ source(root_path("code", "functions.R"))
 #' ## Diversity Indices
 
 #+ its_diversity
-its_div <- calc_div(spe$its_avg)
+its_div <- calc_div(spe$its_avg, sites)
 #' 
 #' ### Richness
 #' Account for sequencing depth as a covariate
@@ -471,28 +471,29 @@ soil_macro <-
 #' Assemble explanatory variables and begin iterative selection process. 
 #' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
 #' detected. Then run forward selection in `dbrda()`. 
-env <- sites %>% 
+env_vars <- sites %>% 
   filter(field_type == "restored", !(region %in% "FL")) %>% 
   select(field_name, dist_axis_1) %>% # 90% on axis 1
   left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
   left_join(soil_macro, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% # 92% on axis 1
-  select(-starts_with("field_key"), -soil_micro_1) %>%
+  select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1 removed based on initial VIF check
   column_to_rownames(var = "field_name") %>% 
-  decostand(method = "standardize")
-env %>%
-  select(-dist_axis_1) %>% 
+  as.data.frame()
+env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
+env_expl <- env_vars[, setdiff(colnames(env_vars), "dist_axis_1"), drop = FALSE] %>% 
+  decostand("standardize")
+#' Check VIF
+env_expl %>% 
   cor() %>% 
   solve() %>% 
   diag() %>% 
   sort()
-#' OM and soil_micro_1 with high VIF. Removing soil_micro_1 maintains OM in the model.
+#' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
+#' Removed soil_micro_1 and K to maintain OM in the model.
 #' No overfitting detected in full model; proceed with forward selection. 
-env_cov <- env$dist_axis_1
-env_expl <- env %>% select(-dist_axis_1)
-
 spe_its_wi_resto <- spe$its_avg %>% 
-  filter(field_name %in% rownames(env)) %>% 
+  filter(field_name %in% rownames(env_expl)) %>% 
   column_to_rownames(var = "field_name") %>% 
   decostand("total")
 
@@ -582,7 +583,7 @@ ggsave(
 # AMF ———————— ####
 #' ## Diversity Indices
 #+ amf_diversity
-amf_div <- calc_div(spe$amf_avg)
+amf_div <- calc_div(spe$amf_avg, sites)
 #' 
 #' ### Richness
 amf_rich_lm <- lm(richness ~ sqrt(depth) + field_type, data = amf_div)
@@ -759,7 +760,7 @@ nlfa_fig <-
 #' above). UNIFRAC distance matrix is created on the standardized abundance data.  
 #+ amf_ord
 d_amf <- UniFrac(amf_ps, weighted = TRUE)
-mva_amf <- mva(d = d_amf, corr = "lingoes")
+mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
 #+ amf_ord_results
 mva_amf$dispersion_test
 mva_amf$permanova
@@ -859,11 +860,11 @@ summary(giga_lm)
 # Putative plant pathogens ———————— ####
 #' 
 #' Retrieve pathogen sequence abundance
-patho <- guildseq(spe$its_avg, "plant_pathogen")
+patho <- guildseq(spe$its_avg, spe_meta$its, "plant_pathogen")
 #' 
 #' ## Diversity Indices
 #+ patho_diversity
-patho_div <- calc_div(patho)
+patho_div <- calc_div(patho, sites)
 #' 
 #' ### Richness
 #' Account for sequencing depth as a covariate
@@ -977,7 +978,7 @@ d_patho <- patho %>%
   data.frame(row.names = 1) %>% 
   decostand("total") %>%
   vegdist("bray")
-mva_patho <- mva(d = d_patho, corr = "lingoes")
+mva_patho <- mva(d = d_patho, env = sites, corr = "lingoes")
 #+ patho_ord_results
 mva_patho$dispersion_test
 mva_patho$permanova
@@ -1047,14 +1048,14 @@ ggsave(root_path("figs", "fig4.png"),
 #' ## Pathogen Indicator Species
 #' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
 #' research may make the indicator stats less appropriate for other use.
-patho_ind <- inspan("plant_pathogen")
+patho_ind <- inspan(spe$its_avg, spe_meta$its, "plant_pathogen", sites)
 patho_ind %>% 
   select(-otu_num, -primary_lifestyle, -p.value) %>% 
   arrange(field_type, p_val_adj) %>% 
   kable(format = "pandoc", caption = paste("Indicator species analysis, plant pathogens"))
 
 patho_abund_ft <- 
-  guildseq(spe$its_avg, "plant_pathogen") %>% 
+  guildseq(spe$its_avg, spe_meta$its, "plant_pathogen") %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its, by = join_by(otu_num)) %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
@@ -1095,11 +1096,11 @@ summary(gf_patho_lm)
 # Putative saprotrophs ———————— ####
 #' 
 #' Retrieve pathogen sequence abundance
-sapro <- guildseq(spe$its_avg, "saprotroph")
+sapro <- guildseq(spe$its_avg, spe_meta$its, "saprotroph")
 #' 
 #' ## Diversity Indices
 #+ sapro_diversity
-sapro_div <- calc_div(sapro)
+sapro_div <- calc_div(sapro, sites)
 #' 
 #' ### Richness
 #' Account for sequencing depth as a covariate
@@ -1160,7 +1161,7 @@ sapro_rich_fig <-
 sapro_shan_lm <- lm(shannon ~ sqrt(depth) + field_type, data = sapro_div)
 #' Diagnostics
 par(mfrow = c(2,2))
-plot(its_shan_lm) # variance similar in groups 
+plot(sapro_shan_lm) # variance similar in groups 
 distribution_prob(sapro_shan_lm)
 #' residuals distribution most likely cauchy/normal; symmetric but long tails
 #' response non-normal, check variance in groups though
@@ -1261,11 +1262,11 @@ d_sapro <- sapro %>%
   data.frame(row.names = 1) %>% 
   decostand("total") %>%
   vegdist("bray")
-mva_sapro <- mva(d = d_sapro)
+mva_sapro <- mva(d = d_sapro, env = sites)
 #+ sapro_ord_results
-mva_patho$dispersion_test
-mva_patho$permanova
-mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_sapro$dispersion_test
+mva_sapro$permanova
+mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
@@ -1329,7 +1330,7 @@ ggsave(root_path("figs", "fig5.png"),
        dpi = 600)
 
 #' ## Saprotroph Indicator Species
-sapro_ind <- inspan("saprotroph")
+sapro_ind <- inspan(spe$its_avg, spe_meta$its, "saprotroph", sites)
 sapro_ind_table <- 
   sapro_ind %>% 
   select(-otu_num, -primary_lifestyle, -p.value) %>%
@@ -1337,7 +1338,7 @@ sapro_ind_table <-
 sapro_ind_table[1:20, ] %>% 
   kable(format = "pandoc", caption = paste("Indicator species analysis, saprotrophs\n(First 20 rows shown)"))
 sapro_abund_ft <- 
-  guildseq(spe$its_avg, "saprotroph") %>% 
+  guildseq(spe$its_avg, spe_meta$its, "saprotroph") %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its, by = join_by(otu_num)) %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 

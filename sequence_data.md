@@ -2,14 +2,14 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 28 May, 2025
+Last updated: 24 October, 2025
 
 - [Description](#description)
 - [Resources](#resources)
   - [Packages](#packages)
-  - [Styles](#styles)
 - [Functions](#functions)
   - [Root path function](#root-path-function)
+  - [Styles](#styles)
   - [ETL: clean OTU data and return formatted
     objects](#etl-clean-otu-data-and-return-formatted-objects)
   - [Species accumulation](#species-accumulation)
@@ -44,18 +44,18 @@ if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
 
-## Styles
-
-``` r
-source(root_path("resources", "styles.R"))
-```
-
 # Functions
 
 ## Root path function
 
 ``` r
 root_path <- function(...) rprojroot::find_rstudio_root_file(...)
+```
+
+## Styles
+
+``` r
+source(root_path("resources", "styles.R"))
 ```
 
 ## ETL: clean OTU data and return formatted objects

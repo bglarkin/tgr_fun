@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 28 May, 2025
+Last updated: 24 October, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -17,7 +17,7 @@ Last updated: 28 May, 2025
   - [Grass-forb index](#grass-forb-index)
   - [Fatty Acids: Biomass](#fatty-acids-biomass)
 - [Functions](#functions)
-- [Whole Soil Fungi](#whole-soil-fungi)
+- [Whole Soil Fungi](#whole-soil-fungi-1)
   - [Diversity Indices](#diversity-indices)
   - [PLFA](#plfa)
   - [Beta Diversity](#beta-diversity)
@@ -58,9 +58,10 @@ pairwise LSMs via *emmeans*.
 
 **Beta diversity** – Workflow after [Song
 2015](https://doi.org/10.1371/journal.pone.0127234):  
-1. PCoA of Bray (ITS) or UNIFRAC (18S) distances,  
-2. homogeneity test diagnostics 3. PERMANOVA (+ pairwise) Cartesian
-inter‑site distance enters models as a covariate per [Redondo
+1. PCoA of Bray (ITS) or UNIFRAC (18S) distances 1. homogeneity test
+diagnostics 1. PERMANOVA (+ pairwise)
+
+Cartesian inter‑site distance enters models as a covariate per [Redondo
 2020](https://doi.org/10.1093/femsec/fiaa082).
 
 # Packages and libraries
@@ -107,7 +108,7 @@ source(root_path("resources", "styles.R"))
 ## Site metadata and design
 
 ``` r
-sites <- read_csv(paste0(getwd(), "/clean_data/sites.csv"), show_col_types = FALSE) %>% 
+sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 ```
 
@@ -133,7 +134,7 @@ First axis of geographic distance PCoA explains 91% of the variation
 among sites.
 
 ``` r
-sites$dist_axis_1 = field_dist_pcoa$vectors[, 1]
+sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
 ```
 
 ## Sites-species tables
@@ -240,7 +241,9 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
 
 ### Wrangle species and metadata
 
-Raw and log ratio transformed abundances \#### Whole soil fungi
+Raw and log ratio transformed abundances
+
+#### Whole soil fungi
 
 ``` r
 its_guab <- 
@@ -318,7 +321,7 @@ amf_ps <- phyloseq(
 Use only 18.2 for soil fungi
 
 ``` r
-fa <- read_csv(file.path(getwd(), "clean_data/plfa.csv"), show_col_types = FALSE) %>% 
+fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
     rename(fungi_18.2 = fa_18.2) %>% 
     select(field_name, fungi_18.2, amf) %>%
     left_join(
@@ -329,7 +332,9 @@ fa <- read_csv(file.path(getwd(), "clean_data/plfa.csv"), show_col_types = FALSE
 
 # Functions
 
-Executed from a separate script to save lines here
+Executed from a separate script to save lines here; to view the function
+navigate to `functions.R` in the code folder, accessible from the root
+dir of the repo.
 
 ``` r
 # Functions ———————— ####
@@ -345,7 +350,7 @@ source(root_path("code", "functions.R"))
 ## Diversity Indices
 
 ``` r
-its_div <- calc_div(spe$its_avg)
+its_div <- calc_div(spe$its_avg, sites)
 ```
 
 ### Richness
@@ -608,7 +613,7 @@ summary(its_shan_lm)
     ## Multiple R-squared:  0.3888, Adjusted R-squared:  0.3015 
     ## F-statistic: 4.453 on 3 and 21 DF,  p-value: 0.0143
 
-Sequence depth is not a significant predictor of Shannon diversity
+Sequence depth is not a significant predictor of Shannon diversity.
 Proceed with means separation by obtaining estimated marginal means for
 field type. Arithmetic means calculated in this case.
 
@@ -781,7 +786,7 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999  0.062 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999  0.058 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -789,8 +794,8 @@ mva_its$dispersion_test
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##              corn restored remnant
-    ## corn              0.067500  0.1305
-    ## restored 0.068726           0.1400
+    ## corn              0.077500  0.1125
+    ## restored 0.068726           0.1445
     ## remnant  0.126039 0.135570
 
 ``` r
@@ -804,7 +809,7 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0250 *  
+    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0170 *  
     ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
@@ -818,9 +823,9 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
-| 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
-| 3   | corn     | remnant |   2.858 | 0.281 |      0.0045 |
-| 2   | restored | remnant |   1.062 | 0.054 |      0.3250 |
+| 1   | restored | corn    |   3.913 | 0.164 |      0.0023 |
+| 3   | corn     | remnant |   2.858 | 0.281 |      0.0023 |
+| 2   | restored | remnant |   1.062 | 0.054 |      0.3420 |
 
 Pairwise permanova contrasts
 
@@ -946,36 +951,40 @@ Check the VIF for each explanatory variable to test for collinearity if
 model overfitting is detected. Then run forward selection in `dbrda()`.
 
 ``` r
-env <- sites %>% 
+env_vars <- sites %>% 
   filter(field_type == "restored", !(region %in% "FL")) %>% 
   select(field_name, dist_axis_1) %>% # 90% on axis 1
   left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
   left_join(soil_macro, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% # 92% on axis 1
-  select(-starts_with("field_key"), -soil_micro_1) %>%
+  select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1 removed based on initial VIF check
   column_to_rownames(var = "field_name") %>% 
-  decostand(method = "standardize")
-env %>%
-  select(-dist_axis_1) %>% 
+  as.data.frame()
+env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
+env_expl <- env_vars[, setdiff(colnames(env_vars), "dist_axis_1"), drop = FALSE] %>% 
+  decostand("standardize")
+```
+
+Check VIF
+
+``` r
+env_expl %>% 
   cor() %>% 
   solve() %>% 
   diag() %>% 
   sort()
 ```
 
-    ## soil_micro_2           pH            P     gf_index          NO3           OM            K 
-    ##     3.212069     4.772395     5.463074     7.818077    10.888568    13.534470    23.792061
+    ##     gf_index           pH soil_micro_2            P           OM          NO3 
+    ##     1.545341     1.729468     1.918068     3.334750     3.510308     3.788485
 
-OM and soil_micro_1 with high VIF. Removing soil_micro_1 maintains OM in
-the model. No overfitting detected in full model; proceed with forward
-selection.
+OM, K, and soil_micro_1 with high VIF in initial VIF check. Removed
+soil_micro_1 and K to maintain OM in the model. No overfitting detected
+in full model; proceed with forward selection.
 
 ``` r
-env_cov <- env$dist_axis_1
-env_expl <- env %>% select(-dist_axis_1)
-
 spe_its_wi_resto <- spe$its_avg %>% 
-  filter(field_name %in% rownames(env)) %>% 
+  filter(field_name %in% rownames(env_expl)) %>% 
   column_to_rownames(var = "field_name") %>% 
   decostand("total")
 
@@ -1026,7 +1035,7 @@ mod_step
     ## 
     ## Model: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)    
-    ## Model     2   0.8117 2.1313  0.001 ***
+    ## Model     2   0.8117 2.1313  5e-04 ***
     ## Residual  6   1.1425                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -1042,8 +1051,8 @@ mod_step
     ## 
     ## Model: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)   
-    ## dbRDA1    1  0.48877 2.5668 0.0040 **
-    ## dbRDA2    1  0.32293 1.6959 0.0425 * 
+    ## dbRDA1    1  0.48877 2.5668 0.0015 **
+    ## dbRDA2    1  0.32293 1.6959 0.0460 * 
     ## Residual  6  1.14253                 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -1064,18 +1073,19 @@ mod_step$anova %>% kable(, format = "pandoc")
 
 |             |  Df |      AIC |        F | Pr(\>F) |
 |-------------|----:|---------:|---------:|--------:|
-| \+ gf_index |   1 | 8.953285 | 2.163394 |  0.0035 |
-| \+ pH       |   1 | 8.278852 | 1.839718 |  0.0240 |
+| \+ gf_index |   1 | 8.953285 | 2.163394 |  0.0045 |
+| \+ pH       |   1 | 8.278852 | 1.839718 |  0.0200 |
 
 Based on permutation tests with n=1999 permutations, the model shows a
 significant correlation between the site ordination on fungal
 communities and the selected explanatory variables (p=0.001). The first
 two constrained axes are also significant (p\<0.05). The selected
-variables explain $R^{2}_{\text{Adj}}$=21% of the community variation.
+variables explain $R^{2}_{\text{Adj}}$=21.3% of the community variation.
 Selected explanatory variables are pH and the grass-forb index; see
 table for individual p values and statistics.
 
-Create the figure:
+Create the figure, combine with pathogen-plant correlation figure in
+patchwork later:
 
 ``` r
 mod_pars <- 
@@ -1138,7 +1148,7 @@ fig6 <-
 ## Diversity Indices
 
 ``` r
-amf_div <- calc_div(spe$amf_avg)
+amf_div <- calc_div(spe$amf_avg, sites)
 ```
 
 ### Richness
@@ -1154,7 +1164,7 @@ par(mfrow = c(2,2))
 plot(amf_rich_lm) # variance similar in groups with an outlier
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
 
 ``` r
 distribution_prob(amf_rich_lm)
@@ -1281,7 +1291,7 @@ par(mfrow = c(2,2))
 plot(amf_shan_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-48-1.png)<!-- -->
 
 Variance somewhat non-constant in groups, qqplot fit is poor, one
 leverage point (Cook’s \> 0.5)
@@ -1440,7 +1450,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-53-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -1504,7 +1514,7 @@ nlfa_lm_log   <- lm(log(amf) ~ field_type, data = fa)
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-55-1.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-55-2.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-55-3.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-55-4.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-56-1.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-56-2.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-56-3.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-56-4.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -1520,7 +1530,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-55-5.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-56-5.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -1630,7 +1640,7 @@ created on the standardized abundance data.
 
 ``` r
 d_amf <- UniFrac(amf_ps, weighted = TRUE)
-mva_amf <- mva(d = d_amf, corr = "lingoes")
+mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
 ```
 
 ``` r
@@ -1644,15 +1654,15 @@ mva_amf$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9405
+    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9395
     ## Residuals 22 0.071014 0.0032279                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.85300  0.9065
-    ## restored 0.85873           0.7120
-    ## remnant  0.89942  0.71821
+    ## corn              0.84800  0.9105
+    ## restored 0.85873           0.7090
+    ## remnant  0.89944  0.71823
 
 ``` r
 mva_amf$permanova
@@ -1665,7 +1675,7 @@ mva_amf$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1250    
+    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1165    
     ## field_type   2  0.21243 0.24757 3.7307 0.0005 ***
     ## Residual    21  0.59788 0.69677                  
     ## Total       24  0.85808 1.00000                  
@@ -1680,8 +1690,8 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.478 | 0.250 |      0.0015 |
-| 3   | corn     | remnant |   4.655 | 0.355 |      0.0015 |
-| 2   | restored | remnant |   0.442 | 0.023 |      0.8760 |
+| 3   | corn     | remnant |   4.655 | 0.355 |      0.0030 |
+| 2   | restored | remnant |   0.442 | 0.023 |      0.8680 |
 
 Pairwise permanova contrasts
 
@@ -1876,7 +1886,7 @@ Model R2_adj 0.24, p\<0.02
 ggplot(amf_fmlr_pfg, aes(x = field_type, y = Paraglomeraceae)) + geom_boxplot()
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-61-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-62-1.png)<!-- -->
 
 ``` r
 para_lm <- lm(Paraglomeraceae ~ field_type, data = amf_fmlr_pfg)
@@ -1962,13 +1972,13 @@ NS
 Retrieve pathogen sequence abundance
 
 ``` r
-patho <- guildseq(spe$its_avg, "plant_pathogen")
+patho <- guildseq(spe$its_avg, spe_meta$its, "plant_pathogen")
 ```
 
 ## Diversity Indices
 
 ``` r
-patho_div <- calc_div(patho)
+patho_div <- calc_div(patho, sites)
 ```
 
 ### Richness
@@ -1986,7 +1996,7 @@ par(mfrow = c(2,2))
 plot(patho_rich_lm) # variance similar in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-68-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_rich_lm)
@@ -2099,7 +2109,7 @@ par(mfrow = c(2,2))
 plot(its_shan_lm) # variance similar in groups 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-72-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-73-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_shan_lm)
@@ -2206,7 +2216,7 @@ par(mfrow = c(2,2))
 plot(patho_ab_lm) # variance differs slightly in groups. Tails on qq plot diverge
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-77-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_ab_lm)
@@ -2302,7 +2312,7 @@ d_patho <- patho %>%
   data.frame(row.names = 1) %>% 
   decostand("total") %>%
   vegdist("bray")
-mva_patho <- mva(d = d_patho, corr = "lingoes")
+mva_patho <- mva(d = d_patho, env = sites, corr = "lingoes")
 ```
 
 ``` r
@@ -2316,14 +2326,14 @@ mva_patho$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.015563 0.0077814 1.4865   1999  0.261
+    ## Groups     2 0.015563 0.0077814 1.4865   1999  0.245
     ## Residuals 22 0.115164 0.0052347                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.11650   0.307
-    ## restored 0.10559            0.777
+    ## corn              0.11450   0.316
+    ## restored 0.10559            0.780
     ## remnant  0.30990  0.77814
 
 ``` r
@@ -2337,7 +2347,7 @@ mva_patho$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1265    
+    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1135    
     ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
     ## Residual    21   2.3587 0.69121                  
     ## Total       24   3.4124 1.00000                  
@@ -2352,8 +2362,8 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
 | 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
-| 3   | corn     | remnant |   5.690 | 0.453 |      0.0135 |
-| 2   | restored | remnant |   0.768 | 0.040 |      0.6265 |
+| 3   | corn     | remnant |   5.690 | 0.453 |      0.0142 |
+| 2   | restored | remnant |   0.768 | 0.040 |      0.6105 |
 
 Pairwise permanova contrasts
 
@@ -2429,7 +2439,7 @@ to agricultural soil research may make the indicator stats less
 appropriate for other use.
 
 ``` r
-patho_ind <- inspan("plant_pathogen")
+patho_ind <- inspan(spe$its_avg, spe_meta$its, "plant_pathogen", sites)
 patho_ind %>% 
   select(-otu_num, -primary_lifestyle, -p.value) %>% 
   arrange(field_type, p_val_adj) %>% 
@@ -2438,32 +2448,33 @@ patho_ind %>%
 
 | A | B | stat | p_val_adj | field_type | phylum | class | order | family | genus | species |
 |---:|---:|---:|---:|:---|:---|:---|:---|:---|:---|:---|
-| 0.9812387 | 1.00 | 0.9905749 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola |
-| 0.9553209 | 1.00 | 0.9774052 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
-| 0.9023836 | 1.00 | 0.9499387 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
-| 1.0000000 | 0.80 | 0.8944272 | 0.0183000 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | unidentified |
-| 1.0000000 | 0.80 | 0.8944272 | 0.0183000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
-| 0.9552239 | 0.80 | 0.8741734 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | unidentified |
-| 0.9918904 | 0.80 | 0.8907931 | 0.0915000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
-| 0.8861696 | 1.00 | 0.9413658 | 0.1098000 | corn | Ascomycota | Sordariomycetes | Magnaporthales | Magnaporthaceae | Gaeumannomyces | unidentified |
-| 1.0000000 | 0.60 | 0.7745967 | 0.1098000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola |
-| 0.7371032 | 1.00 | 0.8585472 | 0.1164545 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
-| 0.8630287 | 0.80 | 0.8309169 | 0.1982500 | corn | Ascomycota | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
-| 0.7457627 | 1.00 | 0.8635755 | 0.2252308 | corn | Ascomycota | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
-| 0.9658793 | 0.60 | 0.7612671 | 0.2623000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Lectera | unidentified |
-| 0.5454252 | 1.00 | 0.7385291 | 0.4117500 | corn | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Nectria | Nectria_ramulariae |
-| 0.6579194 | 0.80 | 0.7254898 | 0.4117500 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Veronaea | unidentified |
-| 0.7444885 | 1.00 | 0.8628374 | 0.1029375 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Ilyonectria | unidentified |
-| 0.7768055 | 1.00 | 0.8813657 | 0.2548929 | remnant | Ascomycota | Dothideomycetes | Pleosporales | Massarinaceae | Stagonospora | unidentified |
-| 0.8965517 | 0.50 | 0.6695341 | 0.3821471 | remnant | Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides |
-| 0.5818028 | 1.00 | 0.7627600 | 0.3821471 | restored | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
-| 0.7660806 | 0.75 | 0.7579977 | 0.3965000 | restored | Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Pseudopithomyces | unidentified |
+| 0.9812387 | 1.00 | 0.9905749 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola |
+| 0.9553209 | 1.00 | 0.9774052 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
+| 0.9023836 | 1.00 | 0.9499387 | 0.0305000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
+| 1.0000000 | 0.80 | 0.8944272 | 0.0366000 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | unidentified |
+| 1.0000000 | 0.80 | 0.8944272 | 0.0366000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
+| 0.9552239 | 0.80 | 0.8741734 | 0.0762500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | unidentified |
+| 0.9918904 | 0.80 | 0.8907931 | 0.0784286 | corn | Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
+| 0.8861696 | 1.00 | 0.9413658 | 0.1247727 | corn | Ascomycota | Sordariomycetes | Magnaporthales | Magnaporthaceae | Gaeumannomyces | unidentified |
+| 0.7371032 | 1.00 | 0.8585472 | 0.1247727 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
+| 1.0000000 | 0.60 | 0.7745967 | 0.1247727 | corn | Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola |
+| 0.8630287 | 0.80 | 0.8309169 | 0.1296250 | corn | Ascomycota | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
+| 0.7457627 | 1.00 | 0.8635755 | 0.1618846 | corn | Ascomycota | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
+| 0.9658793 | 0.60 | 0.7612671 | 0.2352857 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Lectera | unidentified |
+| 0.5454252 | 1.00 | 0.7385291 | 0.4008571 | corn | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Nectria | Nectria_ramulariae |
+| 1.0000000 | 0.40 | 0.6324555 | 0.4008571 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Phaeocytostroma | Phaeocytostroma_ambiguum |
+| 0.7444885 | 1.00 | 0.8628374 | 0.1143750 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Ilyonectria | unidentified |
+| 0.7768055 | 1.00 | 0.8813657 | 0.2379000 | remnant | Ascomycota | Dothideomycetes | Pleosporales | Massarinaceae | Stagonospora | unidentified |
+| 0.8965517 | 0.50 | 0.6695341 | 0.3660000 | remnant | Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides |
+| 0.6878126 | 0.75 | 0.7182336 | 0.3997105 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Dactylonectria | unidentified |
+| 0.5818028 | 1.00 | 0.7627600 | 0.3660000 | restored | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
+| 0.7660806 | 0.75 | 0.7579977 | 0.3660000 | restored | Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Pseudopithomyces | unidentified |
 
 Indicator species analysis, plant pathogens
 
 ``` r
 patho_abund_ft <- 
-  guildseq(spe$its_avg, "plant_pathogen") %>% 
+  guildseq(spe$its_avg, spe_meta$its, "plant_pathogen") %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its, by = join_by(otu_num)) %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
@@ -2514,7 +2525,7 @@ ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x 
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-82-1.png)<!-- -->
 
 Model the relationship
 
@@ -2529,7 +2540,7 @@ par(mfrow = c(2,2))
 plot(gf_patho_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-84-1.png)<!-- -->
 
 Some residual structure, but a smooth qq fit. Minor leverage with point
 4 pulls the slope to more level, risking a type II error rather than
@@ -2590,13 +2601,13 @@ summary(gf_patho_lm)
 Retrieve pathogen sequence abundance
 
 ``` r
-sapro <- guildseq(spe$its_avg, "saprotroph")
+sapro <- guildseq(spe$its_avg, spe_meta$its, "saprotroph")
 ```
 
 ## Diversity Indices
 
 ``` r
-sapro_div <- calc_div(sapro)
+sapro_div <- calc_div(sapro, sites)
 ```
 
 ### Richness
@@ -2614,7 +2625,7 @@ par(mfrow = c(2,2))
 plot(sapro_rich_lm) # heavy residual structure, poor qq alignment, borderline leverage
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-89-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-90-1.png)<!-- -->
 
 ``` r
 distribution_prob(sapro_rich_lm)
@@ -2672,7 +2683,7 @@ sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-91-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
 
 scale-location much more uniform but still a little heavy tails, qqplot
 shows much better fit; leverage point now ~0.3
@@ -2693,7 +2704,7 @@ sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-93-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point Model results,
 group means, and post-hoc
@@ -2776,10 +2787,10 @@ Diagnostics
 
 ``` r
 par(mfrow = c(2,2))
-plot(its_shan_lm) # variance similar in groups 
+plot(sapro_shan_lm) # variance similar in groups 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-97-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-98-1.png)<!-- -->
 
 ``` r
 distribution_prob(sapro_shan_lm)
@@ -2885,7 +2896,7 @@ par(mfrow = c(2,2))
 plot(sapro_ab_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-101-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-102-1.png)<!-- -->
 
 variance differs slightly in groups. Tails on qq plot diverge. Variance
 unequal but not bad, two leverage points.
@@ -2934,7 +2945,7 @@ par(mfrow = c(2,2))
 plot(sapro_ab_rlm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-104-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-105-1.png)<!-- -->
 
 Minor visual improvements to fit
 
@@ -3071,11 +3082,11 @@ d_sapro <- sapro %>%
   data.frame(row.names = 1) %>% 
   decostand("total") %>%
   vegdist("bray")
-mva_sapro <- mva(d = d_sapro)
+mva_sapro <- mva(d = d_sapro, env = sites)
 ```
 
 ``` r
-mva_patho$dispersion_test
+mva_sapro$dispersion_test
 ```
 
     ## 
@@ -3084,19 +3095,19 @@ mva_patho$dispersion_test
     ## Number of permutations: 1999
     ## 
     ## Response: Distances
-    ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.015563 0.0077814 1.4865   1999  0.261
-    ## Residuals 22 0.115164 0.0052347                     
+    ##           Df  Sum Sq   Mean Sq     F N.Perm Pr(>F)
+    ## Groups     2 0.01522 0.0076101 1.229   1999 0.3025
+    ## Residuals 22 0.13623 0.0061922                    
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.11650   0.307
-    ## restored 0.10559            0.777
-    ## remnant  0.30990  0.77814
+    ## corn              0.94200   0.346
+    ## restored 0.94409            0.110
+    ## remnant  0.34863  0.10783
 
 ``` r
-mva_patho$permanova
+mva_sapro$permanova
 ```
 
     ## Permutation test for adonis under reduced model
@@ -3106,23 +3117,23 @@ mva_patho$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1265    
-    ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
-    ## Residual    21   2.3587 0.69121                  
-    ## Total       24   3.4124 1.00000                  
+    ## dist_axis_1  1   0.5499 0.07873 2.1652 0.0025 ** 
+    ## field_type   2   1.1017 0.15773 2.1691 0.0005 ***
+    ## Residual    21   5.3330 0.76354                  
+    ## Total       24   6.9845 1.00000                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
-mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
 |     | group1   | group2  | F_value |    R2 | p_value_adj |
 |-----|:---------|:--------|--------:|------:|------------:|
-| 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
-| 3   | corn     | remnant |   5.690 | 0.453 |      0.0135 |
-| 2   | restored | remnant |   0.768 | 0.040 |      0.6265 |
+| 1   | restored | corn    |   3.196 | 0.136 |      0.0015 |
+| 3   | corn     | remnant |   1.947 | 0.208 |      0.0015 |
+| 2   | restored | remnant |   1.231 | 0.061 |      0.1775 |
 
 Pairwise permanova contrasts
 
@@ -3194,7 +3205,7 @@ Colours/shading: corn = grey, restored = black, remnant = white.
 ## Saprotroph Indicator Species
 
 ``` r
-sapro_ind <- inspan("saprotroph")
+sapro_ind <- inspan(spe$its_avg, spe_meta$its, "saprotroph", sites)
 sapro_ind_table <- 
   sapro_ind %>% 
   select(-otu_num, -primary_lifestyle, -p.value) %>%
@@ -3205,32 +3216,32 @@ sapro_ind_table[1:20, ] %>%
 
 | A | B | stat | p_val_adj | field_type | phylum | class | order | family | genus | species |
 |---:|---:|---:|---:|:---|:---|:---|:---|:---|:---|:---|
-| 1.0000000 | 1.0 | 1.0000000 | 0.1200000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_apala |
-| 0.9978110 | 1.0 | 0.9989049 | 0.1200000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans |
-| 0.9605279 | 1.0 | 0.9800653 | 0.1200000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 0.9711102 | 1.0 | 0.9854492 | 0.1800000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans |
-| 0.8996070 | 1.0 | 0.9484762 | 0.1800000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 0.9880823 | 0.8 | 0.8890815 | 0.2057143 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Lecythophora | unidentified |
+| 1.0000000 | 1.0 | 1.0000000 | 0.1800000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Conocybe | Conocybe_apala |
+| 0.9978110 | 1.0 | 0.9989049 | 0.1800000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans |
+| 0.9605279 | 1.0 | 0.9800653 | 0.1800000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.9880823 | 0.8 | 0.8890815 | 0.1800000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Lecythophora | unidentified |
+| 0.8996070 | 1.0 | 0.9484762 | 0.2400000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.9711102 | 1.0 | 0.9854492 | 0.3150000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans |
 | 0.9516129 | 0.8 | 0.8725195 | 0.3150000 | corn | Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_limonispora |
-| 0.8389182 | 1.0 | 0.9159248 | 0.4153846 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | unidentified |
-| 0.9879341 | 0.8 | 0.8890148 | 0.4153846 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 0.7826463 | 1.0 | 0.8846730 | 0.4153846 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea |
-| 1.0000000 | 0.6 | 0.7745967 | 0.4153846 | corn | Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii |
-| 1.0000000 | 0.6 | 0.7745967 | 0.4153846 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Kochiomyces | unidentified |
-| 1.0000000 | 0.6 | 0.7745967 | 0.4371429 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
-| 0.8157966 | 1.0 | 0.9032146 | 0.6206897 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Neosetophoma | unidentified |
-| 0.7997837 | 1.0 | 0.8943062 | 0.6206897 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | unidentified |
-| 0.6738526 | 1.0 | 0.8208852 | 0.6206897 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima |
-| 0.9854665 | 0.6 | 0.7689472 | 0.6206897 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_suttonii |
-| 0.9644979 | 0.6 | 0.7607225 | 0.6206897 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
-| 0.9562682 | 0.6 | 0.7574701 | 0.6206897 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Cheilymenia | Cheilymenia_stercorea |
-| 0.7044973 | 0.8 | 0.7507315 | 0.6206897 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.8389182 | 1.0 | 0.9159248 | 0.3600000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | unidentified |
+| 0.9879341 | 0.8 | 0.8890148 | 0.3600000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.7826463 | 1.0 | 0.8846730 | 0.3600000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea |
+| 1.0000000 | 0.6 | 0.7745967 | 0.3600000 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Kochiomyces | unidentified |
+| 1.0000000 | 0.6 | 0.7745967 | 0.3876923 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
+| 1.0000000 | 0.6 | 0.7745967 | 0.4114286 | corn | Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii |
+| 0.6738526 | 1.0 | 0.8208852 | 0.5760000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima |
+| 0.8157966 | 1.0 | 0.9032146 | 0.5850000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Neosetophoma | unidentified |
+| 0.7997837 | 1.0 | 0.8943062 | 0.5850000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | unidentified |
+| 0.9854665 | 0.6 | 0.7689472 | 0.5850000 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_suttonii |
+| 0.9644979 | 0.6 | 0.7607225 | 0.5850000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
+| 0.9562682 | 0.6 | 0.7574701 | 0.5850000 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Cheilymenia | Cheilymenia_stercorea |
+| 0.8514497 | 0.6 | 0.7147516 | 0.5850000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_terricola |
 
 Indicator species analysis, saprotrophs (First 20 rows shown)
 
 ``` r
 sapro_abund_ft <- 
-  guildseq(spe$its_avg, "saprotroph") %>% 
+  guildseq(spe$its_avg, spe_meta$its, "saprotroph") %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its, by = join_by(otu_num)) %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 

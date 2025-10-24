@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 23 October, 2025
+Last updated: 24 October, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -174,82 +174,20 @@ Axis 1 & 2 eigenvalue proportions
 ``` r
 eig_prop <- round(summary(soil_pca)$cont$importance[2, 1:2] * 100, 1)
 soil_ord_scores <-
-    site_sco %>%
-    data.frame() %>% 
+    data.frame(site_sco) %>%
     rownames_to_column(var = "field_name") %>%
     left_join(sites, by = join_by(field_name))
-```
 
-PERMANOVA and plots with sites clustered in regions
-
-``` r
-soilperm_region <- soilperm(soil_ord_scores$region, "region", site_sco)
-```
-
-    ## Set of permutations < 'minperm'. Generating entire set.
-
-``` r
-soilperm_region$mvdisper
-```
-
-    ## 
-    ## Permutation test for homogeneity of multivariate dispersions
-    ## Permutation: free
-    ## Number of permutations: 1999
-    ## 
-    ## Response: Distances
-    ##           Df  Sum Sq Mean Sq      F N.Perm Pr(>F)
-    ## Groups     3  2.1805 0.72682 0.9061   1999  0.462
-    ## Residuals 21 16.8447 0.80213                     
-    ## 
-    ## Pairwise comparisons:
-    ## (Observed p-value below diagonal, permuted p-value above diagonal)
-    ##         BM      FG      FL    LP
-    ## BM         0.25750 0.62900 0.913
-    ## FG 0.24801         0.32000 0.587
-    ## FL 0.49845 0.32847         0.815
-    ## LP 0.90173 0.50644 0.76747
-
-``` r
-soilperm_region$gl_permtest
-```
-
-    ## Permutation test for adonis under reduced model
-    ## Terms added sequentially (first to last)
-    ## Permutation: free
-    ## Number of permutations: 1999
-    ## 
-    ## adonis2(formula = as.formula(paste("soil_d ~", clust_var)), data = soil_ord_scores, permutations = 1999, by = "terms")
-    ##          Df SumOfSqs     R2      F Pr(>F)   
-    ## region    3   14.374 0.4069 4.8023 0.0015 **
-    ## Residual 21   20.953 0.5931                 
-    ## Total    24   35.327 1.0000                 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-soilperm_region$contrasts
-```
-
-    ##   group1 group2    R2 F_value df1 df2 p_value p_value_adj
-    ## 1     BM     FG 0.422   7.307   1  10  0.0040      0.0080
-    ## 2     BM     FL 0.350   8.608   1  16  0.0035      0.0080
-    ## 3     BM     LP 0.031   0.348   1  11  0.7870      0.7870
-    ## 4     FG     FL 0.184   2.251   1  10  0.1130      0.1356
-    ## 5     FG     LP 0.403   3.381   1   5  0.0315      0.0472
-    ## 6     FL     LP 0.353   5.999   1  11  0.0035      0.0080
-
-``` r
-soil_ord_reg_centers <- soil_ord_scores %>% 
-  group_by(region) %>% 
-  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+soil_ord_reg_centers <- soil_ord_scores %>%
+  group_by(region) %>%
+  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 segs_regions <- soil_ord_scores %>%
-  left_join(soil_ord_reg_centers, by = join_by(region)) %>% 
+  left_join(soil_ord_reg_centers, by = join_by(region)) %>%
   select(x = PC1, y = PC2, xend = mean_PC1, yend = mean_PC2)
 
-soil_ord_regions <- 
+soil_ord_regions <-
   ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
   geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
   geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region), size = 3) +
@@ -268,7 +206,7 @@ soil_ord_regions <-
 PERMANOVA and plots with sites clustered in field types
 
 ``` r
-soilperm_ft <- soilperm(soil_ord_scores$field_type, "field_type", site_sco)
+soilperm_ft <- soilperm(soil_ord_scores, "field_type")
 soilperm_ft$mvdisper
 ```
 
@@ -279,14 +217,14 @@ soilperm_ft$mvdisper
     ## 
     ## Response: Distances
     ##           Df Sum Sq Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.6288 0.31442 0.9035   1999  0.403
+    ## Groups     2 0.6288 0.31442 0.9035   1999 0.4225
     ## Residuals 22 7.6560 0.34800                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.52100  0.6525
-    ## restored 0.51779           0.1580
+    ## corn              0.53400  0.6805
+    ## restored 0.51779           0.1790
     ## remnant  0.65358  0.17408
 
 ``` r
@@ -298,9 +236,9 @@ soilperm_ft$gl_permtest
     ## Permutation: free
     ## Number of permutations: 1999
     ## 
-    ## adonis2(formula = as.formula(paste("soil_d ~", clust_var)), data = soil_ord_scores, permutations = 1999, by = "terms")
+    ## adonis2(formula = as.formula(paste("soil_d ~", clust_var)), data = ord_scores, permutations = 1999, by = "terms")
     ##            Df SumOfSqs      R2      F Pr(>F)    
-    ## field_type  2   13.277 0.37582 6.6232  5e-04 ***
+    ## field_type  2   13.277 0.37582 6.6232  0.001 ***
     ## Residual   22   22.050 0.62418                  
     ## Total      24   35.327 1.00000                  
     ## ---
@@ -312,17 +250,17 @@ soilperm_ft$contrasts
 
     ##     group1  group2    R2 F_value df1 df2 p_value p_value_adj
     ## 1 restored    corn 0.399  12.616   1  19  0.0005      0.0015
-    ## 2 restored remnant 0.037   0.695   1  18  0.4390      0.4390
-    ## 3     corn remnant 0.462   6.009   1   7  0.0195      0.0292
+    ## 2 restored remnant 0.037   0.695   1  18  0.4140      0.4140
+    ## 3     corn remnant 0.462   6.009   1   7  0.0135      0.0203
 
 ``` r
-soil_ord_ft_centers <- soil_ord_scores %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+soil_ord_ft_centers <- soil_ord_scores %>%
+  group_by(field_type) %>%
+  summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 
-soil_ord_ftypes <- 
+soil_ord_ftypes <-
     ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +

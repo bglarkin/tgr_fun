@@ -38,14 +38,20 @@ for (script in scripts) {
   knitr::opts_chunk$set(fig.path = fig_rel)
   
   # render with knit_root_dir as proj_root, and disable self_contained so images stay external
-  rmarkdown::render(
-    input          = script,
-    # output_format  = rmarkdown::github_document(),
-    output_file    = output_md,
-    output_dir     = proj_root,
-    knit_root_dir  = proj_root,
-    envir          = new.env(parent = globalenv())
-  )
+  # wrap with tryCatch to help debug
+  tryCatch({
+    rmarkdown::render(
+      input          = script,
+      # output_format  = rmarkdown::github_document(),
+      output_file    = output_md,
+      output_dir     = proj_root,
+      knit_root_dir  = proj_root,
+      envir          = new.env(parent = globalenv())
+    )
+  }, error = function(e) {
+    message("ERROR in ", basename(script), ": ", conditionMessage(e))
+    stop(e)
+  })
   
   # --- MOVE the entire <script>_files/ folder into resources/ ---
   orig_dir <- file.path(proj_root, paste0(script_base, "_files"))
