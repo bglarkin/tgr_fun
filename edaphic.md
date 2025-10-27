@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 24 October, 2025
+Last updated: 27 October, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -112,10 +112,14 @@ summary(soil_pca)
     ## Eigenvalues, and their contribution to the variance 
     ## 
     ## Importance of components:
-    ##                          PC1    PC2    PC3    PC4     PC5     PC6     PC7     PC8     PC9     PC10     PC11    PC12     PC13
-    ## Eigenvalue            4.4790 2.3301 1.7896 1.4132 1.16188 0.70120 0.38467 0.27747 0.20308 0.129286 0.069183 0.04186 0.019432
-    ## Proportion Explained  0.3445 0.1792 0.1377 0.1087 0.08938 0.05394 0.02959 0.02134 0.01562 0.009945 0.005322 0.00322 0.001495
-    ## Cumulative Proportion 0.3445 0.5238 0.6614 0.7701 0.85952 0.91346 0.94305 0.96440 0.98002 0.989963 0.995285 0.99851 1.000000
+    ##                          PC1    PC2    PC3    PC4     PC5     PC6     PC7     PC8     PC9     PC10
+    ## Eigenvalue            4.4790 2.3301 1.7896 1.4132 1.16188 0.70120 0.38467 0.27747 0.20308 0.129286
+    ## Proportion Explained  0.3445 0.1792 0.1377 0.1087 0.08938 0.05394 0.02959 0.02134 0.01562 0.009945
+    ## Cumulative Proportion 0.3445 0.5238 0.6614 0.7701 0.85952 0.91346 0.94305 0.96440 0.98002 0.989963
+    ##                           PC11    PC12     PC13
+    ## Eigenvalue            0.069183 0.04186 0.019432
+    ## Proportion Explained  0.005322 0.00322 0.001495
+    ## Cumulative Proportion 0.995285 0.99851 1.000000
 
 ``` r
 plot(soil_pca)
@@ -217,14 +221,14 @@ soilperm_ft$mvdisper
     ## 
     ## Response: Distances
     ##           Df Sum Sq Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.6288 0.31442 0.9035   1999 0.4225
+    ## Groups     2 0.6288 0.31442 0.9035   1999 0.4465
     ## Residuals 22 7.6560 0.34800                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
-    ## corn              0.53400  0.6805
-    ## restored 0.51779           0.1790
+    ## corn              0.51800  0.6625
+    ## restored 0.51779           0.1850
     ## remnant  0.65358  0.17408
 
 ``` r
@@ -238,7 +242,7 @@ soilperm_ft$gl_permtest
     ## 
     ## adonis2(formula = as.formula(paste("soil_d ~", clust_var)), data = ord_scores, permutations = 1999, by = "terms")
     ##            Df SumOfSqs      R2      F Pr(>F)    
-    ## field_type  2   13.277 0.37582 6.6232  0.001 ***
+    ## field_type  2   13.277 0.37582 6.6232  5e-04 ***
     ## Residual   22   22.050 0.62418                  
     ## Total      24   35.327 1.00000                  
     ## ---
@@ -250,8 +254,8 @@ soilperm_ft$contrasts
 
     ##     group1  group2    R2 F_value df1 df2 p_value p_value_adj
     ## 1 restored    corn 0.399  12.616   1  19  0.0005      0.0015
-    ## 2 restored remnant 0.037   0.695   1  18  0.4140      0.4140
-    ## 3     corn remnant 0.462   6.009   1   7  0.0135      0.0203
+    ## 2 restored remnant 0.037   0.695   1  18  0.4310      0.4310
+    ## 3     corn remnant 0.462   6.009   1   7  0.0170      0.0255
 
 ``` r
 soil_ord_ft_centers <- soil_ord_scores %>%

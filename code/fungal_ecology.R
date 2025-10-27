@@ -883,10 +883,18 @@ leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() 
 
 #' Model results, group means, and post-hoc
 summary(patho_rich_lm)
-#' Sequence depth is highly significant; richness doesn't vary in groups 
+#' Sequence depth is highly significant; richness doesn't vary in groups. 
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case.
 patho_rich_em <- emmeans(patho_rich_lm, ~ field_type, type = "response")
+#+ patho_rich_em_summary,echo=FALSE
+kable(summary(patho_rich_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ patho_rich_em_posthoc,echo=FALSE
+kable(pairs(patho_rich_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #+ patho_richness_fig,fig.width=4,fig.height=4
 patho_rich_fig <- 
   ggplot(summary(patho_rich_em), aes(x = field_type, y = emmean)) +
@@ -921,6 +929,14 @@ summary(patho_shan_lm)
 patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group means and confidence intervals,
 #' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
+#+ patho_shan_em_summary,echo=FALSE
+kable(summary(patho_shan_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ patho_shan_em_posthoc,echo=FALSE
+kable(pairs(patho_shan_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #+ patho_shan_fig,fig.width=4,fig.height=4
 patho_shan_fig <- 
   ggplot(summary(patho_shan_em), aes(x = field_type, y = emmean)) +
@@ -1061,14 +1077,14 @@ patho_abund_ft <-
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   select(-otu_ID, -otu_num, -primary_lifestyle, -field_name) %>%
   filter(species != "unidentified", abund > 0) %>% 
-  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1)) %>% 
+  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1), values_fill = 0) %>% 
   select(phylum:species, corn, restored, remnant) %>% 
   rowwise() %>% 
   mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
-  arrange(-avg)
+  arrange(-corn)
 patho_abund_ft %>% 
-  filter(avg >= 10) %>% 
-  kable(format = "pandoc", caption = "Named pathogen species and abundances in field types\n(Mean abundance >= 10 shown)")
+  filter(avg >= 1) %>%
+  kable(format = "pandoc", caption = "Named pathogen species and abundances in field types\n(Mean abundance >= 1 shown)")
 
 #' ## Pathogen—Plant Correlations
 #' Whole-soil fungi correlated with grass and forbs; investigate whether pathogens do specifically.
@@ -1142,6 +1158,14 @@ sapro_div %>%
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case, back-transformed.
 sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
+#+ sapro_rich_em_summary,echo=FALSE
+kable(summary(sapro_rich_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ sapro_rich_em_posthoc,echo=FALSE
+kable(pairs(sapro_rich_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #+ sapro_richness_fig,fig.width=4,fig.height=4
 sapro_rich_fig <- 
   ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +

@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 24 October, 2025
+Last updated: 27 October, 2025
 
 - [Description](#description)
   - [Alpha diversity calculations](#alpha-diversity-calculations)
