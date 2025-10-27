@@ -1368,11 +1368,11 @@ sapro_abund_ft <-
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   select(-otu_ID, -otu_num, -primary_lifestyle, -field_name) %>%
   filter(species != "unidentified", abund > 0) %>% 
-  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1)) %>% 
+  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1), values_fill = 0) %>% 
   select(phylum:species, corn, restored, remnant) %>% 
   rowwise() %>% 
   mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
-  arrange(-avg)
+  arrange(-corn)
 sapro_abund_ft %>% 
   filter(avg >= 10) %>% 
   kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types\n(Mean abundance >= 10 shown)")
