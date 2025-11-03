@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 27 October, 2025
+Last updated: 03 November, 2025
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -35,32 +35,6 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
-
-    ## ℹ Google's Terms of Service: <https://mapsplatform.google.com>
-    ##   Stadia Maps' Terms of Service: <https://stadiamaps.com/terms-of-service>
-    ##   OpenStreetMap's Tile Usage Policy: <https://operations.osmfoundation.org/policies/tiles>
-    ## ℹ Please cite ggmap if you use it! Use `citation("ggmap")` for details.
-    ## Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
-    ## 
-    ## Loading required package: ggpp
-    ## 
-    ## Registered S3 methods overwritten by 'ggpp':
-    ##   method                  from   
-    ##   heightDetails.titleGrob ggplot2
-    ##   widthDetails.titleGrob  ggplot2
-    ## 
-    ## 
-    ## Attaching package: 'ggpp'
-    ## 
-    ## 
-    ## The following objects are masked from 'package:ggpubr':
-    ## 
-    ##     as_npc, as_npcx, as_npcy
-    ## 
-    ## 
-    ## The following object is masked from 'package:ggplot2':
-    ## 
-    ##     annotate
 
 ## Root path function
 
@@ -100,14 +74,14 @@ sites <-
 
     ## Rows: 25
     ## Columns: 8
-    ## $ field_key  <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24…
-    ## $ field_name <chr> "BBRP1", "ERRP1", "FGC1", "FGREM1", "FGRP1", "FLC1", "FLC2", "FLREM1", "FLRP1", "FLRP…
-    ## $ region     <chr> "BM", "BM", "FG", "FG", "FG", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "…
-    ## $ lat        <dbl> 43.09989, 43.06588, 43.16087, 43.16172, 43.14381, 41.85941, 41.84370, 41.86043, 41.83…
-    ## $ long       <dbl> -89.72517, -89.80358, -88.89045, -88.88973, -88.88175, -88.25148, -88.22913, -88.2528…
-    ## $ field_type <chr> "restored", "restored", "corn", "remnant", "restored", "corn", "corn", "remnant", "re…
-    ## $ yr_restore <dbl> 2000, 2013, NA, NA, 2001, NA, NA, NA, 1976, 1980, 1981, 2006, 2006, 2006, 1988, NA, N…
-    ## $ yr_since   <dbl> 16, 3, NA, NA, 15, NA, NA, NA, 40, 36, 35, 10, 10, 10, 28, NA, NA, 4, 4, NA, 18, 7, 2…
+    ## $ field_key  <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
+    ## $ field_name <chr> "BBRP1", "ERRP1", "FGC1", "FGREM1", "FGRP1", "FLC1", "FLC2", "FLREM1", "FLRP1", "FLRP4", "FLRP5", "FLRSP1", "FLRSP2", "FLRS…
+    ## $ region     <chr> "BM", "BM", "FG", "FG", "FG", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "BM", "LP", "LP", "LP", "LP", "BM", "BM…
+    ## $ lat        <dbl> 43.09989, 43.06588, 43.16087, 43.16172, 43.14381, 41.85941, 41.84370, 41.86043, 41.83457, 41.83491, 41.83439, 41.84074, 41.…
+    ## $ long       <dbl> -89.72517, -89.80358, -88.89045, -88.88973, -88.88175, -88.25148, -88.22913, -88.25288, -88.25159, -88.25050, -88.25318, -8…
+    ## $ field_type <chr> "restored", "restored", "corn", "remnant", "restored", "corn", "corn", "remnant", "restored", "restored", "restored", "rest…
+    ## $ yr_restore <dbl> 2000, 2013, NA, NA, 2001, NA, NA, NA, 1976, 1980, 1981, 2006, 2006, 2006, 1988, NA, NA, 2012, 2012, NA, 1998, 2009, 2014, N…
+    ## $ yr_since   <dbl> 16, 3, NA, NA, 15, NA, NA, NA, 40, 36, 35, 10, 10, 10, 28, NA, NA, 4, 4, NA, 18, 7, 2, NA, 11
 
 Calculate region locations
 
@@ -269,8 +243,7 @@ cities <- ne_download(
 ```
 
     ## Reading layer `ne_50m_populated_places' from data source 
-    ##   `/private/var/folders/f2/v4gkwmsn0nbd3fmypfh2wl740000gp/T/RtmpDTcP1a/ne_50m_populated_places.shp' 
-    ##   using driver `ESRI Shapefile'
+    ##   `/private/var/folders/f2/v4gkwmsn0nbd3fmypfh2wl740000gp/T/RtmpLnCJGe/ne_50m_populated_places.shp' using driver `ESRI Shapefile'
     ## Simple feature collection with 1251 features and 137 fields
     ## Geometry type: POINT
     ## Dimension:     XY
@@ -287,11 +260,6 @@ regional_box <- st_bbox(c(
     ymax = 49.5
 ), crs = 4326)
 sf_use_s2(FALSE)
-```
-
-    ## Spherical geometry (s2) switched off
-
-``` r
 regions_crop <- st_crop(regions, regional_box)
 ```
 
@@ -321,8 +289,7 @@ area_cities <- ne_download(
 ```
 
     ## Reading layer `ne_10m_populated_places' from data source 
-    ##   `/private/var/folders/f2/v4gkwmsn0nbd3fmypfh2wl740000gp/T/RtmpDTcP1a/ne_10m_populated_places.shp' 
-    ##   using driver `ESRI Shapefile'
+    ##   `/private/var/folders/f2/v4gkwmsn0nbd3fmypfh2wl740000gp/T/RtmpLnCJGe/ne_10m_populated_places.shp' using driver `ESRI Shapefile'
     ## Simple feature collection with 7342 features and 137 fields
     ## Geometry type: POINT
     ## Dimension:     XY

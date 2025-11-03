@@ -19,7 +19,7 @@
 #' based on soil properties.
 #' 
 #' # Packages and libraries
-packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted")
+packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted", "permute")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -68,7 +68,6 @@ soil_ft_avg <-
 soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
 soil_pca <- rda(soil_z)
 summary(soil_pca)
-plot(soil_pca)
 #' Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6 account for 91%. 
 #' 
 #' ## Soil variable loadings and correlations
@@ -122,12 +121,19 @@ soil_ord_regions <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.03, 0.90))
 
-#' PERMANOVA and plots with sites clustered in field types
+#' ### PERMANOVA, differences on field type
 soilperm_ft <- soilperm(soil_ord_scores, "field_type")
 soilperm_ft$mvdisper
 soilperm_ft$gl_permtest
-soilperm_ft$contrasts
+soilperm_ft$contrasts %>% kable(format = "pandoc", caption = "Pairwise PERMANOVA results")
 
+#' ### PERMANOVA, differences on region
+soilperm_reg <- soilperm(soil_ord_scores, "region")
+soilperm_reg$mvdisper
+soilperm_reg$gl_permtest
+soilperm_reg$contrasts %>% kable(format = "pandoc", caption = "Pairwise PERMANOVA results")
+
+#' ### Plotting and Fig S2
 soil_ord_ft_centers <- soil_ord_scores %>%
   group_by(field_type) %>%
   summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%

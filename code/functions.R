@@ -44,72 +44,123 @@ ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
 #' Args: *d* dist, *env* metadata, *corr* PCoA correction, *nperm* permutations.
 #' 
 #+ mva_function
-mva <- function(d, env, corr="none", nperm=1999) {
-  if (!"dist_axis_1" %in% names(env)) {
-    stop("`env` is missing `dist_axis_1` — did you compute and pass the updated object?")
+mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
+  stopifnot(is.data.frame(env))
+  if (!all(c("field_type", "dist_axis_1") %in% names(env))) {
+    stop("`env` must contain columns `field_type` and `dist_axis_1`.")
   }
-  # Ordination
+  
+  # Distance labels and env alignment
+  if (inherits(d, "dist")) {
+    lab <- attr(d, "Labels")
+  } else if (is.matrix(d)) {
+    if (is.null(rownames(d))) stop("Distance matrix `d` must have row names.")
+    lab <- rownames(d)
+    d <- as.dist(d)  # coerce for betadisper/pcoa convenience
+  } else {
+    stop("`d` must be a 'dist' or a symmetric distance matrix.")
+  }
+  
+  # Align feature names across data sources
+  env <- as.data.frame(env)
+  if ("field_name" %in% names(env)) rownames(env) <- env$field_name
+  if (!setequal(rownames(env), lab)) {
+    miss_env <- setdiff(lab, rownames(env))
+    miss_d   <- setdiff(rownames(env), lab)
+    stop("Sample mismatch between `d` and `env`.\n",
+         "In d not in env: ", paste(miss_env, collapse = ", "),
+         "\nIn env not in d: ", paste(miss_d, collapse = ", "))
+  }
+  env <- env[lab, , drop = FALSE]  
+  
+  # Set grouping variables
+  g_chr     <- as.character(env$field_type)
+  g_levels  <- sort(unique(g_chr))         # deterministic order
+  clust_vec <- factor(g_chr, levels = g_levels)
+  
+  # Ordination (PCoA)
   p <- pcoa(d, correction = corr)
   p_vals <- data.frame(p$values) %>% 
     rownames_to_column(var = "Dim") %>% 
     mutate(Dim = as.integer(Dim))
   p_eig <- p_vals[1:2, grep("Rel", colnames(p_vals))] %>% round(., 3) * 100
-  p_vec <- data.frame(p$vectors)
-  p_sco <-
-    p_vec[, 1:2] %>%
-    rownames_to_column(var = "field_name") %>%
+  
+  p_vec <- data.frame(p$vectors, check.names = FALSE)
+  p_sco <- p_vec[, 1:2, drop = FALSE] %>% 
+    rownames_to_column(var = "field_name") %>% 
     left_join(env, by = join_by(field_name))
+  
+  # Envfit (legacy, output not used)
+  if (!is.null(seed)) set.seed(seed + 1L)
   p_fit <- envfit(
-    p_vec ~ yr_since, 
-    data.frame(env, row.names = 1), 
-    choices = c(1,2),
-    na.rm = TRUE,
-    permutations = nperm)
+    p_vec ~ yr_since,
+    data       = env,
+    choices    = c(1, 2),
+    na.rm      = TRUE,
+    permutations = nperm
+  )
   p_fit_sco <- scores(p_fit, display = "bp")
-  # Test multivariate dispersions
-  disper <- betadisper(d, env$field_type, bias.adjust = TRUE)
+  
+  # Homogeneity of multivariate dispersion
+  disper <- betadisper(d, clust_vec, bias.adjust = TRUE)
+  if (!is.null(seed)) set.seed(seed + 2L)
   mvdisper <- permutest(disper, pairwise = TRUE, permutations = nperm)
+  
   # Global PERMANOVA
+  if (!is.null(seed)) set.seed(seed + 3L)
   gl_permtest <- adonis2(
     d ~ dist_axis_1 + field_type,
     data = env,
     permutations = nperm,
-    by = "terms")
-  # Pairwise PERMANOVA
-  group_var <- as.character(env$field_type)
-  groups <- as.data.frame(t(combn(unique(group_var), m = 2)))
-  contrasts <- data.frame(
-    group1 = groups$V1,
-    group2 = groups$V2,
-    R2 = NA,
-    F_value = NA,
-    df1 = NA,
-    df2 = NA,
-    p_value = NA
+    by = "terms"
   )
-  for (i in seq(nrow(contrasts))) {
-    group_subset <-
-      group_var == contrasts$group1[i] |
-      group_var == contrasts$group2[i]
-    # Contrast matrices for Unifrac and Bray distance aren't compatible
-    contrast_matrix <- as.matrix(d)[group_subset, group_subset]
+  
+  # Pairwise PERMANOVA
+  groups <- combn(g_levels, m = 2) %>%  t() %>%  as.data.frame()
+  names(groups) <- c("V1", "V2")
+  
+  contrasts <- data.frame(
+    group1   = groups$V1,
+    group2   = groups$V2,
+    R2       = NA_real_,
+    F_value  = NA_real_,
+    df1      = NA_integer_,
+    df2      = NA_integer_,
+    p_value  = NA_real_
+  )
+  
+  d_mat <- as.matrix(d)
+  for (i in seq_len(nrow(contrasts))) {
+    g1 <- contrasts$group1[i]
+    g2 <- contrasts$group2[i]
+    keep <- clust_vec %in% c(g1, g2)
+    
+    contrast_mat <- d_mat[keep, keep, drop = FALSE]
+    
+    if (!is.null(seed)) set.seed(seed + 100L + i)
+    
     fit <- adonis2(
-      contrast_matrix ~ env$dist_axis_1[group_subset] + group_var[group_subset],
+      contrast_mat ~ env$dist_axis_1[keep] + factor(g_chr[keep]),
       permutations = nperm,
-      by = "terms")
-    # Prepare contrasts table
-    contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
-    contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
-    contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
-    contrasts$df2[i] <- fit[grep("Residual", rownames(fit)), "Df"]
-    contrasts$p_value[i] <- fit[grep("group_var", rownames(fit)), 5]
+      by = "terms"
+    )
+    
+    rn <- rownames(fit)
+    term_row <- grep("factor\\(g_chr\\[keep\\]\\)", rn, fixed = FALSE)
+    if (length(term_row) != 1L) term_row <- grep("g_chr", rn, fixed = TRUE)
+    
+    contrasts$R2[i]      <- round(fit[term_row, "R2"], 3)
+    contrasts$F_value[i] <- round(fit[term_row, "F"], 3)
+    contrasts$df1[i]     <- fit[term_row, "Df"]
+    contrasts$df2[i]     <- fit[grep("Residual", rn), "Df"]
+    contrasts$p_value[i] <- fit[term_row, 5]
   }
-  contrasts$p_value_adj <- p.adjust(contrasts$p_value, method = "fdr") %>% round(., 4)
+  contrasts$p_value_adj <- p.adjust(contrasts$p_value, method = "fdr") %>% round(4)
   
   # Results
-  out <- list(
+  list(
     correction_note    = p$note,
-    ordination_values  = p_vals[1:10, ],
+    ordination_values  = p_vals[1:min(10, nrow(p_vals)), ],
     axis_pct           = p_eig,
     ordination_scores  = p_sco,
     dispersion_test    = mvdisper,
@@ -118,68 +169,73 @@ mva <- function(d, env, corr="none", nperm=1999) {
     vector_fit_result  = p_fit,
     vector_fit_scores  = p_fit_sco
   )
-  
-  return(out)
-  
 }
 
 #' ## Permanova on soil data
 #' Simplified version of `mva()` for use with the soil properties data
-soilperm <- function(ord_scores, clust_var) {
-  #' ### Permanova
-  soil_d <- ord_scores %>% 
-    select(field_name, PC1, PC2) %>% 
-    column_to_rownames("field_name") %>% 
+soilperm <- function(ord_scores, clust_var, nperm = 1999, seed = 20251103) {
+  # Distance object
+  soil_d <- ord_scores %>%
+    select(field_name, PC1, PC2) %>%
+    column_to_rownames("field_name") %>%
     dist()
-  clust_vec <- ord_scores %>% 
-    select({{clust_var}}) %>% 
-    pull()
-  # Test multivariate dispersions
+  
+  # Clusters
+  clust_vec <- ord_scores %>% pull({{clust_var}})
+  g_chr <- as.character(clust_vec)
+  
+  # Control and reproducibility
+  set.seed(seed)
+  ctrl <- how(nperm = nperm)  
+  
+  # Homogeneity of multivariate dispersion
   soil_disper <- betadisper(soil_d, clust_vec, bias.adjust = TRUE)
-  soil_mvdisper <- permutest(soil_disper, pairwise = TRUE, permutations = 1999)
+  soil_mvdisper <- permutest(soil_disper, pairwise = TRUE, permutations = ctrl)
+  
   # Global PERMANOVA
-  soil_gl_permtest <- adonis2(
-    as.formula(paste("soil_d ~", clust_var)),
-    data = ord_scores,
-    permutations = 1999,
-    by = "terms")
+  perm_glob <- shuffleSet(n = attr(soil_d, "Size"), control = ctrl)
+  soil_gl_permtest <- adonis2(soil_d ~ clust_vec,
+                              permutations = perm_glob,
+                              by = "terms",
+                              parallel = 1)  # force serial for determinism
+  
   # Pairwise PERMANOVA
-  group_var <- as.character(clust_vec)
-  groups <- as.data.frame(t(combn(unique(group_var), m = 2)))
-  soil_contrasts <- data.frame(
-    group1 = groups$V1,
-    group2 = groups$V2,
-    R2 = NA,
-    F_value = NA,
-    df1 = NA,
-    df2 = NA,
-    p_value = NA
-  )
-  for (i in seq(nrow(soil_contrasts))) {
-    group_subset <-
-      group_var == soil_contrasts$group1[i] |
-      group_var == soil_contrasts$group2[i]
-    contrast_d <- as.matrix(soil_d)[group_subset, group_subset]
-    fit <- adonis2(
-      contrast_d ~ group_var[group_subset],
-      permutations = 1999,
-      by = "terms")
-    # Prepare contrasts table
-    soil_contrasts$R2[i] <- round(fit[grep("group_var", rownames(fit)), "R2"], digits = 3)
-    soil_contrasts$F_value[i] <- round(fit[grep("group_var", rownames(fit)), "F"], digits = 3)
-    soil_contrasts$df1[i] <- fit[grep("group_var", rownames(fit)), "Df"]
-    soil_contrasts$df2[i] <- fit[grep("Residual", rownames(fit)), "Df"]
-    soil_contrasts$p_value[i] <- fit[grep("group_var", rownames(fit)), 5]
+  lev <- sort(unique(g_chr))
+  pairs <- t(combn(lev, 2))
+  res <- vector("list", nrow(pairs))
+  
+  for (i in seq_len(nrow(pairs))) {
+    keep <- g_chr %in% pairs[i, ]
+    d_sub <- as.dist(as.matrix(soil_d)[keep, keep])
+    g_sub <- g_chr[keep]
+    
+    perm_pw <- shuffleSet(n = attr(d_sub, "Size"), control = ctrl)
+    
+    fit <- adonis2(d_sub ~ g_sub,
+                   permutations = perm_pw,
+                   by = "terms",
+                   parallel = 1)
+    
+    res[[i]] <- data.frame(
+      group1  = pairs[i, 1],
+      group2  = pairs[i, 2],
+      R2      = unname(fit$R2[1]),
+      F_value = unname(fit$F[1]),
+      df1     = unname(fit$Df[1]),
+      df2     = unname(fit$Df[nrow(fit)]),
+      p_value = unname(fit$`Pr(>F)`[1])
+    )
   }
-  soil_contrasts$p_value_adj <- p.adjust(soil_contrasts$p_value, method = "fdr") %>% round(., 4)
   
-  out = list(
-    mvdisper = soil_mvdisper,
+  soil_contrasts <- bind_rows(res) %>%
+    mutate(p_value_adj = p.adjust(p_value, method = "fdr"))
+  
+  # Results
+  list(
+    mvdisper    = soil_mvdisper,
     gl_permtest = soil_gl_permtest,
-    contrasts = soil_contrasts
+    contrasts   = soil_contrasts
   )
-  
-  return(out)
 }
 
 #' ## Model distribution probabilities

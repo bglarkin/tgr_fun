@@ -21,7 +21,8 @@
 #' # Resources
 
 #' ## Packages
-packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", "rlang")
+packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", 
+                     "rlang", "patchwork", "cowplot")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -259,7 +260,7 @@ amf_rc_site %>%
     theme_corf +
     theme(legend.position = "none")
 
-#' # Species accumulation curves
+#' # Figure data
 #+ species_accumulation,message=FALSE,warning=FALSE
 accum <- bind_rows(
     list(
@@ -270,6 +271,48 @@ accum <- bind_rows(
 ) %>%
     mutate(dataset = factor(dataset, levels = c("ITS", "AMF"), ordered = TRUE)) %>%
     left_join(sites, by = "field_name")
+#+ rarefaction_unified,message=FALSE,warning=FALSE
+rarefac <- bind_rows(
+  list(
+    ITS = its_rc_site,
+    AMF = amf_rc_site
+  ),
+  .id = "dataset"
+) %>%
+  select(field_name = Site, everything()) %>% 
+  mutate(dataset = factor(dataset, levels = c("ITS", "AMF"), ordered = TRUE)) %>%
+  left_join(sites, by = "field_name")
+
+#' # Output figures
+its_rare_fig <- ggplot(rarefac %>% filter(dataset == "ITS"), aes(x = Sample, y = Species, group = field_name)) +
+  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free") +
+  geom_line(aes(color = field_type)) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
+  labs(
+    x = NULL,
+    y = NULL) +
+  theme_corf +
+  scale_x_continuous(n.breaks = 5) +
+  theme(legend.position = "none")
+amf_rare_fig <- ggplot(rarefac %>% filter(dataset == "AMF"), aes(x = Sample, y = Species, group = field_name)) +
+  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free") +
+  geom_line(aes(color = field_type)) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
+  labs(
+    x = NULL,
+    y = NULL) +
+  theme_corf +
+  scale_x_continuous(n.breaks = 5) +
+  theme(legend.position = "none")
+#' Create figure panels
+rare_panels <- (its_rare_fig / plot_spacer() / amf_rare_fig) +
+  plot_layout(heights = c(1,0.01,1))
+x_lab <- ggdraw() + draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5)
+y_lab <- ggdraw() + draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5)
+rare_fig_h <- (y_lab | rare_panels) + plot_layout(widths = c(0.04, 1))
+rare_fig <- rare_fig_h / x_lab + plot_layout(heights = c(1, 0.10))
+#+ rarefaction_fig,fig.width=7,fig.height=4
+rare_fig
 
 #+ species_accumulation_fig,fig.width=7,fig.height=4
 ggplot(accum, aes(x = samples, y = richness, group = field_name)) +

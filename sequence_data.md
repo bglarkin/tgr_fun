@@ -2,7 +2,7 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 27 October, 2025
+Last updated: 03 November, 2025
 
 - [Description](#description)
 - [Resources](#resources)
@@ -22,7 +22,8 @@ Last updated: 27 October, 2025
   - [Rarefaction: ITS site-averaged](#rarefaction-its-site-averaged)
   - [Rarefaction: AMF sample](#rarefaction-amf-sample)
   - [Rarefaction: AMF site-averaged](#rarefaction-amf-site-averaged)
-- [Species accumulation curves](#species-accumulation-curves)
+- [Figure data](#figure-data)
+- [Output figures](#output-figures)
 
 # Description
 
@@ -37,7 +38,8 @@ Last updated: 27 October, 2025
 ## Packages
 
 ``` r
-packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", "rlang")
+packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", 
+                     "rlang", "patchwork", "cowplot")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -318,7 +320,7 @@ amf_rc_site %>%
 
 ![](resources/sequence_data_files/figure-gfm/amf_rarefaction_site_avg-1.png)<!-- -->
 
-# Species accumulation curves
+# Figure data
 
 ``` r
 accum <- bind_rows(
@@ -331,6 +333,61 @@ accum <- bind_rows(
     mutate(dataset = factor(dataset, levels = c("ITS", "AMF"), ordered = TRUE)) %>%
     left_join(sites, by = "field_name")
 ```
+
+``` r
+rarefac <- bind_rows(
+  list(
+    ITS = its_rc_site,
+    AMF = amf_rc_site
+  ),
+  .id = "dataset"
+) %>%
+  select(field_name = Site, everything()) %>% 
+  mutate(dataset = factor(dataset, levels = c("ITS", "AMF"), ordered = TRUE)) %>%
+  left_join(sites, by = "field_name")
+```
+
+# Output figures
+
+``` r
+its_rare_fig <- ggplot(rarefac %>% filter(dataset == "ITS"), aes(x = Sample, y = Species, group = field_name)) +
+  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free") +
+  geom_line(aes(color = field_type)) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
+  labs(
+    x = NULL,
+    y = NULL) +
+  theme_corf +
+  scale_x_continuous(n.breaks = 5) +
+  theme(legend.position = "none")
+amf_rare_fig <- ggplot(rarefac %>% filter(dataset == "AMF"), aes(x = Sample, y = Species, group = field_name)) +
+  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free") +
+  geom_line(aes(color = field_type)) +
+  scale_color_discrete_qualitative(palette = "Harmonic") +
+  labs(
+    x = NULL,
+    y = NULL) +
+  theme_corf +
+  scale_x_continuous(n.breaks = 5) +
+  theme(legend.position = "none")
+```
+
+Create figure panels
+
+``` r
+rare_panels <- (its_rare_fig / plot_spacer() / amf_rare_fig) +
+  plot_layout(heights = c(1,0.01,1))
+x_lab <- ggdraw() + draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5)
+y_lab <- ggdraw() + draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5)
+rare_fig_h <- (y_lab | rare_panels) + plot_layout(widths = c(0.04, 1))
+rare_fig <- rare_fig_h / x_lab + plot_layout(heights = c(1, 0.10))
+```
+
+``` r
+rare_fig
+```
+
+![](resources/sequence_data_files/figure-gfm/rarefaction_fig-1.png)<!-- -->
 
 ``` r
 ggplot(accum, aes(x = samples, y = richness, group = field_name)) +

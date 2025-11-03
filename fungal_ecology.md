@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 27 October, 2025
+Last updated: 03 November, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -786,17 +786,17 @@ mva_its$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0625 .
+    ## Groups     2 0.018698 0.0093489 3.2104   1999 0.0595 .
     ## Residuals 22 0.064065 0.0029121                       
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
-    ##              corn restored remnant
-    ## corn              0.071500  0.1315
-    ## restored 0.068726           0.1260
-    ## remnant  0.126039 0.135570
+    ##              corn  remnant restored
+    ## corn              0.123000   0.0710
+    ## remnant  0.126039            0.1385
+    ## restored 0.068726 0.135570
 
 ``` r
 mva_its$permanova
@@ -809,7 +809,7 @@ mva_its$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0280 *  
+    ## dist_axis_1  1   0.4225 0.06253 1.7391 0.0270 *  
     ## field_type   2   1.2321 0.18236 2.5358 0.0005 ***
     ## Residual    21   5.1017 0.75510                  
     ## Total       24   6.7563 1.00000                  
@@ -821,11 +821,11 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
     kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1   | group2  | F_value |    R2 | p_value_adj |
-|-----|:---------|:--------|--------:|------:|------------:|
-| 1   | restored | corn    |   3.913 | 0.164 |      0.0015 |
-| 3   | corn     | remnant |   2.858 | 0.281 |      0.0067 |
-| 2   | restored | remnant |   1.062 | 0.054 |      0.3370 |
+|     | group1  | group2   | F_value |    R2 | p_value_adj |
+|-----|:--------|:---------|--------:|------:|------------:|
+| 1   | corn    | remnant  |   2.858 | 0.281 |      0.0030 |
+| 3   | remnant | restored |   1.062 | 0.054 |      0.3285 |
+| 2   | corn    | restored |   3.913 | 0.164 |      0.0015 |
 
 Pairwise permanova contrasts
 
@@ -1003,8 +1003,7 @@ mod_step <- ordistep(mod_null,
 mod_step
 ```
 
-    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl,
-    ## distance = "bray")
+    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance = "bray")
     ## 
     ## -- Model Summary --
     ## 
@@ -1036,7 +1035,7 @@ mod_step
     ## 
     ## Model: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)    
-    ## Model     2   0.8117 2.1313  5e-04 ***
+    ## Model     2   0.8117 2.1313  0.001 ***
     ## Residual  6   1.1425                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -1052,8 +1051,8 @@ mod_step
     ## 
     ## Model: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)   
-    ## dbRDA1    1  0.48877 2.5668 0.0015 **
-    ## dbRDA2    1  0.32293 1.6959 0.0450 * 
+    ## dbRDA1    1  0.48877 2.5668 0.0025 **
+    ## dbRDA2    1  0.32293 1.6959 0.0445 * 
     ## Residual  6  1.14253                 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -1074,8 +1073,8 @@ mod_step$anova %>% kable(, format = "pandoc")
 
 |             |  Df |      AIC |        F | Pr(\>F) |
 |-------------|----:|---------:|---------:|--------:|
-| \+ gf_index |   1 | 8.953285 | 2.163394 |  0.0040 |
-| \+ pH       |   1 | 8.278852 | 1.839718 |  0.0205 |
+| \+ gf_index |   1 | 8.953285 | 2.163394 |  0.0045 |
+| \+ pH       |   1 | 8.278852 | 1.839718 |  0.0130 |
 
 Based on permutation tests with n=1999 permutations, the model shows a
 significant correlation between the site ordination on fungal
@@ -1655,15 +1654,15 @@ mva_amf$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9375
+    ## Groups     2 0.000418 0.0002089 0.0647   1999 0.9285
     ## Residuals 22 0.071014 0.0032279                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
-    ##             corn restored remnant
-    ## corn              0.85950  0.9080
-    ## restored 0.85873           0.7125
-    ## remnant  0.89944  0.71823
+    ##             corn remnant restored
+    ## corn             0.89350    0.853
+    ## remnant  0.89944            0.702
+    ## restored 0.85873 0.71823
 
 ``` r
 mva_amf$permanova
@@ -1676,7 +1675,7 @@ mva_amf$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1290    
+    ## dist_axis_1  1  0.04776 0.05566 1.6777 0.1135    
     ## field_type   2  0.21243 0.24757 3.7307 0.0005 ***
     ## Residual    21  0.59788 0.69677                  
     ## Total       24  0.85808 1.00000                  
@@ -1688,11 +1687,11 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1   | group2  | F_value |    R2 | p_value_adj |
-|-----|:---------|:--------|--------:|------:|------------:|
-| 1   | restored | corn    |   6.478 | 0.250 |      0.0015 |
-| 3   | corn     | remnant |   4.655 | 0.355 |      0.0015 |
-| 2   | restored | remnant |   0.442 | 0.023 |      0.8645 |
+|     | group1  | group2   | F_value |    R2 | p_value_adj |
+|-----|:--------|:---------|--------:|------:|------------:|
+| 1   | corn    | remnant  |   4.655 | 0.355 |      0.0008 |
+| 3   | remnant | restored |   0.442 | 0.023 |      0.8705 |
+| 2   | corn    | restored |   6.478 | 0.250 |      0.0008 |
 
 Pairwise permanova contrasts
 
@@ -2359,15 +2358,15 @@ mva_patho$dispersion_test
     ## 
     ## Response: Distances
     ##           Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2 0.015563 0.0077814 1.4865   1999 0.2515
+    ## Groups     2 0.015563 0.0077814 1.4865   1999  0.251
     ## Residuals 22 0.115164 0.0052347                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
-    ##             corn restored remnant
-    ## corn              0.10300  0.3125
-    ## restored 0.10559           0.7830
-    ## remnant  0.30990  0.77814
+    ##             corn remnant restored
+    ## corn             0.31450   0.1035
+    ## remnant  0.30990           0.7800
+    ## restored 0.10559 0.77814
 
 ``` r
 mva_patho$permanova
@@ -2380,7 +2379,7 @@ mva_patho$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1220    
+    ## dist_axis_1  1   0.1805 0.05290 1.6072 0.1345    
     ## field_type   2   0.8732 0.25589 3.8872 0.0005 ***
     ## Residual    21   2.3587 0.69121                  
     ## Total       24   3.4124 1.00000                  
@@ -2392,11 +2391,11 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1   | group2  | F_value |    R2 | p_value_adj |
-|-----|:---------|:--------|--------:|------:|------------:|
-| 1   | restored | corn    |   6.418 | 0.246 |      0.0015 |
-| 3   | corn     | remnant |   5.690 | 0.453 |      0.0105 |
-| 2   | restored | remnant |   0.768 | 0.040 |      0.6235 |
+|     | group1  | group2   | F_value |    R2 | p_value_adj |
+|-----|:--------|:---------|--------:|------:|------------:|
+| 1   | corn    | remnant  |   5.690 | 0.453 |      0.0098 |
+| 3   | remnant | restored |   0.768 | 0.040 |      0.6310 |
+| 2   | corn    | restored |   6.418 | 0.246 |      0.0015 |
 
 Pairwise permanova contrasts
 
@@ -2481,26 +2480,25 @@ patho_ind %>%
 
 | A | B | stat | p_val_adj | field_type | phylum | class | order | family | genus | species |
 |---:|---:|---:|---:|:---|:---|:---|:---|:---|:---|:---|
-| 0.9812387 | 1.00 | 0.9905749 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola |
-| 0.9553209 | 1.00 | 0.9774052 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
-| 0.9023836 | 1.00 | 0.9499387 | 0.0183000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
-| 1.0000000 | 0.80 | 0.8944272 | 0.0183000 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | unidentified |
-| 1.0000000 | 0.80 | 0.8944272 | 0.0183000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
-| 0.9552239 | 0.80 | 0.8741734 | 0.0457500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | unidentified |
-| 0.9918904 | 0.80 | 0.8907931 | 0.0571875 | corn | Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
-| 0.8861696 | 1.00 | 0.9413658 | 0.1016667 | corn | Ascomycota | Sordariomycetes | Magnaporthales | Magnaporthaceae | Gaeumannomyces | unidentified |
-| 0.7371032 | 1.00 | 0.8585472 | 0.1580455 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
-| 1.0000000 | 0.60 | 0.7745967 | 0.1580455 | corn | Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola |
-| 0.7457627 | 1.00 | 0.8635755 | 0.1753750 | corn | Ascomycota | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
-| 0.8630287 | 0.80 | 0.8309169 | 0.1759615 | corn | Ascomycota | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
-| 0.9658793 | 0.60 | 0.7612671 | 0.2867000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Lectera | unidentified |
-| 0.6271511 | 0.80 | 0.7083226 | 0.4318800 | corn | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
-| 1.0000000 | 0.40 | 0.6324555 | 0.4318800 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Stenocarpella | unidentified |
-| 0.7444885 | 1.00 | 0.8628374 | 0.0571875 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Ilyonectria | unidentified |
-| 0.7768055 | 1.00 | 0.8813657 | 0.2810357 | remnant | Ascomycota | Dothideomycetes | Pleosporales | Massarinaceae | Stagonospora | unidentified |
-| 0.8965517 | 0.50 | 0.6695341 | 0.4198235 | remnant | Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides |
-| 0.5818028 | 1.00 | 0.7627600 | 0.3431250 | restored | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
-| 0.7660806 | 0.75 | 0.7579977 | 0.4318800 | restored | Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Pseudopithomyces | unidentified |
+| 0.9812387 | 1.0 | 0.9905749 | 0.0152500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Corynesporascaceae | Corynespora | Corynespora_cassiicola |
+| 0.9553209 | 1.0 | 0.9774052 | 0.0152500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
+| 0.9023836 | 1.0 | 0.9499387 | 0.0152500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
+| 1.0000000 | 0.8 | 0.8944272 | 0.0152500 | corn | Ascomycota | Sordariomycetes | Diaporthales | Diaporthaceae | Diaporthe | unidentified |
+| 1.0000000 | 0.8 | 0.8944272 | 0.0152500 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
+| 0.9552239 | 0.8 | 0.8741734 | 0.0152500 | corn | Ascomycota | Dothideomycetes | Pleosporales | Pleosporaceae | Curvularia | unidentified |
+| 0.9918904 | 0.8 | 0.8907931 | 0.0457500 | corn | Ascomycota | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
+| 1.0000000 | 0.6 | 0.7745967 | 0.0610000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Dictyosporiaceae | Pseudocoleophoma | Pseudocoleophoma_polygonicola |
+| 0.8861696 | 1.0 | 0.9413658 | 0.1464000 | corn | Ascomycota | Sordariomycetes | Magnaporthales | Magnaporthaceae | Gaeumannomyces | unidentified |
+| 0.7371032 | 1.0 | 0.8585472 | 0.1830000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
+| 0.7457627 | 1.0 | 0.8635755 | 0.2041154 | corn | Ascomycota | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
+| 0.8630287 | 0.8 | 0.8309169 | 0.2041154 | corn | Ascomycota | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
+| 0.9658793 | 0.6 | 0.7612671 | 0.2745000 | corn | Ascomycota | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Lectera | unidentified |
+| 0.6271511 | 0.8 | 0.7083226 | 0.4270000 | corn | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
+| 0.6579194 | 0.8 | 0.7254898 | 0.4487857 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Herpotrichiellaceae | Veronaea | unidentified |
+| 0.7444885 | 1.0 | 0.8628374 | 0.0457500 | remnant | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Ilyonectria | unidentified |
+| 0.7768055 | 1.0 | 0.8813657 | 0.2287500 | remnant | Ascomycota | Dothideomycetes | Pleosporales | Massarinaceae | Stagonospora | unidentified |
+| 0.8965517 | 0.5 | 0.6695341 | 0.3283235 | remnant | Ascomycota | Sordariomycetes | Xylariales | Diatrypaceae | Monosporascus | Monosporascus_eutypoides |
+| 0.5818028 | 1.0 | 0.7627600 | 0.3283235 | restored | Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | unidentified |
 
 Indicator species analysis, plant pathogens
 
@@ -3172,15 +3170,15 @@ mva_sapro$dispersion_test
     ## 
     ## Response: Distances
     ##           Df  Sum Sq   Mean Sq     F N.Perm Pr(>F)
-    ## Groups     2 0.01522 0.0076101 1.229   1999 0.2935
+    ## Groups     2 0.01522 0.0076101 1.229   1999 0.3265
     ## Residuals 22 0.13623 0.0061922                    
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
-    ##             corn restored remnant
-    ## corn              0.93550  0.3370
-    ## restored 0.94409           0.0985
-    ## remnant  0.34863  0.10783
+    ##             corn remnant restored
+    ## corn             0.35300   0.9465
+    ## remnant  0.34863           0.1100
+    ## restored 0.94409 0.10783
 
 ``` r
 mva_sapro$permanova
@@ -3193,8 +3191,8 @@ mva_sapro$permanova
     ## 
     ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
     ##             Df SumOfSqs      R2      F Pr(>F)    
-    ## dist_axis_1  1   0.5499 0.07873 2.1652 0.0045 ** 
-    ## field_type   2   1.1017 0.15773 2.1691 0.0005 ***
+    ## dist_axis_1  1   0.5499 0.07873 2.1652  3e-03 ** 
+    ## field_type   2   1.1017 0.15773 2.1691  5e-04 ***
     ## Residual    21   5.3330 0.76354                  
     ## Total       24   6.9845 1.00000                  
     ## ---
@@ -3205,11 +3203,11 @@ mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1   | group2  | F_value |    R2 | p_value_adj |
-|-----|:---------|:--------|--------:|------:|------------:|
-| 1   | restored | corn    |   3.196 | 0.136 |      0.0015 |
-| 3   | corn     | remnant |   1.947 | 0.208 |      0.0037 |
-| 2   | restored | remnant |   1.231 | 0.061 |      0.1875 |
+|     | group1  | group2   | F_value |    R2 | p_value_adj |
+|-----|:--------|:---------|--------:|------:|------------:|
+| 1   | corn    | remnant  |   1.947 | 0.208 |      0.0037 |
+| 3   | remnant | restored |   1.231 | 0.061 |      0.1845 |
+| 2   | corn    | restored |   3.196 | 0.136 |      0.0015 |
 
 Pairwise permanova contrasts
 
@@ -3296,22 +3294,22 @@ sapro_ind_table[1:20, ] %>%
 | 0.9978110 | 1.0 | 0.9989049 | 0.0900000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans |
 | 0.9605279 | 1.0 | 0.9800653 | 0.0900000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
 | 0.9880823 | 0.8 | 0.8890815 | 0.0900000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Lecythophora | unidentified |
-| 0.9711102 | 1.0 | 0.9854492 | 0.1800000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans |
-| 0.8996070 | 1.0 | 0.9484762 | 0.1800000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 0.9516129 | 0.8 | 0.8725195 | 0.3150000 | corn | Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_limonispora |
-| 0.8389182 | 1.0 | 0.9159248 | 0.3600000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | unidentified |
-| 1.0000000 | 0.6 | 0.7745967 | 0.3600000 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Kochiomyces | unidentified |
-| 0.9879341 | 0.8 | 0.8890148 | 0.3876923 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
-| 1.0000000 | 0.6 | 0.7745967 | 0.3876923 | corn | Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii |
-| 1.0000000 | 0.6 | 0.7745967 | 0.3876923 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
-| 0.7826463 | 1.0 | 0.8846730 | 0.4114286 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea |
-| 0.6738526 | 1.0 | 0.8208852 | 0.4560000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima |
-| 0.8157966 | 1.0 | 0.9032146 | 0.6258462 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Neosetophoma | unidentified |
-| 0.7997837 | 1.0 | 0.8943062 | 0.6258462 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | unidentified |
-| 0.9687471 | 0.8 | 0.8803395 | 0.6258462 | corn | Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_rugulosus |
-| 0.9854665 | 0.6 | 0.7689472 | 0.6258462 | corn | Ascomycota | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | Cyphellophora_suttonii |
-| 0.5800218 | 1.0 | 0.7615916 | 0.6258462 | corn | Ascomycota | Sordariomycetes | Hypocreales | Bionectriaceae | Clonostachys | unidentified |
-| 0.9644979 | 0.6 | 0.7607225 | 0.6258462 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
+| 0.8996070 | 1.0 | 0.9484762 | 0.3085714 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 1.0000000 | 0.6 | 0.7745967 | 0.3085714 | corn | Ascomycota | Dothideomycetes | Pleosporales | Amniculicolaceae | Murispora | Murispora_galii |
+| 0.9711102 | 1.0 | 0.9854492 | 0.3600000 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans |
+| 0.9516129 | 0.8 | 0.8725195 | 0.3600000 | corn | Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Stachybotrys | Stachybotrys_limonispora |
+| 0.8389182 | 1.0 | 0.9159248 | 0.4500000 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Chaetomium | unidentified |
+| 0.9879341 | 0.8 | 0.8890148 | 0.4500000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 1.0000000 | 0.6 | 0.7745967 | 0.4500000 | corn | Ascomycota | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | unidentified |
+| 0.7826463 | 1.0 | 0.8846730 | 0.4707692 | corn | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea |
+| 1.0000000 | 0.6 | 0.7745967 | 0.5400000 | corn | Chytridiomycota | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Kochiomyces | unidentified |
+| 0.6738526 | 1.0 | 0.8208852 | 0.5625000 | corn | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima |
+| 0.9644979 | 0.6 | 0.7607225 | 0.6000000 | corn | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | unidentified |
+| 0.8514497 | 0.6 | 0.7147516 | 0.6000000 | corn | Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_terricola |
+| 0.9562682 | 0.6 | 0.7574701 | 0.6120000 | corn | Ascomycota | Pezizomycetes | Pezizales | Pyronemataceae | Cheilymenia | Cheilymenia_stercorea |
+| 0.8157966 | 1.0 | 0.9032146 | 0.6272165 | corn | Ascomycota | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Neosetophoma | unidentified |
+| 0.7997837 | 1.0 | 0.8943062 | 0.6272165 | corn | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Mrakia | unidentified |
+| 0.9687471 | 0.8 | 0.8803395 | 0.6272165 | corn | Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_rugulosus |
 
 Indicator species analysis, saprotrophs (First 20 rows shown)
 
@@ -3323,11 +3321,11 @@ sapro_abund_ft <-
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   select(-otu_ID, -otu_num, -primary_lifestyle, -field_name) %>%
   filter(species != "unidentified", abund > 0) %>% 
-  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1)) %>% 
+  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1), values_fill = 0) %>% 
   select(phylum:species, corn, restored, remnant) %>% 
   rowwise() %>% 
   mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
-  arrange(-avg)
+  arrange(-corn)
 sapro_abund_ft %>% 
   filter(avg >= 10) %>% 
   kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types\n(Mean abundance >= 10 shown)")
@@ -3336,24 +3334,40 @@ sapro_abund_ft %>%
 | phylum | class | order | family | genus | species | corn | restored | remnant | avg |
 |:---|:---|:---|:---|:---|:---|---:|---:|---:|---:|
 | Basidiomycota | Tremellomycetes | Cystofilobasidiales | Mrakiaceae | Tausonia | Tausonia_pullulans | 377.3 | 11.7 | 6.2 | 131.7 |
-| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_exigua | 71.0 | 186.0 | 118.3 | 125.1 |
-| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_flanaganii | 210.8 | 91.8 | 28.5 | 110.4 |
 | Ascomycota | Sordariomycetes | Sordariales | Chaetomiaceae | Humicola | Humicola_grisea | 215.2 | 52.2 | 14.5 | 94.0 |
-| Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Apodus | Apodus_deciduus | 94.2 | 80.9 | 40.6 | 71.9 |
-| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Mariannaea | Mariannaea_punicea | 35.2 | 53.1 | 35.8 | 41.4 |
+| Ascomycota | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_flanaganii | 210.8 | 91.8 | 28.5 | 110.4 |
 | Basidiomycota | Agaricomycetes | Phallales | Phallaceae | Phallus | Phallus_rugulosus | 113.6 | 7.8 | 0.7 | 40.7 |
+| Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Apodus | Apodus_deciduus | 94.2 | 80.9 | 40.6 | 71.9 |
+| Ascomycota | Sordariomycetes | Phomatosporales | Phomatosporaceae | Phomatospora | Phomatospora_striatigera | 92.7 | 0.5 | 0.0 | 31.1 |
 | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_minutissima | 81.7 | 12.8 | 26.8 | 40.4 |
+| Basidiomycota | Agaricomycetes | Agaricales | Bolbitiaceae | Bolbitius | Bolbitius_titubans | 74.1 | 1.0 | 0.0 | 25.0 |
 | Ascomycota | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Cercophora | Cercophora_coronata | 74.0 | 7.9 | 3.4 | 28.4 |
-| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_lagopides | 1.9 | 60.0 | 1.3 | 21.1 |
-| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Chloridium | Chloridium_aseptatum | 31.9 | 19.9 | 5.3 | 19.0 |
-| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Albifimbria | Albifimbria_verrucaria | 1.3 | 8.0 | 44.2 | 17.8 |
-| Basidiomycota | Tremellomycetes | Filobasidiales | Piskurozymaceae | Solicoccozyma | Solicoccozyma_terricola | 14.9 | 28.4 | 6.9 | 16.7 |
+| Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_exigua | 71.0 | 186.0 | 118.3 | 125.1 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_udicola | 54.5 | 0.0 | 0.0 | 18.2 |
 | Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_verrucispermus | 40.7 | 5.1 | 2.0 | 15.9 |
+| Ascomycota | Sordariomycetes | Hypocreales | Nectriaceae | Mariannaea | Mariannaea_punicea | 35.2 | 53.1 | 35.8 | 41.4 |
+| Ascomycota | Sordariomycetes | Chaetosphaeriales | Chaetosphaeriaceae | Chloridium | Chloridium_aseptatum | 31.9 | 19.9 | 5.3 | 19.0 |
+| Basidiomycota | Agaricomycetes | Agaricales | Nidulariaceae | Cyathus | Cyathus_stercoreus | 21.6 | 97.9 | 0.0 | 39.8 |
+| Basidiomycota | Tremellomycetes | Filobasidiales | Piskurozymaceae | Solicoccozyma | Solicoccozyma_terricola | 14.9 | 28.4 | 6.9 | 16.7 |
 | Mortierellomycota | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_alpina | 9.6 | 21.6 | 10.9 | 14.0 |
 | Ascomycota | Dothideomycetes | Pleosporales | Lindgomycetaceae | Clohesyomyces | Clohesyomyces_aquaticus | 7.6 | 26.7 | 5.0 | 13.1 |
 | Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Achroiostachys | Achroiostachys_betulicola | 4.3 | 14.7 | 16.9 | 12.0 |
 | Basidiomycota | Agaricomycetes | Agaricales | Strophariaceae | Deconica | Deconica_xeroderma | 2.2 | 29.5 | 0.5 | 10.7 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_lagopides | 1.9 | 60.0 | 1.3 | 21.1 |
 | Basidiomycota | Tremellomycetes | Tremellales | Trimorphomycetaceae | Saitozyma | Saitozyma_podzolica | 1.5 | 17.1 | 13.2 | 10.6 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Albifimbria | Albifimbria_verrucaria | 1.3 | 8.0 | 44.2 | 17.8 |
+| Basidiomycota | Agaricomycetes | Trechisporales | Hydnodontaceae | Trechispora | Trechispora_bispora | 0.4 | 46.8 | 0.0 | 15.7 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Striaticonidium | Striaticonidium_cinctum | 0.0 | 10.3 | 101.0 | 37.1 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_tenuipes | 0.0 | 31.8 | 12.9 | 14.9 |
+| Ascomycota | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Montagnula | Montagnula_scabiosae | 0.0 | 58.4 | 0.0 | 19.5 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Psathyrella | Psathyrella_subsingeri | 0.0 | 3.4 | 38.6 | 14.0 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_argentea | 0.0 | 45.7 | 13.0 | 19.6 |
+| Ascomycota | Sordariomycetes | Hypocreales | Stachybotryaceae | Myrothecium | Myrothecium_verrucaria | 0.0 | 0.0 | 212.3 | 70.8 |
+| Basidiomycota | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_fumosa | 0.0 | 82.0 | 0.0 | 27.3 |
+| Ascomycota | Sordariomycetes | Xylariales | Xylariaceae | Xylaria | Xylaria_oxyacanthae | 0.0 | 114.2 | 0.0 | 38.1 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinopsis | Coprinopsis_urticicola | 0.0 | 33.5 | 0.0 | 11.2 |
+| Basidiomycota | Agaricomycetes | Agaricales | Psathyrellaceae | Coprinellus | Coprinellus_xanthothrix | 0.0 | 0.0 | 259.4 | 86.5 |
+| Basidiomycota | Agaricomycetes | Agaricales | Entolomataceae | Clitopilus | Clitopilus_scyphoides | 0.0 | 37.5 | 0.4 | 12.6 |
 
 Named saprotroph species and abundances in field types (Mean abundance
 \>= 10 shown)
