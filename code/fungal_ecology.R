@@ -69,6 +69,17 @@ field_dist_pcoa$values[c(1,2), c(1,2)] %>%
 sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
 
 #' 
+#' ## Fatty Acids: Biomass
+#' Use only 18.2 for soil fungi
+fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
+  rename(fungi_18.2 = fa_18.2) %>% 
+  select(field_name, fungi_18.2, amf) %>%
+  left_join(
+    sites %>% select(field_name, field_type),
+    by = join_by(field_name)
+  )
+
+#' 
 #' ## Sites-species tables
 #' CSV files were produced in `sequence_data.R`. Amf_avg_uni table is in species-samples format
 #' to enable use of `Unifrac()` later.
@@ -147,11 +158,30 @@ its_guab_pfg <-
 its_gulr_pfg <- 
   its_guab %>% 
   column_to_rownames(var = "field_name") %>% 
-  decostand("rclr", MARGIN = 2) %>%
+  decostand("rclr", MARGIN = 1) %>%
   rownames_to_column(var = "field_name") %>% 
   as_tibble() %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+its_guab_fa <- 
+  its_guab %>% 
+  rowwise() %>% 
+  mutate(
+    total = sum(c_across(where(is.numeric)), na.rm = TRUE),
+    across(unidentified:unspecified_pathotroph, ~ if_else(total > 0, .x / total, 0))
+  ) %>% 
+  select(-total) %>%
+  left_join(fa %>% select(-amf), by = join_by(field_name)) %>% 
+  mutate(across(unidentified:unspecified_pathotroph, ~ .x * fungi_18.2)) %>% 
+  select(field_name:unspecified_pathotroph)
+its_gulr_fa <- 
+  its_guab_fa %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand("rclr", MARGIN = 1) %>%
+  rownames_to_column(var = "field_name") %>% 
+  as_tibble() %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 #' 
@@ -191,17 +221,6 @@ amf_ps <- phyloseq(
         phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
     sample_data(sites %>% column_to_rownames(var = "field_name"))
 )
-
-#' 
-#' ## Fatty Acids: Biomass
-#' Use only 18.2 for soil fungi
-fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
-    rename(fungi_18.2 = fa_18.2) %>% 
-    select(field_name, fungi_18.2, amf) %>%
-    left_join(
-        sites %>% select(field_name, field_type),
-        by = join_by(field_name)
-    )
 
 #' 
 #' # Functions
@@ -951,34 +970,64 @@ patho_shan_fig <-
         plot.tag.position = c(0, 1))
 
 #' 
-#' ## Sequence abundance
+#' ## Abundance
+#' Proportional sequence abundance as a proportion of biomass on a per-site basis.
 #' Use log ratio transformed data, which handles composition bias so depth not 
 #' needed as a covariate.
-patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr_pfg)
+#' Note: previously used sequence abundance alone (data = its_gulr_pfg). Correcting for 
+#' biomass differences across fields seems more appropriate.
+patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr_fa)
 par(mfrow = c(2,2))
-plot(patho_ab_lm) # variance differs slightly in groups. Tails on qq plot diverge
+plot(patho_ab_lm) 
+
+
+
+# NEED TO EXAMINE GLM MODEL or RLM, SEE SAPROTROPH SHANNONS FOR WORKFLOW TO HANDLE THE BIG OUTLIER
+# Rememver that the saprotrophs abundance plot will likely not have negative values, might replace
+# robust lm with gamma. 
+# If you can go to gamma with all of them, do it, so you don't have one more model type to talk about. 
+
+
+
+
+
+
+#' Variance differs slightly in groups. Tails on qq plot diverge. Row 16 an outlier.
+#' This is the Lake Petite cornfield, very high. Results from pathogens being proportionally 
+#' high at this site but PLFA being relatively low.
 distribution_prob(patho_ab_lm)
 #' Residuals distribution fits normal
 leveneTest(residuals(patho_ab_lm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+#' Outlier will lean toward a Type II error, which is potentially conservative.
 
-#' Model results, group means, and post-hoc, with arithmetic means from emmeans
+#' Model results, post hoc
 summary(patho_ab_lm)
-patho_ab_em <- emmeans(patho_ab_lm, ~ field_type, type = "response")
-#' Figure could show raw abundances or rclr transformed. The latter is less intuitive, but 
-#' the former may not match the results of statistical tests. Try a dot and line plot to handle
-#' negative values and show rclr means...
+emmeans(patho_ab_lm, ~ field_type, type = "response")
+
+#' Produce results with abundance corrected biomass (not log transformed) for a more intuitive 
+#' figure. 
+#' 
+
+
+
+# FIG needs to use the emmeans data I think, particularly if I use gamma or rlm
+
+
 #+ patho_fig,fig.width=4,fig.height=4
 patho_ab_fig <- 
-  # patho_div %>% 
-  # group_by(field_type) %>% 
-  # summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
-  ggplot(summary(patho_ab_em), aes(x = field_type, y = emmean)) +
-  # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0, linewidth = lw) +
+  its_gulr_fa %>% 
+  # left_join(sites, by = join_by(field_name)) %>%
+  group_by(field_type) %>% 
+  summarize(
+    mean = mean(plant_pathogen),
+    ci = qnorm(0.975) * sd(plant_pathogen) / sqrt(n())
+  ) %>% 
+  ggplot(., aes(x = field_type, y = mean)) +
+  geom_errorbar(aes(ymin = mean-ci, ymax = mean+ci), width = 0, linewidth = lw) +
   geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
-  labs(x = NULL, y = "Seq. abund. (LRT)") +
+  labs(x = NULL, y = "Seq. prop. mass (LRT)") +
   scale_fill_manual(values = c("gray", "black", "white")) +
   theme_cor +
   theme(legend.position = "none",
