@@ -25,8 +25,11 @@ calc_div <- function(spe, site_dat) {
     ) %>% 
     select(-starts_with("otu")) %>% 
     as_tibble() %>% 
+    ungroup() %>% 
     left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-    mutate(across(starts_with("field"), ~ factor(.x, ordered = FALSE)))
+    mutate(across(starts_with("field"), ~ factor(.x, ordered = FALSE)),
+           depth_csq = scale(sqrt(depth), center = TRUE, scale = FALSE)[,1]) %>% 
+    select(field_name, depth, depth_csq, richness, shannon, field_type)
   
   return(div_data)
   
@@ -280,13 +283,14 @@ guildseq <- function(spe, meta, guild) {
 inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
   data <- guildseq(spe, meta, guild) %>% 
     left_join(site_dat, by = join_by(field_name))
-  spe <- data.frame(
+  spe_g <- data.frame(
     data %>% select(field_name, starts_with("otu")),
-    row.names = 1
-  )
+    row.names = 1)
   grp = data$field_type
+  
+  # Indicator species analysis
   mp <- multipatt(
-    spe, grp, max.order = 1, 
+    x = spe_g, cluster = grp, func = "IndVal.g", max.order = 1, 
     control = how(nperm = nperm))
   si <- mp$sign %>% 
     select(index, stat, p.value) %>% 
@@ -310,11 +314,26 @@ inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
     pivot_longer(cols = corn:remnant, 
                  names_to = "field_type", 
                  values_to = "B")
+  
+  # Join to sequence abundances in field types
+  seq_abund <- 
+    spe_g %>% 
+    rownames_to_column(var = "field_name") %>% 
+    pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+    left_join(site_dat %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+    group_by(field_type, otu_num) %>% 
+    summarize(avg = mean(abund),
+              ci = qnorm(0.975) * sd(abund) / sqrt(n()),
+              .groups = "drop") %>% 
+    pivot_wider(names_from = "field_type", values_from = c("avg", "ci"), names_glue = "{field_type}_{.value}") %>% 
+    select(otu_num, starts_with("corn"), starts_with("restor"), starts_with("rem"))
+  
   out <- 
     si %>% 
     left_join(A, by = join_by(otu_num, field_type)) %>% 
     left_join(B, by = join_by(otu_num, field_type)) %>% 
     left_join(meta %>% select(-otu_ID), by = join_by(otu_num)) %>% 
+    left_join(seq_abund, by = join_by(otu_num)) %>% 
     select(otu_num, A, B, stat, p.value, p_val_adj, 
            field_type, primary_lifestyle, everything()) %>% 
     arrange(field_type, -stat)
@@ -353,4 +372,58 @@ reg_dist_stats <- function(dist_mat,
       max_dist = max(dist, na.rm = TRUE),
       .groups = "drop"
     )
+}
+
+#' ## Test raw and transformed covariates in linear models
+#' Function `covar_shape_test()` compares a series of linear models with raw, 
+#' square root, or log transforms of the covariate. It selects the best model
+#' based on various criteria. 
+covar_shape_test <- function(data, y, covar, group = field_type) {
+  
+  resp <- ensym(y)
+  x    <- ensym(covar)
+  g    <- ensym(group)
+  
+  df <- data %>% 
+    select(!!resp, !!g, x_raw = !!x) %>% 
+    mutate(x_lin  = as.numeric(scale(x_raw, center = TRUE, scale = FALSE)),
+           x_sqrt = as.numeric(scale(sqrt(pmax(x_raw, 0)), center = TRUE, scale = FALSE)),
+           x_log  = as.numeric(scale(log1p(pmax(x_raw, 0)), center = TRUE, scale = FALSE))
+    ) %>% drop_na()
+  
+  f_lin  <- new_formula(expr(!!resp), expr(x_lin  + !!g))
+  f_sqrt <- new_formula(expr(!!resp), expr(x_sqrt + !!g))
+  f_log  <- new_formula(expr(!!resp), expr(x_log  + !!g))
+  
+  # Fit candidate models
+  m_lin  <- lm(f_lin,  data = df)
+  m_sqrt <- lm(f_sqrt, data = df)
+  m_log  <- lm(f_log,  data = df)
+  
+  # Compare candidate fits
+  cmp <- compare_performance(
+    lin = m_lin, sqrt = m_sqrt, log = m_log,
+    metrics = c("AIC","RMSE","R2"), rank = TRUE
+  )
+  best_name <- cmp$Name[1]
+  best_mod  <- switch(best_name, m_lin = m_lin, m_sqrt = m_sqrt, m_log = m_log)
+  
+  # Type-II tests (unbalanced design; additive model)
+  anova_t2 <- Anova(best_mod, type = 2)
+  
+  # LS-means for group at centered covariate
+  emm <- emmeans(best_mod, specs = as_name(g))
+  
+  chmd <- check_model(best_mod)
+  
+  # return everything
+  list(
+    data      = df,
+    compare   = cmp,
+    best_name = best_name,
+    best_model= best_mod,
+    anova_t2  = anova_t2,
+    emmeans   = emm,
+    diagnostics = chmd
+  )
 }

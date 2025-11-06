@@ -14,7 +14,7 @@
 #' 
 #' **Alpha diversity** – 97 %-OTUs (ITS & 18S); site means are replicates; means separation model selection
 #' based on response and residuals distributions; √‑transformation of sequencing depth used as covariate 
-#' per [Bálint 2015](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.13018); 
+#' per [Bálint 2015](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.13018) when warranted; 
 #' pairwise LSMs via *emmeans*.
 #' 
 #' **Beta diversity** – Workflow after [Song 2015](https://doi.org/10.1371/journal.pone.0127234):  
@@ -30,8 +30,8 @@
 packages_needed <- c(
   "colorspace", "emmeans", "gridExtra", "knitr", "tidyverse", "vegan",
   "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
-  "ggpubr", "patchwork", "car", "performance", "broom", "boot", "indicspecies",
-  "MASS", "DHARMa"
+  "ggpubr", "patchwork", "car", "performance", "boot", "indicspecies",
+  "MASS", "DHARMa", "broom", "rlang"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -141,7 +141,9 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
 #' Raw and log ratio transformed abundances
 #' 
 #' #### Whole soil fungi
-its_guab <- 
+#' Wrangle data to produce raw abundances in guilds and join with plant functional groups 
+#' and PLFA biomass data. Create parallel objects with LRT sequence abundance.
+its_guab <- # guild abundance
   spe$its_avg %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
@@ -149,41 +151,37 @@ its_guab <-
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
   select(field_name, unidentified, saprotroph, plant_pathogen, everything())
-its_guab_pfg <- 
-  its_guab %>% 
-  left_join(pfg, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, region, everything())
-its_gulr_pfg <- 
-  its_guab %>% 
-  column_to_rownames(var = "field_name") %>% 
-  decostand("rclr", MARGIN = 1) %>%
-  rownames_to_column(var = "field_name") %>% 
-  as_tibble() %>% 
-  left_join(pfg, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, region, everything())
-its_guab_fa <- 
+its_guma <- # guild biomass (proportion of total biomass)
   its_guab %>% 
   rowwise() %>% 
-  mutate(
-    total = sum(c_across(where(is.numeric)), na.rm = TRUE),
-    across(unidentified:unspecified_pathotroph, ~ if_else(total > 0, .x / total, 0))
-  ) %>% 
-  select(-total) %>%
-  left_join(fa %>% select(-amf), by = join_by(field_name)) %>% 
+  mutate(total = sum(c_across(where(is.numeric))),
+         across(unidentified:unspecified_pathotroph, ~ if_else(total > 0, .x / total, 0))) %>% 
+  left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>% 
   mutate(across(unidentified:unspecified_pathotroph, ~ .x * fungi_18.2)) %>% 
-  select(field_name:unspecified_pathotroph)
-its_gulr_fa <- 
-  its_guab_fa %>% 
+  ungroup() %>% 
+  select(field_name, plant_pathogen_mass = plant_pathogen, saprotroph_mass = saprotroph, fungi_18.2)
+its_guab_pbm <- # its, guild abundance, plant-biomass-metadata
+  its_guab %>% 
+  select(field_name, plant_pathogen, saprotroph) %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  left_join(its_guma, by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+#' Log ratio transform to remove compositionality bias
+its_gulr_pbm <- # its, log ratio transformed abundance, plant-biomass-metadata 
+  its_guab %>% 
   column_to_rownames(var = "field_name") %>% 
   decostand("rclr", MARGIN = 1) %>%
   rownames_to_column(var = "field_name") %>% 
   as_tibble() %>% 
+  select(field_name, plant_pathogen, saprotroph) %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  left_join(its_guma, by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
+
 #' 
 #' #### AMF
 amf_fmab <- 
@@ -239,8 +237,8 @@ source(root_path("code", "functions.R"))
 its_div <- calc_div(spe$its_avg, sites)
 #' 
 #' ### Richness
-#' Account for sequencing depth as a covariate
-its_rich_lm <- lm(richness ~ sqrt(depth) + field_type, data = its_div)
+#' Account for sequencing depth as a covariate. Square root of depth is used and it is centered (mean subtraction)
+its_rich_lm <- lm(richness ~ depth_csq + field_type, data = its_div)
 #' Diagnostics
 par(mfrow = c(2,2))
 plot(its_rich_lm) # variance similar in groups
@@ -251,14 +249,16 @@ leveneTest(residuals(its_rich_lm) ~ its_div$field_type) %>% as.data.frame() %>% 
 #' Residuals/response distributions do not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
-#' Model results, group means, and post-hoc
-summary(its_rich_lm)
+#' Model results, group means, and post-hoc. Use Type II SS for test of variables due to unbalanced design.
+Anova(its_rich_lm, type = 2)
 #' Sequence depth is significant, less so than field type. Check relationship of depth and field type. 
 its_div %>% 
     group_by(field_type) %>% 
     summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
     kable(format = "pandoc")
-#' Sequence depth isn't obviously related to field type. 
+#' Sequence depth isn't obviously related to field type, but they're weakly inversely related. 
+#' The possibility for an interaction between depth and field_type was tested, it did not improve 
+#' model fit (tested with anova(), not shown).
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 #' Arithmetic means calculated in this case.
 its_rich_em <- emmeans(its_rich_lm, ~ field_type, type = "response")
@@ -291,7 +291,7 @@ its_rich_fig <-
 #' 
 #' ### Shannon's diversity
 #' Account for sequencing depth as a covariate
-its_shan_lm <- lm(shannon ~ sqrt(depth) + field_type, data = its_div)
+its_shan_lm <- lm(shannon ~ depth_csq + field_type, data = its_div)
 #' Diagnostics
 par(mfrow = c(2,2))
 plot(its_shan_lm) # variance similar in groups 
@@ -317,8 +317,8 @@ augment(its_shan_lm) %>%
 #' CV constant to declining.
 #' Relatively low p value likely due to unequal variance in restored and remnant despite similar means. 
 
-#' Model results, group means, and post-hoc
-summary(its_shan_lm)
+#' Model results, group means, and post-hoc. Type II SS used due to unbalanced design.
+Anova(its_shan_lm, type = 2)
 #' Sequence depth is not a significant predictor of Shannon diversity.
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 #' Arithmetic means calculated in this case.
@@ -361,7 +361,7 @@ leveneTest(residuals(plfa_lm) ~ fa$field_type) %>% as.data.frame() %>% kable(for
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc, with arithmetic means from emmeans
-summary(plfa_lm)
+Anova(plfa_lm, type = 2)
 plfa_em <- emmeans(plfa_lm, ~ field_type, type = "response")
 #+ plfa_em_summary,echo=FALSE
 kable(summary(plfa_em), 
@@ -605,7 +605,8 @@ ggsave(
 amf_div <- calc_div(spe$amf_avg, sites)
 #' 
 #' ### Richness
-amf_rich_lm <- lm(richness ~ sqrt(depth) + field_type, data = amf_div)
+#' Depth centered and square root transformed
+amf_rich_lm <- lm(richness ~ depth_csq + field_type, data = amf_div)
 #' Diagnostics
 par(mfrow = c(2,2))
 plot(amf_rich_lm) # variance similar in groups with an outlier
@@ -617,7 +618,7 @@ leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type) %>% as.data.frame() %>% 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc
-summary(amf_rich_lm)
+Anova(amf_rich_lm, type = 2)
 #' Sequencing depth not a significant predictor of amf richness
 amf_rich_em <- emmeans(amf_rich_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group arithmetic means and confidence intervals, 
@@ -648,7 +649,7 @@ amf_rich_fig <-
 
 #' 
 #' ### Shannon diversity
-amf_shan_lm <- lm(shannon ~ sqrt(depth) + field_type, data = amf_div)
+amf_shan_lm <- lm(shannon ~ depth_csq + field_type, data = amf_div)
 #' Diagnostics
 par(mfrow = c(2,2))
 plot(amf_shan_lm) 
@@ -663,7 +664,7 @@ leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type) %>% as.data.frame() %>% 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc
-summary(amf_shan_lm)
+Anova(amf_shan_lm, type = 2)
 #' Sequencing depth not a significant predictor of Shannon diversity. Produce arithmetic means
 #' in groups and post hoc contrasts
 amf_shan_em <- emmeans(amf_shan_lm, ~ field_type, type = "response")
@@ -886,8 +887,8 @@ patho <- guildseq(spe$its_avg, spe_meta$its, "plant_pathogen")
 patho_div <- calc_div(patho, sites)
 #' 
 #' ### Richness
-#' Account for sequencing depth as a covariate
-patho_rich_lm <- lm(richness ~ sqrt(depth) + field_type, data = patho_div)
+#' Account for sequencing depth as a covariate (centered, square root transformed)
+patho_rich_lm <- lm(richness ~ depth_csq + field_type, data = patho_div)
 #' Diagnostics
 par(mfrow = c(2,2))
 plot(patho_rich_lm) # variance similar in groups
@@ -901,7 +902,7 @@ leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc
-summary(patho_rich_lm)
+Anova(patho_rich_lm, type = 2)
 #' Sequence depth is highly significant; richness doesn't vary in groups. 
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case.
@@ -930,7 +931,7 @@ patho_rich_fig <-
 #' 
 #' ### Shannon's diversity
 #' Account for sequencing depth as a covariate
-patho_shan_lm <- lm(shannon ~ sqrt(depth) + field_type, data = patho_div)
+patho_shan_lm <- lm(shannon ~ depth_csq + field_type, data = patho_div)
 #' Diagnostics
 par(mfrow = c(2,2))
 plot(its_shan_lm) # variance similar in groups 
@@ -943,7 +944,7 @@ leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc
-summary(patho_shan_lm)
+Anova(patho_shan_lm, type = 2)
 #' Sequence depth is not a significant predictor of Shannon diversity, nor field type
 patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group means and confidence intervals,
@@ -971,69 +972,86 @@ patho_shan_fig <-
 
 #' 
 #' ## Abundance
-#' Proportional sequence abundance as a proportion of biomass on a per-site basis.
-#' Use log ratio transformed data, which handles composition bias so depth not 
-#' needed as a covariate.
+#' Log-ratio transformed pathogen sequence abundance compared across field types with
+#' fungal biomass variation across fields accounted for in the model. 
 #' Note: previously used sequence abundance alone (data = its_gulr_pfg). Correcting for 
 #' biomass differences across fields seems more appropriate.
-patho_ab_lm <- lm(plant_pathogen ~ field_type, data = its_gulr_fa)
-par(mfrow = c(2,2))
-plot(patho_ab_lm) 
+#' 
+#' Test the covariate, pathogen biomass, for value of transformations. Use `covar_shape_test()`
+#' (see more detail on [functions](functions.md)).
+patho_covar_test <- covar_shape_test(
+  data  = its_gulr_pbm,
+  y     = "plant_pathogen",       
+  covar = "plant_pathogen_mass",   
+  group = "field_type"           
+)
+patho_covar_test$compare
 
-
-
-# NEED TO EXAMINE GLM MODEL or RLM, SEE SAPROTROPH SHANNONS FOR WORKFLOW TO HANDLE THE BIG OUTLIER
-# Rememver that the saprotrophs abundance plot will likely not have negative values, might replace
-# robust lm with gamma. 
-# If you can go to gamma with all of them, do it, so you don't have one more model type to talk about. 
-
-
-
-
-
-
-#' Variance differs slightly in groups. Tails on qq plot diverge. Row 16 an outlier.
-#' This is the Lake Petite cornfield, very high. Results from pathogens being proportionally 
-#' high at this site but PLFA being relatively low.
+#' Best candidate linear model with untransformed covariate:
+patho_ab_lm <- lm(plant_pathogen ~ plant_pathogen_mass + field_type, data = its_gulr_pbm)
+patho_covar_test$anova_t2
+patho_covar_test$diagnostics
+#' Variance differs slightly in groups. Tails on qq plot diverge. Row 16 an outlier with leverage
+#' driving structure in residuals vs fitted values.
+#' This is the Lake Petite cornfield, which has a very high pathogen seq abund. This results 
+#' from pathogens being proportionally 
+#' high at this site (very few unidentified fungi) but PLFA being relatively low.
 distribution_prob(patho_ab_lm)
-#' Residuals distribution fits normal
-leveneTest(residuals(patho_ab_lm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
+#' Residuals distribution fits normal, response gamma
+leveneTest(plant_pathogen ~ field_type, data = its_gulr_pbm) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Response var in groups")
+leveneTest(residuals(patho_ab_lm) ~ its_gulr_pbm$field_type) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Residuals var in groups") 
+#' No covariate, so response and residuals tests equivalent. Log transformation of the 
+#' response didn't help (not shown). 
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-#' Outlier will lean toward a Type II error, which is potentially conservative.
-
+#' Outlier will lean toward a Type II error, which is potentially conservative. However,
+#' to handle heavy tails and outlier, try robust regression (robust M-estimator with Huber ψ). 
+patho_ab_rlm <- rlm(plant_pathogen ~ plant_pathogen_mass + field_type, data = its_gulr_pbm)
+par(mfrow = c(2,2))
+plot(patho_ab_rlm) 
+#' Minor visual improvements to fit, slight reduction of leverage
+distribution_prob(patho_ab_rlm)
+#' Little change, resids cauchy-normal (stretched tails), response gamma
+leveneTest(plant_pathogen ~ field_type, data = its_gulr_pbm) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Response var in groups")
+leveneTest(residuals(patho_ab_rlm) ~ its_gulr_pbm$field_type) %>% as.data.frame() %>% 
+  kable(format = "pandoc", caption = "Residuals var in groups") 
+#' No evidence that variances are unequal
+patho_ab_lm_em  <- emmeans(patho_ab_lm,  ~ field_type, type = "response")
+patho_ab_rlm_em <- emmeans(patho_ab_rlm, ~ field_type, type = "response", vcov. = vcov(patho_ab_rlm))
+as.data.frame(patho_ab_lm_em)  %>% transform(model = "LM")
+as.data.frame(patho_ab_rlm_em) %>% transform(model = "RLM")
+#' Evidence that the outlier has less leverage with rlm, a slightly better fit. No sign change 
+#' with CIs, so inference would be the same with OLS.
+#' Point with a high Cook's statistic remain high, but has slightly less leverage with 
+#' Iteratively re-weighted least squares (rlm). 
+#' Cook’s distance remains ≈ 0.5 because the robust fit reduces the 
+#' residual scale estimate, inflating studentised residuals. Coefficient estimates 
+#' changed little, confirming results are not driven by this point.
 #' Model results, post hoc
-summary(patho_ab_lm)
-emmeans(patho_ab_lm, ~ field_type, type = "response")
-
-#' Produce results with abundance corrected biomass (not log transformed) for a more intuitive 
-#' figure. 
-#' 
-
-
-
-# FIG needs to use the emmeans data I think, particularly if I use gamma or rlm
-
-
+Anova(patho_ab_rlm, type = 2)
+patho_ab_rlm_em
+#' Produce a figure
 #+ patho_fig,fig.width=4,fig.height=4
 patho_ab_fig <- 
-  its_gulr_fa %>% 
-  # left_join(sites, by = join_by(field_name)) %>%
-  group_by(field_type) %>% 
-  summarize(
-    mean = mean(plant_pathogen),
-    ci = qnorm(0.975) * sd(plant_pathogen) / sqrt(n())
-  ) %>% 
-  ggplot(., aes(x = field_type, y = mean)) +
-  geom_errorbar(aes(ymin = mean-ci, ymax = mean+ci), width = 0, linewidth = lw) +
+  # its_gulr_fa %>% 
+  # # left_join(sites, by = join_by(field_name)) %>%
+  # group_by(field_type) %>% 
+  # summarize(
+  #   mean = mean(plant_pathogen),
+  #   ci = qnorm(0.975) * sd(plant_pathogen) / sqrt(n())
+  # ) %>% 
+  ggplot(summary(patho_ab_rlm_em), aes(x = field_type, y = emmean)) +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0, linewidth = lw) +
   geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
-  labs(x = NULL, y = "Seq. prop. mass (LRT)") +
+  labs(x = NULL, y = "Seq. abund. (LRT)") +
   scale_fill_manual(values = c("gray", "black", "white")) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.02))
-
 #' 
 #' ## Beta Diversity
 #' Abundances were transformed by row proportions in sites before producing a distance matrix per
@@ -1115,29 +1133,17 @@ ggsave(root_path("figs", "fig4.png"),
 #' research may make the indicator stats less appropriate for other use.
 patho_ind <- inspan(spe$its_avg, spe_meta$its, "plant_pathogen", sites)
 patho_ind %>% 
-  select(-otu_num, -primary_lifestyle, -p.value) %>% 
+  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
+  filter(species != "unidentified") %>% 
   arrange(field_type, p_val_adj) %>% 
-  kable(format = "pandoc", caption = paste("Indicator species analysis, plant pathogens"))
-
-patho_abund_ft <- 
-  guildseq(spe$its_avg, spe_meta$its, "plant_pathogen") %>% 
-  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-  left_join(spe_meta$its, by = join_by(otu_num)) %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  select(-otu_ID, -otu_num, -primary_lifestyle, -field_name) %>%
-  filter(species != "unidentified", abund > 0) %>% 
-  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1), values_fill = 0) %>% 
-  select(phylum:species, corn, restored, remnant) %>% 
-  rowwise() %>% 
-  mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
-  arrange(-corn)
-patho_abund_ft %>% 
-  filter(avg >= 1) %>%
-  kable(format = "pandoc", caption = "Named pathogen species and abundances in field types\n(Mean abundance >= 1 shown)")
+  mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
 
 #' ## Pathogen—Plant Correlations
 #' Whole-soil fungi correlated with grass and forbs; investigate whether pathogens do specifically.
-ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x = gf_index, y = plant_pathogen)) +
+#' Use raw sequence abundances for the figure.
+ggplot(its_guab_pbm %>% filter(field_type == "restored", region != "FL"), 
+       aes(x = gf_index, y = plant_pathogen)) +
   geom_smooth(method = "lm") +
   geom_point(shape = 1, size = 7) +
   geom_text(aes(label = yr_since)) +
@@ -1145,8 +1151,47 @@ ggplot(its_guab_pfg %>% filter(field_type == "restored", region != "FL"), aes(x 
   theme_classic()
 
 #' Model the relationship
-gf_patho_lm <- lm(plant_pathogen ~ gf_index, data = its_gulr_pfg %>% filter(field_type == "restored", region != "FL"))
+patho_gf_covar_test <- covar_shape_test(
+  data  = its_gulr_pbm,
+  y     = "plant_pathogen",       
+  covar = "plant_pathogen_mass",   
+  group = "gf_index"           
+)
+patho_covar_test$compare
+
+
+
+
+gf_patho_lm <- lm(plant_pathogen ~ scale(plant_pathogen_mass)[, 1] + scale(gf_index)[, 1], 
+                  data = its_guab_pbm %>% filter(field_type == "restored", region != "FL"))
+summary(gf_patho_lm)
 #' Diagnostics
+check_model(gf_patho_lm)
+vif(gf_patho_lm)
+crPlots(gf_patho_lm)
+boxTidwell(plant_pathogen ~ plant_pathogen_mass, data = its_gulr_pbm %>% filter(field_type == "restored", region != "FL")) # 
+its_gulr_pbm %>% filter(field_type == "restored", region != "FL") %>% 
+  ggplot(aes(x = sqrt(plant_pathogen))) +
+  geom_histogram(bins = 15)
+
+gf_patho_rlm <- rlm(plant_pathogen ~ plant_pathogen_mass + gf_index, data = its_gulr_pbm %>% filter(field_type == "restored", region != "FL"))
+tidy(gf_patho_rlm, conf.int = TRUE)
+compare_performance(gf_patho_lm, gf_patho_rlm, metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+summary(gf_patho_rlm)
+
+
+
+set.seed(123)
+B <- 2000
+boot_ci <- function(mod, data, probs = c(.025, .975)) {
+  bhat <- replicate(B, {
+    idx <- sample(nrow(data), replace = TRUE)
+    coef(update(mod, data = data[idx, ]))
+  })
+  apply(bhat, 1, quantile, probs = probs, na.rm = TRUE)
+}
+boot_ci(gf_patho_rlm, its_gulr_pbm %>% filter(field_type == "restored", region != "FL"))
+
 par(mfrow = c(2,2))
 plot(gf_patho_lm) 
 #' Some residual structure, but a smooth qq fit. 
@@ -1279,8 +1324,8 @@ leveneTest(residuals(sapro_ab_lm) ~ sapro_div$field_type) %>% as.data.frame() %>
 #' by group).
 #'  
 #' Try a model that 
-#' handles the heavy tails on the residual distribution better? Transformed data has values < 0, 
-#' so gamma glm is not available. Try robust regression (robust M-estimator with bisquare ψ).
+#' handles the heavy tails on the residual distribution better? 
+#' Try robust regression (robust M-estimator with Huber ψ).
 sapro_ab_rlm <- rlm(saprotroph ~ field_type, data = its_gulr_pfg)
 par(mfrow = c(2,2))
 plot(sapro_ab_rlm) 
@@ -1288,8 +1333,12 @@ plot(sapro_ab_rlm)
 distribution_prob(sapro_ab_rlm)
 #' Residuals distribution fits normal, so do residuals
 leveneTest(residuals(sapro_ab_rlm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-broom::tidy(sapro_ab_lm, conf.int = TRUE)
-broom::tidy(sapro_ab_rlm, conf.int = TRUE) # rlm produces a better fit
+sapro_ab_lm_em  <- emmeans(sapro_ab_lm,  ~ field_type, type = "response")
+sapro_ab_rlm_em <- emmeans(sapro_ab_rlm, ~ field_type, type = "response", vcov. = vcov(sapro_ab_rlm))
+as.data.frame(sapro_ab_lm_em)  %>% transform(model = "LM")
+as.data.frame(sapro_ab_rlm_em) %>% transform(model = "RLM")
+#' Evidence that the outlier has less leverage with rlm, a slightly better fit. No sign change 
+#' with CIs, so inference would be the same with OLS.
 #' Points with a high Cook's statistic remain high, but have less leverage. 
 #' Iteratively re-weighted least squares (rlm) lowers leverage for the two extreme sites, 
 #' but their Cook’s distances remain ≈ 0.5 because the robust fit reduces the 
@@ -1298,13 +1347,12 @@ broom::tidy(sapro_ab_rlm, conf.int = TRUE) # rlm produces a better fit
 #' 
 #' Produce model results, group means, and post-hoc, with arithmetic means from emmeans
 summary(sapro_ab_rlm)
-sapro_ab_em <- emmeans(sapro_ab_rlm, ~ field_type, type = "response", vcov. = vcov(sapro_ab_rlm))
 #+ sapro_ab_em_summary,echo=FALSE
-kable(summary(sapro_ab_em),
+kable(summary(sapro_ab_rlm_em),
       format = "pandoc",
       caption = "Confidence level used: 0.95")
 #+ sapro_ab_em_posthoc,echo=FALSE
-kable(pairs(sapro_ab_em),
+kable(pairs(sapro_ab_rlm_em),
       format = "pandoc",
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' Aligning statistical result with visual appearance requires a dot line plot
@@ -1313,14 +1361,14 @@ sapro_ab_fig <-
   # sapro_div %>% 
   # group_by(field_type) %>% 
   # summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
-  ggplot(summary(sapro_ab_em), aes(x = field_type, y = emmean)) +
+  ggplot(summary(sapro_ab_rlm_em), aes(x = field_type, y = emmean)) +
   # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0, linewidth = lw) +
   geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
   geom_text(aes(y = asymp.UCL, label = c("a", "b", "c")), vjust = -1.5, family = "serif", size = 4) + 
   labs(x = NULL, y = "Seq. abund. (LRT)") +
   scale_fill_manual(values = c("gray", "black", "white")) +
-  lims(y = c(-0.6, 0.7)) +
+  # lims(y = c(-0.6, 0.7)) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
