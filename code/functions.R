@@ -27,9 +27,7 @@ calc_div <- function(spe, site_dat) {
     as_tibble() %>% 
     ungroup() %>% 
     left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-    mutate(across(starts_with("field"), ~ factor(.x, ordered = FALSE)),
-           depth_csq = scale(sqrt(depth), center = TRUE, scale = FALSE)[,1]) %>% 
-    select(field_name, depth, depth_csq, richness, shannon, field_type)
+    select(field_name, field_type, depth, richness, shannon)
   
   return(div_data)
   
