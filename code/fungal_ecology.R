@@ -81,12 +81,11 @@ fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>%
 
 #' 
 #' ## Sites-species tables
-#' CSV files were produced in `sequence_data.R`. Amf_avg_uni table is in species-samples format
-#' to enable use of `Unifrac()` later.
+#' CSV files were produced in `sequence_data.R`. Average sequence abundance at sites included here.
+#' Amf_avg_uni table is in species-samples format to enable use of `Unifrac()` later.
 spe <- list(
     its_avg     = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE),
-    amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE),
-    amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"), show_col_types = FALSE)
+    amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE)
 )
 #' 
 #' ## Microbial species metadata
@@ -94,10 +93,61 @@ spe_meta <- list(
     its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
       mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph", 
                                            TRUE ~ primary_lifestyle)),
-    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE),
-    amf_avg_uni = read_delim(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"), show_col_types = FALSE)
+    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE)
 ) %>% 
   map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
+
+#' 
+#' ### Wrangle additional species and metadata objects
+#' 
+#' 1. Proportional species abundance corrected for site biomass
+#' 1. Unifrac products for AMF
+#' 1. Phyloseq products to process the Unifrac distance cleanly
+#' 
+spe$its_avg_ma <- spe$its_avg %>% # ma = sequence proportion of biomass
+  rowwise() %>%
+  mutate(total = sum(c_across(where(is.numeric))),
+         across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
+  left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>%
+  mutate(across(starts_with("otu"), ~ .x * fungi_18.2)) %>%
+  select(field_name, starts_with("otu")) %>% 
+  ungroup()
+spe$amf_avg_ma <- spe$amf_avg %>% 
+  rowwise() %>%
+  mutate(total = sum(c_across(where(is.numeric))),
+         across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
+  left_join(fa %>% select(-fungi_18.2, -field_type), by = join_by(field_name)) %>%
+  mutate(across(starts_with("otu"), ~ .x * amf)) %>%
+  select(field_name, starts_with("otu")) %>% 
+  ungroup()
+spe$amf_avg_uni <- spe$amf_avg %>%
+  column_to_rownames("field_name") %>%
+  t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
+  left_join(spe_meta$amf %>% select(otu_num, otu_ID), by = "otu_num") %>%
+  select(otu_ID, everything(), -otu_num) %>% 
+  as_tibble()
+spe$amf_avg_ma_uni <- spe$amf_avg_ma %>% 
+  column_to_rownames("field_name") %>%
+  t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
+  left_join(spe_meta$amf %>% select(otu_num, otu_ID), by = "otu_num") %>%
+  select(otu_ID, everything(), -otu_num) %>% 
+  as_tibble()
+spe$amf_ps <- phyloseq(
+  otu_table(data.frame(spe$amf_avg_uni, row.names = 1) %>%
+              decostand(method = "total", MARGIN = 2),
+            taxa_are_rows = TRUE),
+  tax_table(as.matrix(data.frame(spe_meta$amf, row.names = 2))),
+  read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
+    phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
+  sample_data(sites %>% column_to_rownames(var = "field_name"))
+)
+spe$amf_ma_ps <- phyloseq(
+  otu_table(data.frame(spe$amf_avg_ma_uni, row.names = 1), taxa_are_rows = TRUE),
+  tax_table(as.matrix(data.frame(spe_meta$amf, row.names = 2))),
+  read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
+    phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
+  sample_data(sites %>% column_to_rownames(var = "field_name"))
+)
 
 #' ## Plant data
 #' Abundance in functional groups and by species are only available from Wisconsin sites. 
@@ -109,14 +159,10 @@ pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FA
 #' ## Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
 
-#' # Data wrangling
+#' # Species, environment, and metadata wrangling
 # Data wrangling ———————— ####
 #' 
-#' - C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
-#' - The OTU abundance tables must be wrangled to perform a log-ratio transformation, which reduces
-#' data skewness and compositionality bias (Aitchison 1986, Gloor et al. 2017). 
-#' The transformation will be applied across guilds for whole soil fungi and families for AMF. 
-#' Raw abundances are kept for plotting.
+#' C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
 #' Abundance data are also joined with site and env paramaters to facilitate downstream analyses.
 #' 
 #' ## Grass-forb index
@@ -137,12 +183,27 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
   rename(gf_index = PC1) %>% 
   rownames_to_column(var = "field_name")
 #' 
-#' ### Wrangle species and metadata
-#' Raw and log ratio transformed abundances
-#' 
-#' #### Whole soil fungi
+#' ## Whole soil fungi
 #' Wrangle data to produce raw abundances in guilds and join with plant functional groups 
-#' and PLFA biomass data. Create parallel objects with LRT sequence abundance.
+#' and PLFA biomass data. Correct relative sequence abundance with total site-level biomass.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# THESE LINES CAN BE CONDENSED USING NEW PRODUCTS IN SPE
+
+
 its_guab <- # guild abundance
   spe$its_avg %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
@@ -151,7 +212,7 @@ its_guab <- # guild abundance
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
   select(field_name, unidentified, saprotroph, plant_pathogen, everything())
-its_guma <- # guild biomass (proportion of total biomass)
+its_gubm <- # guild biomass (proportion of total biomass)
   its_guab %>% 
   rowwise() %>% 
   mutate(total = sum(c_across(where(is.numeric))),
@@ -159,27 +220,14 @@ its_guma <- # guild biomass (proportion of total biomass)
   left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>% 
   mutate(across(unidentified:unspecified_pathotroph, ~ .x * fungi_18.2)) %>% 
   ungroup() %>%
-  select(field_name, plant_pathogen_mass = plant_pathogen, saprotroph_mass = saprotroph, fungi_18.2)
-its_guab_pbm <- # its, guild abundance, plant-biomass-metadata
+  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph, fungal_mass = fungi_18.2)
+its_guildat <- # all its guild data and metadata
   its_guab %>% 
-  select(field_name, plant_pathogen, saprotroph) %>% 
+  select(field_name, patho_ab = plant_pathogen, sapro_ab = saprotroph) %>% 
+  left_join(its_gubm, by = join_by(field_name)) %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  left_join(its_guma, by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, region, everything())
-#' Log ratio transform to remove compositionality bias
-its_gulr_pbm <- # its, log ratio transformed abundance, plant-biomass-metadata 
-  its_guab %>% 
-  column_to_rownames(var = "field_name") %>% 
-  decostand("rclr", MARGIN = 1) %>%
-  rownames_to_column(var = "field_name") %>% 
-  as_tibble() %>% 
-  select(field_name, plant_pathogen, saprotroph) %>% 
-  left_join(pfg, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  left_join(its_guma, by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 
 #' 
@@ -191,34 +239,30 @@ amf_fmab <-
   group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "family", values_from = "abund")
-amf_fmab_pfg <- 
+amf_fabm <- # family biomass (proportion of total biomass)
   amf_fmab %>% 
-  left_join(pfg, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, region, everything())
-amf_fmlr_pfg <- 
+  rowwise() %>% 
+  mutate(total = sum(c_across(where(is.numeric))),
+         across(Glomeraceae:Ambisporaceae, ~ if_else(total > 0, .x / total, 0))) %>% 
+  left_join(fa %>% select(-fungi_18.2, -field_type), by = join_by(field_name)) %>% 
+  mutate(across(Glomeraceae:Ambisporaceae, ~ .x * amf)) %>% 
+  ungroup() %>%
+  rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_mass"),
+              Glomeraceae:Ambisporaceae) %>% 
+  select(-total, amf_mass = amf)
+amf_famdat <- # all amf family data and metadata
   amf_fmab %>% 
-  column_to_rownames(var = "field_name") %>% 
-  decostand("rclr", MARGIN = 2) %>% 
-  rownames_to_column(var = "field_name") %>% 
-  as_tibble() %>% 
+  rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_ab"),
+              Glomeraceae:Ambisporaceae) %>% 
+  select(-(Archs_ab:Ambsp_ab)) %>% 
+  left_join(amf_fabm, by = join_by(field_name)) %>% 
+  select(-(Archs_mass:Ambsp_mass)) %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 
-#' ### Phyloseq databases
-#' Only AMF needed here for UNIFRAC distance in PCoA
-amf_ps <- phyloseq(
-    otu_table(data.frame(spe$amf_avg_uni, row.names = 1) %>%
-                decostand(method = "total", MARGIN = 2),
-              taxa_are_rows = TRUE),
-    tax_table(as.matrix(data.frame(spe_meta$amf, row.names = 2))),
-    read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
-        phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
-    sample_data(sites %>% column_to_rownames(var = "field_name"))
-)
+
 
 #' 
 #' # Functions
@@ -308,7 +352,7 @@ itsshan_covar_test <- covar_shape_test(
 itsshan_covar_test$compare
 #' Log transformation of depth selected; difference between models is slight. Produce model 
 #' with centered, log transformed depth. 
-its_shan_lm <- lm(shannon ~ depth + field_type, 
+its_shan_lm <- lm(shannon ~ depth_clg + field_type, 
                   data = its_div %>% mutate(depth_clg = scale(log(depth), scale = FALSE)[, 1]))
 #' Diagnostics
 itsshan_covar_test$diagnostics
@@ -331,7 +375,8 @@ augment(its_shan_lm) %>%
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
   kable(format = "pandoc", caption = "CV of residuals and fitted means in groups")
 #' CV constant to declining.
-#' Relatively low p value likely due to unequal variance in restored and remnant despite similar means. 
+#' Relatively low p value likely due to unequal variance in restored and remnant despite similar means.
+#' Unbalanced data. 
 
 #' Model results, group means, and post-hoc. Type II SS used due to unbalanced design.
 itsshan_covar_test$anova_t2
@@ -407,14 +452,14 @@ plfa_fig <-
 #' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
 #+ its_ord
 d_its <- spe$its_avg %>% 
-  # data.frame(row.names = 1) %>%
-  # decostand("total") %>% 
-  rowwise() %>% 
-  mutate(total = sum(c_across(where(is.numeric))),
-         across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
-  left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>% 
-  mutate(across(starts_with("otu"), ~ .x * fungi_18.2)) %>% 
-  select(field_name, starts_with("otu")) %>% 
+  data.frame(row.names = 1) %>%
+  decostand("total") %>%
+  # rowwise() %>% 
+  # mutate(total = sum(c_across(where(is.numeric))),
+  #        across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
+  # left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>% 
+  # mutate(across(starts_with("otu"), ~ .x * fungi_18.2)) %>% 
+  # select(field_name, starts_with("otu")) %>% 
   data.frame(row.names = 1) %>% 
   vegdist("bray")
 mva_its <- mva(d = d_its, env = sites)
@@ -803,7 +848,7 @@ nlfa_fig <-
 #' Row proportions were calculated on the raw abundance data before creating the phyloseq data (see 
 #' above). UNIFRAC distance matrix is created on the standardized abundance data.  
 #+ amf_ord
-d_amf <- UniFrac(amf_ps, weighted = TRUE)
+d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
 mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
 #+ amf_ord_results
 mva_amf$dispersion_test

@@ -139,25 +139,6 @@ its <- etl(spe = its_otu, taxa = its_taxa, traits = traits, varname = "otu_num",
 amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
            colname_prefix = "18S_TGP_", folder = "clean_data")
 
-#' ## UNIFRAC tables for AMF
-#+ wrangle_amf_samps
-amf$spe_samps %>%
-    mutate(field_sample = paste(field_name, sample, sep = "_")) %>%
-    select(field_sample, everything(), -field_name, -sample) %>%
-    column_to_rownames("field_sample") %>%
-    t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
-    left_join(amf$spe_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
-    select(otu_ID, everything(), -otu_num) %>%
-    write_tsv(root_path("otu_tables/18S/18S_samps_4unifrac.tsv"))
-
-#+ wrangle_amf_avg
-amf$spe_avg %>%
-    column_to_rownames("field_name") %>%
-    t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
-    left_join(amf$spe_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
-    select(otu_ID, everything(), -otu_num) %>%
-    write_tsv(root_path("otu_tables/18S/18S_avg_4unifrac.tsv"))
-
 #' # Sampling depth and coverage
 #' Script running `rarecurve()` is commented out because it takes so long to execute.
 #' Data were saved to the wd and are used for making figures. These files are too large

@@ -91,17 +91,6 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
     rownames_to_column(var = "field_name") %>% 
     left_join(env, by = join_by(field_name))
   
-  # Envfit (legacy, output not used)
-  if (!is.null(seed)) set.seed(seed + 1L)
-  p_fit <- envfit(
-    p_vec ~ yr_since,
-    data       = env,
-    choices    = c(1, 2),
-    na.rm      = TRUE,
-    permutations = nperm
-  )
-  p_fit_sco <- scores(p_fit, display = "bp")
-  
   # Homogeneity of multivariate dispersion
   disper <- betadisper(d, clust_vec, bias.adjust = TRUE)
   if (!is.null(seed)) set.seed(seed + 2L)
@@ -166,9 +155,7 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
     ordination_scores  = p_sco,
     dispersion_test    = mvdisper,
     permanova          = gl_permtest,
-    pairwise_contrasts = contrasts,
-    vector_fit_result  = p_fit,
-    vector_fit_scores  = p_fit_sco
+    pairwise_contrasts = contrasts
   )
 }
 
