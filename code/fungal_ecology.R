@@ -96,6 +96,7 @@ amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types
 
 #' 
 #' ### Wrangle additional species and metadata objects
+# Species data wrangling ———————— ####
 #' 
 #' 1. Proportional species abundance corrected for site biomass
 #' 1. Unifrac products for AMF
@@ -123,23 +124,8 @@ amf_avg_uni <- amf_avg %>%
   left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
   select(otu_ID, everything(), -otu_num) %>% 
   as_tibble()
-amf_avg_ma_uni <- amf_avg_ma %>% 
-  column_to_rownames("field_name") %>%
-  t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
-  left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
-  select(otu_ID, everything(), -otu_num) %>% 
-  as_tibble()
 amf_ps <- phyloseq(
-  otu_table(data.frame(amf_avg_uni, row.names = 1) %>%
-              decostand(method = "total", MARGIN = 2),
-            taxa_are_rows = TRUE),
-  tax_table(as.matrix(data.frame(amf_meta, row.names = 2))),
-  read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
-    phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
-  sample_data(sites %>% column_to_rownames(var = "field_name"))
-)
-amf_ma_ps <- phyloseq(
-  otu_table(data.frame(amf_avg_ma_uni, row.names = 1), taxa_are_rows = TRUE),
+  otu_table(data.frame(amf_avg_uni, row.names = 1), taxa_are_rows = TRUE),
   tax_table(as.matrix(data.frame(amf_meta, row.names = 2))),
   read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
     phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
@@ -157,7 +143,7 @@ pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FA
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
 
 #' # Species, environment, and metadata wrangling
-# Data wrangling ———————— ####
+# Metadata wrangling ———————— ####
 #' 
 #' C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
 #' Abundance data are also joined with site and env paramaters to facilitate downstream analyses.
@@ -193,7 +179,6 @@ its_guild_ma <- # guild biomass (proportion of total biomass)
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
-
 #' 
 #' #### AMF
 amf_fam_ma <- # family biomass (proportion of total biomass)
@@ -399,6 +384,7 @@ plfa_fig <-
 #' 1. Using proportional biomass, b-c distance, Waller et al. 
 #' 1. Using sequence row proportions, b-c distance
 #' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
+#' 1. Contrast the two with procrustes
 #' 
 #' ### ITS, proportional biomass
 #+ its_ord_ma
@@ -517,8 +503,6 @@ its_ord <-
     theme(legend.position = "none",
           plot.tag = element_text(size = 14, face = 1),
           plot.tag.position = c(0, 1.01))
-    # guides(fill = guide_legend(position = "inside")) +
-    # theme(legend.justification = c(0.03, 0.98))
 
 #' 
 #' #### Supplemental figure
@@ -547,6 +531,29 @@ its_ord <-
 #'        height = 4,
 #'        units = "in",
 #'        dpi = 600)
+
+
+
+## Use procrustes to contrast the two ordinations!
+
+# ord1 <- ape::pcoa(UniFrac(amf_ps, weighted = TRUE, normalized = TRUE))$vectors[,1:2]
+# ord2 <- ape::pcoa(d_amf_bray)$vectors[,1:2]
+# vegan::protest(ord1, ord2, permutations = 999)
+
+
+set.seed(20251111)
+its_protest <- protest(
+  pcoa(d_its)$vectors[, 1:2],
+  pcoa(d_its_ma)$vectors[, 1:2],
+  permutations = 1999
+)
+
+
+#' Including biomass changes little. The spatial configuration both ordinations are highly correlated
+#' $R^{2}=$ `r round(its_protest$scale^2, 2)`, p<0.001. 
+
+
+
 
 #' ## Constrained Analysis
 #' Test explanatory variables for correlation with site ordination. Using plant data, 
@@ -687,14 +694,23 @@ ggsave(
 # AMF ———————— ####
 #' ## Diversity Indices
 #+ amf_diversity
-amf_div <- calc_div(spe$amf_avg, sites)
+amf_div <- calc_div(amf_avg, sites)
 #' 
 #' ### Richness
-#' Depth centered and square root transformed
-amf_rich_lm <- lm(richness ~ depth_csq + field_type, data = amf_div)
+#' Account for sequencing depth as a covariate. Test covar transformations for best model performance.
+amf_rich_covar <- covar_shape_test(
+  data  = amf_div,
+  y     = "richness",       
+  covar = "depth",   
+  group = "field_type"           
+)
+amf_rich_covar$compare
+#' Log transformation performs best, but very little difference among models
+amf_rich_lm <- lm(richness ~ depth_clg + field_type, 
+                  data = amf_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
-par(mfrow = c(2,2))
-plot(amf_rich_lm) # variance similar in groups with an outlier
+amf_rich_covar$diagnostics
+#' Long tails, one outlier without significant leverage...mean/variance relationship shows no trend...
 distribution_prob(amf_rich_lm)
 #' Residuals distribution most likely normal, response bimodal (ignore)
 leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
@@ -703,7 +719,7 @@ leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type) %>% as.data.frame() %>% 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc
-Anova(amf_rich_lm, type = 2)
+amf_rich_covar$anova_t2
 #' Sequencing depth not a significant predictor of amf richness
 amf_rich_em <- emmeans(amf_rich_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group arithmetic means and confidence intervals, 
@@ -734,12 +750,24 @@ amf_rich_fig <-
 
 #' 
 #' ### Shannon diversity
-amf_shan_lm <- lm(shannon ~ depth_csq + field_type, data = amf_div)
+#' Account for sequencing depth as a covariate. Test covar transformations for best model performance.
+amf_shan_covar <- covar_shape_test(
+  data  = amf_div,
+  y     = "shannon",       
+  covar = "depth",   
+  group = "field_type"           
+)
+amf_shan_covar$compare
+#' Models are equivalent; no transformation selected on parsimony grounds
+amf_shan_lm <- lm(shannon ~ depth + field_type, data = amf_div)
 #' Diagnostics
+amf_shan_covar$diagnostics
 par(mfrow = c(2,2))
-plot(amf_shan_lm) 
+plot(amf_shan_lm)
 #' Variance somewhat non-constant in groups, qqplot fit is poor, 
-#' one leverage point (Cook's > 0.5)
+#' one leverage point (Cook's > 0.5), a cornfield with high richness. Mean
+#' richness in corn fields is lowest; this outlier would make the pairwise contrast
+#' less significant, possible Type II error which is more acceptable.
 distribution_prob(amf_shan_lm)
 #' Residuals/response distributions most likely normal. 
 leveneTest(shannon ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
@@ -847,7 +875,7 @@ nlfa_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = expression(NLFA~(nmol%*%g[soil]^-1))) +
+  labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
   scale_fill_manual(values = c("gray", "black", "white")) +
   lims(y = c(0, 75)) +
   theme_cor +
@@ -857,12 +885,82 @@ nlfa_fig <-
 
 #' 
 #' ## Beta Diversity
-#' AMF (18S sequences)
 #' 
-#' Abundances were transformed by row proportions in sites before producing a distance matrix per
-#' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115). 
-#' Row proportions were calculated on the raw abundance data before creating the phyloseq data (see 
-#' above). UNIFRAC distance matrix is created on the standardized abundance data.  
+#' 1. Using proportional biomass, b-c distance (unifrac is scale invariant; it's based on the proportion 
+#' of reads on each descending branch, multiplying rows by any constant doesn't change this). 
+#' 1. Using sequence row proportions, unifrac distance to display phylogenetically aware information.
+#' 1. Contrast the two with procrustes.
+#' 
+#' ### AMF, proportional biomass
+#+ amf_ord_ma
+d_amf_ma <- amf_avg_ma %>% 
+  data.frame(row.names = 1) %>% 
+  vegdist("bray")
+mva_amf_ma <- mva(d = d_amf_ma, env = sites, corr = "lingoes")
+#+ amf_ord_ma_results
+mva_amf_ma$dispersion_test
+mva_amf_ma$permanova
+mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+#' Lingoes correction was applied to negative eignevalues. Three relative eigenvalues exceeded broken stick model. 
+#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
+#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
+#' a PERMANOVA test. 
+#' 
+#' Clustering revealed that community variation was not related to geographic distance, the covariate in 
+#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
+#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
+#' communities in restored and remnant fields. 
+#' 
+#' Plotting results: 
+amf_ma_ord_data <- mva_amf_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_amf_ma_centers <- amf_ma_ord_data %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+amf_ma_ord <- 
+  ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
+  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  labs(
+    x = paste0("Axis 1 (", mva_amf_ma$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_amf_ma$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.01))
+
+#' 
+#' #### Unified figure
+#+ fig3_patchwork,warning=FALSE
+fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
+  plot_layout(heights = c(1,0.01,1)) 
+fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
+  plot_layout(widths = c(0.35, 0.01, 0.64)) +
+  plot_annotation(tag_levels = 'a') 
+#+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
+fig3
+#' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
+#' NLFA biomass **b** (95 % CI, letters = Tukey groups; P < 0.05 / 0.0001). PCoA of weighted‑UniFrac distances 
+#' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
+#' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
+#' prairie types (P < 0.01). Shading: corn grey, restored black, remnant white.
+
+#+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+ggsave(root_path("figs", "fig3.png"),
+       plot = fig3,
+       width = 6.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
+
+#' ### AMF, sequence relative abundance, unifrac distance
+#' 
 #+ amf_ord
 d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
 mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
@@ -904,41 +1002,76 @@ amf_ord <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.01))
 
-#' ## Unified figure
-#+ fig3_patchwork,warning=FALSE
-fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
-  plot_layout(heights = c(1,0.01,1)) 
-fig3 <- (fig3_ls | plot_spacer() | amf_ord) +
-  plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
-#+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
-fig3
-#' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
-#' NLFA biomass **b** (95 % CI, letters = Tukey groups; P < 0.05 / 0.0001). PCoA of weighted‑UniFrac distances 
-#' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
-#' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
-#' prairie types (P < 0.01). Shading: corn grey, restored black, remnant white.
+#' ## Supplemental figure
+#' #+ fig3_patchwork,warning=FALSE
+#' fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
+#'   plot_layout(heights = c(1,0.01,1)) 
+#' fig3 <- (fig3_ls | plot_spacer() | amf_ord) +
+#'   plot_layout(widths = c(0.35, 0.01, 0.64)) +
+#'   plot_annotation(tag_levels = 'a') 
+#' #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
+#' fig3
+#' #' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
+#' #' NLFA biomass **b** (95 % CI, letters = Tukey groups; P < 0.05 / 0.0001). PCoA of weighted‑UniFrac distances 
+#' #' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
+#' #' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
+#' #' prairie types (P < 0.01). Shading: corn grey, restored black, remnant white.
+#' 
+#' #+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+#' ggsave(root_path("figs", "fig3.png"),
+#'        plot = fig3,
+#'        width = 6.5,
+#'        height = 4,
+#'        units = "in",
+#'        dpi = 600)
 
-#+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig3.png"),
-       plot = fig3,
-       width = 6.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+
+
+## Contrast with procrustes!
+
+set.seed(20251111)
+amf_protest <- protest(
+  pcoa(d_amf, correction = "lingoes")$vectors[, 1:3],
+  pcoa(d_amf_ma, correction = "lingoes")$vectors[, 1:3],
+  permutations = 1999
+)
+
+
+#' The ordinations differ in spatial arrangement somewhat, with a correlation of
+#' $R^{2}=$ `r round(amf_protest$scale^2, 2)`, however, the null that these solutions are unrelated
+#' is still rejected at p<0.001. Clearly, the low biomass in cornfields is a driving difference in 
+#' the biomass-aware ordination, which, as a result, should possibly be preferred in this case.
+
+
 
 #' ## AMF abundance in families
 #' Display raw abundances in a table but separate means with log ratio transformed data
-amf_fmab_ft <- 
-  amf_fmab_pfg %>% 
-  pivot_longer(Glomeraceae:Gigasporaceae, names_to = "family", values_to = "abund") %>% 
+amf_fam_diff <- 
+  amf_fam_ma %>% 
+  pivot_longer(Glmrc_mass:Ggspr_mass, names_to = "family", values_to = "mass") %>% 
   group_by(field_type, family) %>% 
-  summarize(abund = mean(abund), .groups = "drop") %>% 
-  pivot_wider(names_from = field_type, values_from = abund) %>% 
+  summarize(mass = mean(mass), .groups = "drop") %>% 
+  pivot_wider(names_from = field_type, values_from = mass) %>% 
   mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 1))) %>% 
   arrange(-total)
-kable(amf_fmab_ft, format = "pandoc", caption = "AMF abundance in families and field types")
+kable(amf_fam_diff, format = "pandoc", caption = "AMF abundance in families and field types")
 #' 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' Test RCLR transformed abundances across field types for each family
 glom_lm <- lm(Glomeraceae ~ field_type, data = amf_fmlr_pfg)
 summary(glom_lm)
