@@ -64,7 +64,7 @@ sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>%
 field_dist <- as.dist(distm(sites[, c("long", "lat")], fun = distHaversine))
 field_dist_pcoa <- pcoa(field_dist)
 field_dist_pcoa$values[c(1,2), c(1,2)] %>% 
-    kable(format = "pandoc")
+  kable(format = "pandoc")
 #' First axis of geographic distance PCoA explains 91% of the variation among sites. 
 sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
 
@@ -83,19 +83,16 @@ fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>%
 #' ## Sites-species tables
 #' CSV files were produced in `sequence_data.R`. Average sequence abundance at sites included here.
 #' Amf_avg_uni table is in species-samples format to enable use of `Unifrac()` later.
-spe <- list(
-    its_avg     = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE),
-    amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE)
-)
+its_avg     = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE)
+amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE)
 #' 
 #' ## Microbial species metadata
-spe_meta <- list(
-    its = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
-      mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph", 
-                                           TRUE ~ primary_lifestyle)),
-    amf = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE)
-) %>% 
-  map(. %>% mutate(across(everything(), ~ replace_na(., "unidentified"))))
+its_meta = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
+  mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph",
+                                       TRUE ~ primary_lifestyle),
+         across(everything(), ~ replace_na(., "unidentified")))
+amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
+  mutate(across(everything(), ~ replace_na(., "unidentified")))
 
 #' 
 #' ### Wrangle additional species and metadata objects
@@ -104,7 +101,7 @@ spe_meta <- list(
 #' 1. Unifrac products for AMF
 #' 1. Phyloseq products to process the Unifrac distance cleanly
 #' 
-spe$its_avg_ma <- spe$its_avg %>% # ma = sequence proportion of biomass
+its_avg_ma <- its_avg %>% # ma = sequence proportion of biomass
   rowwise() %>%
   mutate(total = sum(c_across(where(is.numeric))),
          across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
@@ -112,7 +109,7 @@ spe$its_avg_ma <- spe$its_avg %>% # ma = sequence proportion of biomass
   mutate(across(starts_with("otu"), ~ .x * fungi_18.2)) %>%
   select(field_name, starts_with("otu")) %>% 
   ungroup()
-spe$amf_avg_ma <- spe$amf_avg %>% 
+amf_avg_ma <- amf_avg %>% 
   rowwise() %>%
   mutate(total = sum(c_across(where(is.numeric))),
          across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
@@ -120,30 +117,30 @@ spe$amf_avg_ma <- spe$amf_avg %>%
   mutate(across(starts_with("otu"), ~ .x * amf)) %>%
   select(field_name, starts_with("otu")) %>% 
   ungroup()
-spe$amf_avg_uni <- spe$amf_avg %>%
+amf_avg_uni <- amf_avg %>%
   column_to_rownames("field_name") %>%
   t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
-  left_join(spe_meta$amf %>% select(otu_num, otu_ID), by = "otu_num") %>%
+  left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
   select(otu_ID, everything(), -otu_num) %>% 
   as_tibble()
-spe$amf_avg_ma_uni <- spe$amf_avg_ma %>% 
+amf_avg_ma_uni <- amf_avg_ma %>% 
   column_to_rownames("field_name") %>%
   t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
-  left_join(spe_meta$amf %>% select(otu_num, otu_ID), by = "otu_num") %>%
+  left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
   select(otu_ID, everything(), -otu_num) %>% 
   as_tibble()
-spe$amf_ps <- phyloseq(
-  otu_table(data.frame(spe$amf_avg_uni, row.names = 1) %>%
+amf_ps <- phyloseq(
+  otu_table(data.frame(amf_avg_uni, row.names = 1) %>%
               decostand(method = "total", MARGIN = 2),
             taxa_are_rows = TRUE),
-  tax_table(as.matrix(data.frame(spe_meta$amf, row.names = 2))),
+  tax_table(as.matrix(data.frame(amf_meta, row.names = 2))),
   read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
     phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
   sample_data(sites %>% column_to_rownames(var = "field_name"))
 )
-spe$amf_ma_ps <- phyloseq(
-  otu_table(data.frame(spe$amf_avg_ma_uni, row.names = 1), taxa_are_rows = TRUE),
-  tax_table(as.matrix(data.frame(spe_meta$amf, row.names = 2))),
+amf_ma_ps <- phyloseq(
+  otu_table(data.frame(amf_avg_ma_uni, row.names = 1), taxa_are_rows = TRUE),
+  tax_table(as.matrix(data.frame(amf_meta, row.names = 2))),
   read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
     phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
   sample_data(sites %>% column_to_rownames(var = "field_name"))
@@ -184,85 +181,35 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
   rownames_to_column(var = "field_name")
 #' 
 #' ## Whole soil fungi
-#' Wrangle data to produce raw abundances in guilds and join with plant functional groups 
-#' and PLFA biomass data. Correct relative sequence abundance with total site-level biomass.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# THESE LINES CAN BE CONDENSED USING NEW PRODUCTS IN SPE
-
-
-its_guab <- # guild abundance
-  spe$its_avg %>% 
+#' Wrangle data to produce proportional biomass in guilds for its and families for amf
+its_guild_ma <- # guild biomass (proportion of total biomass)
+  its_avg_ma %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-  left_join(spe_meta$its %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
+  left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
-  select(field_name, unidentified, saprotroph, plant_pathogen, everything())
-its_gubm <- # guild biomass (proportion of total biomass)
-  its_guab %>% 
-  rowwise() %>% 
-  mutate(total = sum(c_across(where(is.numeric))),
-         across(unidentified:unspecified_pathotroph, ~ if_else(total > 0, .x / total, 0))) %>% 
-  left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>% 
-  mutate(across(unidentified:unspecified_pathotroph, ~ .x * fungi_18.2)) %>% 
-  ungroup() %>%
-  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph, fungal_mass = fungi_18.2)
-its_guildat <- # all its guild data and metadata
-  its_guab %>% 
-  select(field_name, patho_ab = plant_pathogen, sapro_ab = saprotroph) %>% 
-  left_join(its_gubm, by = join_by(field_name)) %>% 
-  left_join(pfg, by = join_by(field_name)) %>% 
+  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>% left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 
 #' 
 #' #### AMF
-amf_fmab <- 
-  spe$amf_avg %>% 
+amf_fam_ma <- # family biomass (proportion of total biomass)
+  amf_avg_ma %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-  left_join(spe_meta$amf %>% select(otu_num, family), by = join_by(otu_num)) %>% 
+  left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
   group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
-  pivot_wider(names_from = "family", values_from = "abund")
-amf_fabm <- # family biomass (proportion of total biomass)
-  amf_fmab %>% 
-  rowwise() %>% 
-  mutate(total = sum(c_across(where(is.numeric))),
-         across(Glomeraceae:Ambisporaceae, ~ if_else(total > 0, .x / total, 0))) %>% 
-  left_join(fa %>% select(-fungi_18.2, -field_type), by = join_by(field_name)) %>% 
-  mutate(across(Glomeraceae:Ambisporaceae, ~ .x * amf)) %>% 
-  ungroup() %>%
+  pivot_wider(names_from = "family", values_from = "abund") %>% 
   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_mass"),
               Glomeraceae:Ambisporaceae) %>% 
-  select(-total, amf_mass = amf)
-amf_famdat <- # all amf family data and metadata
-  amf_fmab %>% 
-  rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_ab"),
-              Glomeraceae:Ambisporaceae) %>% 
-  select(-(Archs_ab:Ambsp_ab)) %>% 
-  left_join(amf_fabm, by = join_by(field_name)) %>% 
   select(-(Archs_mass:Ambsp_mass)) %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
-
-
 
 #' 
 #' # Functions
@@ -278,21 +225,21 @@ source(root_path("code", "functions.R"))
 #' ## Diversity Indices
 
 #+ its_diversity
-its_div <- calc_div(spe$its_avg, sites)
+its_div <- calc_div(its_avg, sites)
 #' 
 #' ### Richness
 #' Account for sequencing depth as a covariate. Test covar transformations for best model performance.
-itsrich_covar_test <- covar_shape_test(
+its_rich_covar <- covar_shape_test(
   data  = its_div,
   y     = "richness",       
   covar = "depth",   
   group = "field_type"           
 )
-itsrich_covar_test$compare
+its_rich_covar$compare
 #' Best model does not use transformation of covariate.
 its_rich_lm <- lm(richness ~ depth + field_type, data = its_div) # Interaction NS (not shown)
 #' Diagnostics
-itsrich_covar_test$diagnostics
+its_rich_covar$diagnostics
 #' Long tails, some midrange structure, no leverage points
 distribution_prob(its_rich_lm)
 #' residuals distribution normal or long-tailed, response log
@@ -302,7 +249,7 @@ leveneTest(residuals(its_rich_lm) ~ its_div$field_type) %>% as.data.frame() %>% 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
 
 #' Model results, group means, and post-hoc. Use Type II SS for test of variables due to unbalanced design.
-itsrich_covar_test$anova_t2
+its_rich_covar$anova_t2
 #' Sequence depth is significant, less so than field type. Check relationship of depth and field type. 
 its_div %>% 
     group_by(field_type) %>% 
@@ -331,7 +278,7 @@ its_rich_fig <-
   ggplot(summary(its_rich_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = "Richness") +
   lims(y = c(0, 760)) +
   scale_fill_manual(values = c("gray", "black", "white")) +
@@ -343,19 +290,19 @@ its_rich_fig <-
 #' 
 #' ### Shannon's diversity
 #' Account for sequencing depth as a covariate. Test covariate transformations.
-itsshan_covar_test <- covar_shape_test(
+its_shan_covar <- covar_shape_test(
   data  = its_div,
   y     = "shannon",       
   covar = "depth",   
   group = "field_type"           
 )
-itsshan_covar_test$compare
+its_shan_covar$compare
 #' Log transformation of depth selected; difference between models is slight. Produce model 
 #' with centered, log transformed depth. 
 its_shan_lm <- lm(shannon ~ depth_clg + field_type, 
-                  data = its_div %>% mutate(depth_clg = scale(log(depth), scale = FALSE)[, 1]))
+                  data = its_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
-itsshan_covar_test$diagnostics
+its_shan_covar$diagnostics
 #' Lots of residual structure, no leverage points, no evidence for increasing mean/var relationship.
 distribution_prob(its_shan_lm)
 #' residuals distribution most likely cauchy/normal; symmetric but long tails, response gamma
@@ -379,7 +326,7 @@ augment(its_shan_lm) %>%
 #' Unbalanced data. 
 
 #' Model results, group means, and post-hoc. Type II SS used due to unbalanced design.
-itsshan_covar_test$anova_t2
+its_shan_covar$anova_t2
 #' Sequence depth is not a significant predictor of Shannon diversity.
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 #' Arithmetic means calculated in this case.
@@ -401,7 +348,7 @@ its_shan_fig <-
   ggplot(summary(its_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = "Shannon diversity") +
   lims(y = c(0, 160)) +
   scale_fill_manual(values = c("gray", "black", "white")) +
@@ -448,19 +395,89 @@ plfa_fig <-
 
 #' 
 #' ## Beta Diversity
-#' Abundances were transformed by row proportions in sites before producing a distance matrix per
+#' 
+#' 1. Using proportional biomass, b-c distance, Waller et al. 
+#' 1. Using sequence row proportions, b-c distance
 #' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
+#' 
+#' ### ITS, proportional biomass
+#+ its_ord_ma
+d_its_ma <- its_avg_ma %>% 
+  data.frame(row.names = 1) %>% 
+  vegdist("bray")
+mva_its_ma <- mva(d = d_its_ma, env = sites)
+#+ its_ord_ma_results
+mva_its_ma$dispersion_test
+mva_its_ma$permanova
+mva_its_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+#' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
+#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
+#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
+#' a PERMANOVA test. 
+#' 
+#' Clustering revealed that community variation was related to geographic distance, the covariate in 
+#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
+#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
+#' communities in restored and remnant fields. 
+#' 
+#' Plotting results: 
+its_ma_ord_data <- mva_its_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_its_ma_centers <- its_ma_ord_data %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+its_ma_ord <- 
+  ggplot(its_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
+  geom_linerange(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  scale_fill_manual(values = c("gray", "black", "white")) +
+  labs(
+    x = paste0("Axis 1 (", mva_its_ma$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_its_ma$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.01))
+
+#' 
+#' #### Unified figure
+#+ fig2_patchwork,warning=FALSE
+fig2_ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
+  plot_layout(heights = c(1,0.01,1)) 
+fig2 <- (fig2_ls | plot_spacer() | its_ma_ord) +
+  plot_layout(widths = c(0.35, 0.01, 0.64)) +
+  plot_annotation(tag_levels = 'a') 
+#+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
+fig2
+#' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
+#' **a** OTU richness and **b** fungal biomass (PLFA) are shown as columns with 95 % CIs; lowercase
+#' letters mark significant pairwise differences (P < 0.001).
+#' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
+#' distances: small points = sites, large circles = field-type centroids (error bars =
+#' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
+#' Numbers in black circles give years since restoration. Axis labels show the
+#' percent variation explained. Colours/shading: corn = grey, restored = black,
+#' remnant = white.
+
+#+ fig2_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig2.png"),
+       plot = fig2,
+       width = 6.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
+
+#' 
+#' ### ITS, standardized sequence abundance
 #+ its_ord
-d_its <- spe$its_avg %>% 
+d_its <- its_avg %>% 
   data.frame(row.names = 1) %>%
   decostand("total") %>%
-  # rowwise() %>% 
-  # mutate(total = sum(c_across(where(is.numeric))),
-  #        across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
-  # left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>% 
-  # mutate(across(starts_with("otu"), ~ .x * fungi_18.2)) %>% 
-  # select(field_name, starts_with("otu")) %>% 
-  data.frame(row.names = 1) %>% 
   vegdist("bray")
 mva_its <- mva(d = d_its, env = sites)
 #+ its_ord_results
@@ -488,7 +505,7 @@ p_its_centers <- its_ord_data %>%
 its_ord <- 
     ggplot(its_ord_data, aes(x = Axis.1, y = Axis.2)) +
     geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-    geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+    geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
     geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
     geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
     geom_point(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -504,32 +521,32 @@ its_ord <-
     # theme(legend.justification = c(0.03, 0.98))
 
 #' 
-#' ## Unified figure
-#+ fig2_patchwork,warning=FALSE
-fig2_ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
-    plot_layout(heights = c(1,0.01,1)) 
-fig2 <- (fig2_ls | plot_spacer() | its_ord) +
-    plot_layout(widths = c(0.35, 0.01, 0.64)) +
-    plot_annotation(tag_levels = 'a') 
-#+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
-fig2
-#' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** fungal biomass (PLFA) are shown as columns with 95 % CIs; lowercase
-#' letters mark significant pairwise differences (P < 0.001).
-#' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
-#' distances: small points = sites, large circles = field-type centroids (error bars =
-#' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
-#' Numbers in black circles give years since restoration. Axis labels show the
-#' percent variation explained. Colours/shading: corn = grey, restored = black,
-#' remnant = white.
-
-#+ fig2_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig2.png"),
-       plot = fig2,
-       width = 6.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+#' #### Supplemental figure
+#' #+ fig2_patchwork,warning=FALSE
+#' fig2_ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
+#'     plot_layout(heights = c(1,0.01,1)) 
+#' fig2 <- (fig2_ls | plot_spacer() | its_ord) +
+#'     plot_layout(widths = c(0.35, 0.01, 0.64)) +
+#'     plot_annotation(tag_levels = 'a') 
+#' #+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
+#' fig2
+#' #' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
+#' #' **a** OTU richness and **b** fungal biomass (PLFA) are shown as columns with 95 % CIs; lowercase
+#' #' letters mark significant pairwise differences (P < 0.001).
+#' #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
+#' #' distances: small points = sites, large circles = field-type centroids (error bars =
+#' #' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
+#' #' Numbers in black circles give years since restoration. Axis labels show the
+#' #' percent variation explained. Colours/shading: corn = grey, restored = black,
+#' #' remnant = white.
+#' 
+#' #+ fig2_save,warning=FALSE,echo=FALSE
+#' ggsave(root_path("figs", "fig2.png"),
+#'        plot = fig2,
+#'        width = 6.5,
+#'        height = 4,
+#'        units = "in",
+#'        dpi = 600)
 
 #' ## Constrained Analysis
 #' Test explanatory variables for correlation with site ordination. Using plant data, 
@@ -580,10 +597,9 @@ env_expl %>%
 #' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
 #' Removed soil_micro_1 and K to maintain OM in the model.
 #' No overfitting detected in full model; proceed with forward selection. 
-spe_its_wi_resto <- spe$its_avg %>% 
+spe_its_wi_resto <- its_avg_ma %>% 
   filter(field_name %in% rownames(env_expl)) %>% 
-  column_to_rownames(var = "field_name") %>% 
-  decostand("total")
+  column_to_rownames(var = "field_name")
 
 mod_null <- dbrda(spe_its_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
 mod_full <- dbrda(spe_its_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
@@ -601,8 +617,8 @@ mod_step
 mod_step$anova %>% kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, the model shows a significant 
 #' correlation between the site ordination on fungal communities
-#' and the selected explanatory variables (p=0.001). The first two constrained axes are 
-#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community 
+#' and the selected explanatory variables (p<0.001). The first two constrained axes are 
+#' also significant (p<0.01). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community 
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
 #' individual p values and statistics. 
 #' 
@@ -642,7 +658,7 @@ fig6 <-
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_point(fill = "black", size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
@@ -707,7 +723,7 @@ amf_rich_fig <-
   ggplot(summary(amf_rich_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = "Richness") +
   lims(y = c(0, 75)) +
   scale_fill_manual(values = c("gray", "black", "white")) +
@@ -754,7 +770,7 @@ amf_shan_fig <-
   ggplot(summary(amf_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = NULL) +
   lims(y = c(0, 32)) +
   scale_fill_manual(values = c("gray", "black", "white")) +
@@ -830,7 +846,7 @@ nlfa_fig <-
   ggplot(summary(nlfa_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "serif", size = 4) +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = expression(NLFA~(nmol%*%g[soil]^-1))) +
   scale_fill_manual(values = c("gray", "black", "white")) +
   lims(y = c(0, 75)) +
@@ -875,7 +891,7 @@ p_amf_centers <- amf_ord_data %>%
 amf_ord <- 
   ggplot(amf_ord_data, aes(x = Axis.1, y = Axis.2)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -1180,7 +1196,7 @@ p_patho_centers <- patho_ord_data %>%
 patho_ord <- 
   ggplot(patho_ord_data, aes(x = Axis.1, y = Axis.2)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
   geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -1459,7 +1475,7 @@ sapro_ab_fig <-
   # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0, linewidth = lw) +
   geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
-  geom_text(aes(y = asymp.UCL, label = c("a", "b", "c")), vjust = -1.5, family = "serif", size = 4) + 
+  geom_text(aes(y = asymp.UCL, label = c("a", "b", "c")), vjust = -1.5, family = "sans", size = 4) + 
   labs(x = NULL, y = "Seq. abund. (LRT)") +
   scale_fill_manual(values = c("gray", "black", "white")) +
   # lims(y = c(-0.6, 0.7)) +
@@ -1502,7 +1518,7 @@ p_sapro_centers <- sapro_ord_data %>%
 sapro_ord <- 
   ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
   geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
