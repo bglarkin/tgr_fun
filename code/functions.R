@@ -266,12 +266,20 @@ guildseq <- function(spe, meta, guild) {
 #' filters OTUs for indicators of field types. 
 #+ inspan_function
 inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
-  data <- guildseq(spe, meta, guild) %>% 
-    left_join(site_dat, by = join_by(field_name))
-  spe_g <- data.frame(
-    data %>% select(field_name, starts_with("otu")),
-    row.names = 1)
-  grp = data$field_type
+  if(is.null(guild)) {
+    data <- spe %>% left_join(site_dat, by = join_by(field_name))
+    spe_g <- data.frame(
+      data %>% select(field_name, starts_with("otu")),
+      row.names = 1)
+    grp <- data$field_type
+  } else {
+    data <- guildseq(spe, meta, guild) %>% 
+      left_join(site_dat, by = join_by(field_name))
+    spe_g <- data.frame(
+      data %>% select(field_name, starts_with("otu")),
+      row.names = 1)
+    grp <- data$field_type
+  }
   
   # Indicator species analysis
   mp <- multipatt(
@@ -300,7 +308,7 @@ inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
                  names_to = "field_type", 
                  values_to = "B")
   
-  # Join to sequence abundances in field types
+  # Join to abundance in field types
   seq_abund <- 
     spe_g %>% 
     rownames_to_column(var = "field_name") %>% 
@@ -320,7 +328,7 @@ inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
     left_join(meta %>% select(-otu_ID), by = join_by(otu_num)) %>% 
     left_join(seq_abund, by = join_by(otu_num)) %>% 
     select(otu_num, A, B, stat, p.value, p_val_adj, 
-           field_type, primary_lifestyle, everything()) %>% 
+           field_type, everything()) %>% 
     arrange(field_type, -stat)
   
   return(out)
