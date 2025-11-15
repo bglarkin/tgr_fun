@@ -175,10 +175,30 @@ its_guild_ma <- # guild biomass (proportion of total biomass)
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
   arrange(field_name, -abund) %>% 
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
-  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>% left_join(pfg, by = join_by(field_name)) %>% 
+  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
+
+# temporary, checking for the pathogen - pfg relationship
+its_guild <- 
+  its_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+  left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
+  group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+  arrange(field_name, -abund) %>% 
+  pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
+  rowwise() %>% 
+  mutate(fungi_abund = sum(c_across(where(is.numeric)))) %>% 
+  select(field_name, patho_abund = plant_pathogen, sapro_abund = saprotroph, fungi_abund) %>% 
+  left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
+  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
+
+
 #' 
 #' #### AMF
 amf_fam_ma <- # family biomass (proportion of total biomass)
@@ -1473,8 +1493,73 @@ patho_ind %>%
 #' ## Pathogen—Plant Correlations
 #' Whole-soil fungi correlated with grass and forbs; investigate whether pathogens do specifically.
 #' Use raw sequence abundances for the figure.
-its_patho_ma <- its_guild_ma %>% filter(field_type == "restored", region != "FL")
-ggplot(its_patho_ma, aes(x = C4_grass, y = patho_mass)) +
+
+
+#' we need to find out whether fungal biomass or gf_index are are helping/hurting the 
+#' relationship with pathogen absolute sequence abundance. 
+#' Since sequence abundance * biomass, the composite variable, is a product, the diagnostic
+#' model should probably be log-log. Check to make sure:
+its_patho <- its_guild %>% 
+  filter(field_type == "restored", region != "FL") %>% 
+  mutate(
+    patho_share = patho_abund / pmax(fungi_abund, 1e-6),
+    logit_patho = qlogis(pmin(pmax(patho_share, 1e-6), 1 - 1e-6))
+  ) %>% 
+  left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
+  select(-sapro_abund)
+
+m_raw   <- lm(patho_abund ~ fungi_mass + gf_index, data = its_patho)
+m_logy  <- lm(log(patho_abund) ~ fungi_mass + gf_index, data = its_patho)
+m_logx  <- lm(patho_abund ~ log(fungi_mass) + gf_index, data = its_patho)
+m_both  <- lm(log(patho_abund) ~ log(fungi_mass) + gf_index, data = its_patho)
+
+compare_performance(m_raw, m_logy, m_logx, m_both, rank = TRUE)
+check_model(m_both)  # or the one that "wins"
+
+#' Log-log is best. Ok, now 
+# compute a pathogen proportion before any LRT (row proportions of guilds)
+#' 1.	Does plant composition shift the relative pathogen share?
+m_rel <- lm(logit_patho ~ gf_index, data = its_patho)
+#' 	2.	Does plant composition affect total fungal biomass?
+m_biom <- lm(log(fungi_mass) ~ gf_index, data = its_patho)
+#' 	3.	Does gf_index still matter for absolute pathogens once biomass is in the model?
+m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = its_patho)
+# If gf_index drops out here, biomass is the pathway (or the canceling force).
+
+summary(m_rel)
+summary(m_biom)
+summary(m_abs)
+
+#' All these models need diagnostics...
+#' Then some partial plots:
+library(rsq)
+rsq::rsq.partial(fit_loglog)          # model from item 3
+rsq::rsq.partial(fit_loglog, adj=TRUE)
+
+#' and a display of effects:
+# Predictions with back-transform + smearing
+sm <- exp(mean(residuals(fit_loglog)))     # Duan smearing
+newdat <- with(df, expand.grid(
+  fungi_mass = exp(seq(log(min(fungi_mass)), log(max(fungi_mass)), length=100)),
+  gf_index   = quantile(gf_index, c(.25,.5,.75))
+))
+newdat$pred_patho_mass <- sm * exp(predict(fit_loglog, newdata = newdat))
+
+#' finally how to visualize...
+
+
+
+
+
+
+
+
+its_patho_ma <- its_guild_ma %>% 
+  filter(field_type == "restored", region != "FL") %>% 
+  select(-sapro_mass)
+
+
+ggplot(its_patho_ma, aes(x = gf_index, y = patho_mass)) +
   geom_smooth(method = "lm") +
   geom_point(shape = 1, size = 7) +
   geom_text(aes(label = yr_since)) +
@@ -1483,7 +1568,7 @@ ggplot(its_patho_ma, aes(x = C4_grass, y = patho_mass)) +
 
 
 
-gf_patho_lm <- lm(patho_mass ~ forb, data = its_patho_ma)
+gf_patho_lm <- lm(patho_mass ~ gf_index, data = its_patho_ma)
 
 par(mfrow = c(2,2))
 plot(gf_patho_lm) 
@@ -1495,7 +1580,7 @@ summary(gf_patho_lm)
 #' Diagnostics
 
 
-gf_patho_rlm <- rlm(plant_pathogen ~ plant_pathogen_mass + gf_index, data = its_gulr_pbm %>% filter(field_type == "restored", region != "FL"))
+gf_patho_rlm <- rlm(patho_mass ~ gf_index, data = its_patho_ma)
 tidy(gf_patho_rlm, conf.int = TRUE)
 compare_performance(gf_patho_lm, gf_patho_rlm, metrics = c("AIC", "RMSE","R2"), rank = TRUE)
 summary(gf_patho_rlm)
@@ -1521,6 +1606,16 @@ plot(gf_patho_lm)
 distribution_prob(gf_patho_lm)
 #' Response and residuals normal, no transformations warranted and linear model appropriate.
 summary(gf_patho_lm)
+
+
+
+
+
+
+
+
+
+
 
 #' 
 #' # Putative saprotrophs
