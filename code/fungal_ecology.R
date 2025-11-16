@@ -31,7 +31,7 @@ packages_needed <- c(
   "colorspace", "emmeans", "gridExtra", "knitr", "tidyverse", "vegan",
   "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
   "ggpubr", "patchwork", "car", "performance", "boot", "indicspecies",
-  "MASS", "DHARMa", "broom", "rlang"
+  "MASS", "DHARMa", "broom", "rlang", "rsq"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -1499,31 +1499,50 @@ patho_ind %>%
 #' relationship with pathogen absolute sequence abundance. 
 #' Since sequence abundance * biomass, the composite variable, is a product, the diagnostic
 #' model should probably be log-log. Check to make sure:
-its_patho <- its_guild %>% 
+patho_resto <- its_guild %>% 
   filter(field_type == "restored", region != "FL") %>% 
   mutate(
-    patho_share = patho_abund / pmax(fungi_abund, 1e-6),
-    logit_patho = qlogis(pmin(pmax(patho_share, 1e-6), 1 - 1e-6))
+    patho_prop = patho_abund / fungi_abund, # no zeroes present...
+    patho_logit = qlogis(patho_prop)
   ) %>% 
   left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
   select(-sapro_abund)
 
-m_raw   <- lm(patho_abund ~ fungi_mass + gf_index, data = its_patho)
-m_logy  <- lm(log(patho_abund) ~ fungi_mass + gf_index, data = its_patho)
-m_logx  <- lm(patho_abund ~ log(fungi_mass) + gf_index, data = its_patho)
-m_both  <- lm(log(patho_abund) ~ log(fungi_mass) + gf_index, data = its_patho)
+parest_m_raw  <- lm(patho_abund ~ fungi_mass + gf_index, data = patho_resto)
+parest_m_logy <- lm(log(patho_abund) ~ fungi_mass + gf_index, data = patho_resto)
+parest_m_logx <- lm(patho_abund ~ log(fungi_mass) + gf_index, data = patho_resto)
+parest_m_both <- lm(log(patho_abund) ~ log(fungi_mass) + gf_index, data = patho_resto)
+# consider rlm to reduce leverage
 
-compare_performance(m_raw, m_logy, m_logx, m_both, rank = TRUE)
-check_model(m_both)  # or the one that "wins"
+compare_performance(parest_m_raw, parest_m_logy, parest_m_logx, parest_m_both, 
+                    metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+
+plot(parest_m_both)
+distribution_prob(parest_m_both)
 
 #' Log-log is best. Ok, now 
 # compute a pathogen proportion before any LRT (row proportions of guilds)
-#' 1.	Does plant composition shift the relative pathogen share?
-m_rel <- lm(logit_patho ~ gf_index, data = its_patho)
+#' 1.	Does plant composition shift the relative pathogen proportion?
+ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
+  geom_text(label = rownames(patho_resto))
+parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
+distribution_prob(parest_m_rel)
+plot(check_distribution(parest_m_rel))
+shapiro.test(parest_m_rel$residuals)
+plot(parest_m_rel)
+summary(parest_m_rel)
 #' 	2.	Does plant composition affect total fungal biomass?
-m_biom <- lm(log(fungi_mass) ~ gf_index, data = its_patho)
+ggplot(patho_resto, aes(x = gf_index, y = log(fungi_mass))) +
+  geom_text(label = rownames(patho_resto))
+parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
+distribution_prob(parest_m_biom)
+shapiro.test(parest_m_biom$residuals)
+plot(check_distribution(parest_m_biom))
+plot(parest_m_biom)
 #' 	3.	Does gf_index still matter for absolute pathogens once biomass is in the model?
-m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = its_patho)
+parest_m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = patho_resto)
+distribution_prob(parest_m_abs)
+plot(parest_m_abs)
 # If gf_index drops out here, biomass is the pathway (or the canceling force).
 
 summary(m_rel)
