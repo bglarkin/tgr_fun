@@ -13,7 +13,7 @@
 #' restored, and remnant prairie fields.
 #' 
 #' **Alpha diversity** – 97 %-OTUs (ITS & 18S); site means are replicates; means separation model selection
-#' based on response and residuals distributions; √‑transformation of sequencing depth used as covariate 
+#' based on response and residuals distributions; sequencing depth used as covariate 
 #' per [Bálint 2015](https://onlinelibrary.wiley.com/doi/abs/10.1111/mec.13018) when warranted; 
 #' pairwise LSMs via *emmeans*.
 #' 
@@ -136,8 +136,7 @@ amf_ps <- phyloseq(
 #' Abundance in functional groups and by species are only available from Wisconsin sites. 
 #' Only C4_grass and forbs are used. Others: C3_grass, legume, and shrubTree were found 
 #' previously to have high VIF in models or were not chosen in forward selection. 
-pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FALSE) %>% 
-  select(field_name, C4_grass, forb)
+pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FALSE) 
 
 #' ## Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
@@ -153,7 +152,8 @@ soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26
 #' in restored prairies. In models or constrained ordinations, they are collinear and cannot be
 #' used simultaneously. An index of grass-forb cover is created to solve this problem. 
 pfg_pca <- 
-  pfg %>% 
+  pfg %>%
+  select(field_name, C4_grass, forb) %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   filter(field_type == "restored") %>% 
   select(-field_type) %>% 
@@ -165,6 +165,20 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
   data.frame() %>% 
   rename(gf_index = PC1) %>% 
   rownames_to_column(var = "field_name")
+
+
+
+
+# We need some visualization of the gf_index...pct comp of c4 and forb at rank order of gf_index?
+
+
+
+
+
+
+
+
+
 #' 
 #' ## Whole soil fungi
 #' Wrangle data to produce proportional biomass in guilds for its and families for amf
@@ -180,8 +194,7 @@ its_guild_ma <- # guild biomass (proportion of total biomass)
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
-
-# temporary, checking for the pathogen - pfg relationship
+#' Wrangle a second set to compare raw sequence abundances and proportion of biomass values together
 its_guild <- 
   its_avg %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
@@ -197,7 +210,6 @@ its_guild <-
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
-
 
 #' 
 #' #### AMF
@@ -526,23 +538,6 @@ its_ord <-
 
 #' 
 #' #### Supplemental figure
-#' #+ fig2_patchwork,warning=FALSE
-#' fig2_ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
-#'     plot_layout(heights = c(1,0.01,1)) 
-#' fig2 <- (fig2_ls | plot_spacer() | its_ord) +
-#'     plot_layout(widths = c(0.35, 0.01, 0.64)) +
-#'     plot_annotation(tag_levels = 'a') 
-#' #+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
-#' fig2
-#' #' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
-#' #' **a** OTU richness and **b** fungal biomass (PLFA) are shown as columns with 95 % CIs; lowercase
-#' #' letters mark significant pairwise differences (P < 0.001).
-#' #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
-#' #' distances: small points = sites, large circles = field-type centroids (error bars =
-#' #' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
-#' #' Numbers in black circles give years since restoration. Axis labels show the
-#' #' percent variation explained. Colours/shading: corn = grey, restored = black,
-#' #' remnant = white.
 #' 
 #' #+ fig2_save,warning=FALSE,echo=FALSE
 #' ggsave(root_path("figs", "fig2.png"),
@@ -552,10 +547,7 @@ its_ord <-
 #'        units = "in",
 #'        dpi = 600)
 
-
-
 ## Use procrustes to contrast the two ordinations!
-
 
 set.seed(20251111)
 its_protest <- protest(
@@ -564,9 +556,9 @@ its_protest <- protest(
   permutations = 1999
 )
 
-
 #' Including biomass changes little. The spatial configuration both ordinations are highly correlated
 #' $R^{2}=$ `r round(its_protest$scale^2, 2)`, p<0.001. 
+
 
 
 
@@ -704,6 +696,7 @@ ggsave(
   units = "in",
   dpi = 600
 )
+
 
 #' 
 #' # Arbuscular mycorrhizal fungi
@@ -1019,20 +1012,7 @@ amf_ord <-
         plot.tag.position = c(0, 1.01))
 
 #' ## Supplemental figure
-#' #+ fig3_patchwork,warning=FALSE
-#' fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
-#'   plot_layout(heights = c(1,0.01,1)) 
-#' fig3 <- (fig3_ls | plot_spacer() | amf_ord) +
-#'   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-#'   plot_annotation(tag_levels = 'a') 
-#' #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
-#' fig3
-#' #' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
-#' #' NLFA biomass **b** (95 % CI, letters = Tukey groups; P < 0.05 / 0.0001). PCoA of weighted‑UniFrac distances 
-#' #' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
-#' #' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
-#' #' prairie types (P < 0.01). Shading: corn grey, restored black, remnant white.
-#' 
+
 #' #+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
 #' ggsave(root_path("figs", "fig3.png"),
 #'        plot = fig3,
@@ -1040,8 +1020,6 @@ amf_ord <-
 #'        height = 4,
 #'        units = "in",
 #'        dpi = 600)
-
-
 
 ## Contrast with procrustes!
 
@@ -1061,23 +1039,8 @@ amf_protest <- protest(
 
 
 
-
-
-
-
-#' ## AMF abundance in families
-#' Display raw abundances in a table
-#' Combine later with confidence intervals and corrected p values
-amf_fam_diff <- 
-  amf_fam_ma %>% 
-  pivot_longer(Glmrc_mass:Ggspr_mass, names_to = "family", values_to = "mass") %>% 
-  group_by(field_type, family) %>% 
-  summarize(mass = mean(mass), .groups = "drop") %>% 
-  pivot_wider(names_from = field_type, values_from = mass) %>% 
-  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 1))) %>% 
-  arrange(-total) %>% select(-total)
-kable(amf_fam_diff, format = "pandoc", caption = "AMF abundance in families and field types")
 #' 
+#' ## AMF abundance in families
 #' Test proportion of biomass across field types for each family
 #' 
 #' ### Glomeraceae
@@ -1173,7 +1136,50 @@ diver_em <- emmeans(diver_glm, ~ field_type, type = "response")
 #' 
 #' ### Gigasporaceae and others
 #' Zeroes in data; comparison not warranted
+
 #' 
+#' ### Results table
+#' Combine later with confidence intervals and corrected p values
+amf_fam_diff <- 
+  amf_fam_ma %>% 
+  pivot_longer(Glmrc_mass:Dvrss_mass, names_to = "family", values_to = "mass") %>% 
+  group_by(field_type, family) %>% 
+  summarize(mass = mean(mass), .groups = "drop") %>% 
+  pivot_wider(names_from = field_type, values_from = mass) %>% 
+  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 1))) %>% 
+  arrange(-total) %>% select(-total) %>% 
+  left_join(
+    list(
+      Glmrc_mass = glom_em,
+      Clrdg_mass = clar_em,
+      Prglm_mass = para_em,
+      Dvrss_mass = diver_em
+    ) %>% map(\(df) df %>% as.data.frame() %>% select(field_type, lower.CL, upper.CL) %>% 
+                pivot_wider(names_from = field_type, values_from = c(lower.CL, upper.CL), names_glue = "{field_type}_{.value}")) %>% 
+      bind_rows(.id = "family"),
+    by = join_by(family)
+  ) %>% 
+  select(family, starts_with("corn"), starts_with("restored"), starts_with("remnant"))
+#' Model results
+list(glom = glom_glm, clar = clar_glm, para = para_glm, diver = diver_glm) %>% 
+  map(\(df) df %>% anova() %>% as.data.frame()) %>% 
+  bind_rows(.id = "family") %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 5))
+#' Pairwise contrasts
+list(glom = glom_em, clar = clar_em, para = para_em, diver = diver_em) %>% 
+  map(\(df) pairs(df, adjust = "fdr"))
+
+
+#' write up for all of them:
+#' example:
+#' Field type strongly affected Glomeraceae biomass (ANOVA: F(2, 22) = 23.50, p = 3.46×10⁻⁶)
+
+
+
+
+
+
+
 #' 
 #' ## Indicator species analysis
 amf_ind <- inspan(spe=amf_avg_ma, meta=amf_meta, guild=NULL, site_dat=sites)
@@ -1183,6 +1189,7 @@ amf_ind %>%
   arrange(field_type, p_val_adj) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with avg biomass")
+
 
 #' 
 #' # Putative plant pathogens
