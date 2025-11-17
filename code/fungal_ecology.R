@@ -31,7 +31,7 @@ packages_needed <- c(
   "colorspace", "emmeans", "gridExtra", "knitr", "tidyverse", "vegan",
   "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
   "ggpubr", "patchwork", "car", "performance", "boot", "indicspecies",
-  "MASS", "DHARMa", "broom", "rlang", "rsq"
+  "MASS", "DHARMa", "broom", "rlang", "rsq", "purrr", "sandwich", "lmtest"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -1517,120 +1517,150 @@ parest_m_both <- lm(log(patho_abund) ~ log(fungi_mass) + gf_index, data = patho_
 compare_performance(parest_m_raw, parest_m_logy, parest_m_logx, parest_m_both, 
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
 
-plot(parest_m_both)
-distribution_prob(parest_m_both)
 
 #' Log-log is best. Ok, now 
 # compute a pathogen proportion before any LRT (row proportions of guilds)
 #' 1.	Does plant composition shift the relative pathogen proportion?
 ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
   geom_text(label = rownames(patho_resto))
+
 parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
+augment(parest_m_rel)
 distribution_prob(parest_m_rel)
-plot(check_distribution(parest_m_rel))
 shapiro.test(parest_m_rel$residuals)
 plot(parest_m_rel)
 summary(parest_m_rel)
+
+
+slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
+  coef(lm(patho_logit ~ gf_index, data = patho_resto[-i, ]))["gf_index"]
+})
+summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
+
+coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
+coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
+crPlots(parest_m_rel, terms = ~ gf_index)
+ncvTest(parest_m_rel)
+
+#' A linear model indicated a positive association between grass–forb index 
+#' and the logit share of pathogen sequences (β̂ = …, 95% CI …, adj. R² = 0.63, n = 10).
+#' Results were robust to HC3 standard errors and to robust regression (bisquare), with similar slope estimates.
+
+
 #' 	2.	Does plant composition affect total fungal biomass?
 ggplot(patho_resto, aes(x = gf_index, y = log(fungi_mass))) +
   geom_text(label = rownames(patho_resto))
 parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
+augment(parest_m_biom)
 distribution_prob(parest_m_biom)
 shapiro.test(parest_m_biom$residuals)
-plot(check_distribution(parest_m_biom))
+par(mfrow = c(2,2))
 plot(parest_m_biom)
+summary(parest_m_biom)
+
+
+coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slope and SEs also NS
+coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
+with(patho_resto, cor.test(gf_index, log(fungi_mass), method = "spearman", exact = FALSE)) # nonparametric correlation NS
+#' OLS and robust estimates agree on direction/magnitude; effect not significant
+crPlots(parest_m_biom, terms = ~ gf_index)
+ncvTest(parest_m_biom)
+
+
 #' 	3.	Does gf_index still matter for absolute pathogens once biomass is in the model?
 parest_m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = patho_resto)
+
+ggplot(patho_resto, aes(x = log(fungi_mass), y = log(patho_mass))) +
+  geom_text(label = rownames(patho_resto))
+
+augment(parest_m_abs)
 distribution_prob(parest_m_abs)
+shapiro.test(parest_m_abs$residuals)
 plot(parest_m_abs)
-# If gf_index drops out here, biomass is the pathway (or the canceling force).
+summary(parest_m_abs)
 
-summary(m_rel)
-summary(m_biom)
-summary(m_abs)
+crPlots(parest_m_abs)
+avPlots(parest_m_abs)
 
-#' All these models need diagnostics...
-#' Then some partial plots:
-library(rsq)
-rsq::rsq.partial(fit_loglog)          # model from item 3
-rsq::rsq.partial(fit_loglog, adj=TRUE)
+coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
+coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
+crPlots(parest_m_abs, terms = ~ gf_index)
+ncvTest(parest_m_abs)
+
+#' Diagnostics (Shapiro p=0.64; NCV p=0.54; HC3 and LOOCV stable) support the additive log–log model.
+#' 
+
+#' Elasticity of pathogen mass to fungal biomass: a 1% ↑ in biomass ≈ 1.54% ↑ in pathogen mass.
+#' gf_index is multiplicative on the original scale. One-unit increase ⇒ ×exp(0.698) ≈ ×2.01 in pathogen mass.
+#' Using your HC3 SE: 0.698 ± 1.96·0.2106 ⇒ [0.284, 1.112] ⇒ ×[1.33, 3.04].
+
+
+      
+rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
+
+
+
+
+
 
 #' and a display of effects:
 # Predictions with back-transform + smearing
-sm <- exp(mean(residuals(fit_loglog)))     # Duan smearing
-newdat <- with(df, expand.grid(
+sm <- exp(mean(residuals(parest_m_abs)))     # Duan smearing
+newdat <- with(patho_resto, expand.grid(
   fungi_mass = exp(seq(log(min(fungi_mass)), log(max(fungi_mass)), length=100)),
   gf_index   = quantile(gf_index, c(.25,.5,.75))
 ))
-newdat$pred_patho_mass <- sm * exp(predict(fit_loglog, newdata = newdat))
+newdat$pred_patho_mass <- sm * exp(predict(parest_m_abs, newdata = newdat))
 
 #' finally how to visualize...
 
 
+# Median fungal biomass on the original scale
+med_fungi <- median(patho_resto$fungi_mass, na.rm = TRUE)
 
+# Prediction grid: vary gf_index, hold fungi_mass at its median
+newdat <- tibble(
+  gf_index   = seq(min(patho_resto$gf_index, na.rm = TRUE),
+                   max(patho_resto$gf_index, na.rm = TRUE),
+                   length.out = 200),
+  fungi_mass = med_fungi
+)
 
+# Predict on the log scale, then back-transform to the original scale
+pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%
+  mutate(
+    fit_med = exp(.fitted),                       # median on raw scale
+    lwr_med = exp(.fitted - 1.96 * .se.fit),
+    upr_med = exp(.fitted + 1.96 * .se.fit)
+  )
 
+#+ fig7,warning=FALSE,fig.height=4,fig.width=4
+fig7 <- 
+  ggplot(pred, aes(x = gf_index, y = fit_med)) +
+  geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), alpha = 0.15) +
+  geom_line() +
+  geom_point(data = patho_resto, aes(x = gf_index, y = patho_mass),
+             fill = "black", size = sm_size, stroke = lw, shape = 21) +
+  geom_text(data = patho_resto, aes(x = gf_index, y = patho_mass, label = yr_since), 
+            size = yrtx_size, family = "sans", fontface = 2, color = "white") +
+  labs(
+    x = "Grass–forb index",
+    y = "Pathogen mass",
+    caption = paste0("Curve shown at median fungal biomass")
+  ) +
+  theme_cor
 
+fig7
 
-
-its_patho_ma <- its_guild_ma %>% 
-  filter(field_type == "restored", region != "FL") %>% 
-  select(-sapro_mass)
-
-
-ggplot(its_patho_ma, aes(x = gf_index, y = patho_mass)) +
-  geom_smooth(method = "lm") +
-  geom_point(shape = 1, size = 7) +
-  geom_text(aes(label = yr_since)) +
-  labs(x = "Index: C4_grass <—> Forb abundance", y = "Sequence abundance, plant pathogens") +
-  theme_classic()
-
-
-
-gf_patho_lm <- lm(patho_mass ~ gf_index, data = its_patho_ma)
-
-par(mfrow = c(2,2))
-plot(gf_patho_lm) 
-#' no serious violations observed, structure but little leverage
-distribution_prob(gf_patho_lm)
-#' Residuals distribution fits normal, response gamma
-summary(gf_patho_lm)
-
-#' Diagnostics
-
-
-gf_patho_rlm <- rlm(patho_mass ~ gf_index, data = its_patho_ma)
-tidy(gf_patho_rlm, conf.int = TRUE)
-compare_performance(gf_patho_lm, gf_patho_rlm, metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-summary(gf_patho_rlm)
-
-
-
-set.seed(123)
-B <- 2000
-boot_ci <- function(mod, data, probs = c(.025, .975)) {
-  bhat <- replicate(B, {
-    idx <- sample(nrow(data), replace = TRUE)
-    coef(update(mod, data = data[idx, ]))
-  })
-  apply(bhat, 1, quantile, probs = probs, na.rm = TRUE)
-}
-boot_ci(gf_patho_rlm, its_gulr_pbm %>% filter(field_type == "restored", region != "FL"))
-
-par(mfrow = c(2,2))
-plot(gf_patho_lm) 
-#' Some residual structure, but a smooth qq fit. 
-#' Minor leverage with point 4 pulls the slope to more level, risking a type II error rather than type I. 
-#' Model is still significant with point 4 removed. 
-distribution_prob(gf_patho_lm)
-#' Response and residuals normal, no transformations warranted and linear model appropriate.
-summary(gf_patho_lm)
-
-
-
-
-
-
+#+ fig7_save,warning=FALSE,echo=FALSE
+ggsave(
+  root_path("figs", "fig7.png"),
+  plot = fig7,
+  width = 4,
+  height = 4,
+  units = "in",
+  dpi = 600
+)
 
 
 
