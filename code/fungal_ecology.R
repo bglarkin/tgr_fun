@@ -42,9 +42,12 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
 root_path <- function(...) rprojroot::find_rstudio_root_file(...)
 
 #+ conflicts,message=FALSE
-conflict_prefer("filter", "dplyr")
-conflict_prefer("select", "dplyr")
-conflict_prefer("diversity", "vegan")
+conflicts_prefer(
+  dplyr::filter(),
+  dplyr::select(),
+  dplyr::where(),
+  vegan::diversity()
+)
 #' 
 #+ graphics_styles
 source(root_path("resources", "styles.R"))
@@ -298,7 +301,7 @@ its_rich_fig <-
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = "Richness") +
   lims(y = c(0, 760)) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -368,7 +371,7 @@ its_shan_fig <-
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = "Shannon diversity") +
   lims(y = c(0, 160)) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -404,7 +407,7 @@ plfa_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -448,19 +451,19 @@ p_its_ma_centers <- its_ma_ord_data %>%
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
 its_ma_ord <- 
   ggplot(its_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
   geom_linerange(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_its_ma$axis_pct[1], "%)"),
     y = paste0("Axis 2 (", mva_its_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
+        plot.tag.position = c(0, 1.0))
 
 #' 
 #' #### Unified figure
@@ -516,25 +519,25 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 #' Plotting results: 
 its_ord_data <- mva_its$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 p_its_centers <- its_ord_data %>% 
-    group_by(field_type) %>% 
-    summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-    mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-           across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
 its_ord <- 
-    ggplot(its_ord_data, aes(x = Axis.1, y = Axis.2)) +
-    geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-    geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
-    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-    geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-    geom_point(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-    scale_fill_manual(values = c("gray", "black", "white")) +
-    labs(
+  ggplot(its_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
         x = paste0("Axis 1 (", mva_its$axis_pct[1], "%)"),
         y = paste0("Axis 2 (", mva_its$axis_pct[2], "%)")) +
-    theme_ord +
-    theme(legend.position = "none",
-          plot.tag = element_text(size = 14, face = 1),
-          plot.tag.position = c(0, 1.01))
+  scale_fill_manual(values = ft_pal) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.01))
 
 #' 
 #' #### Supplemental figure
@@ -589,6 +592,8 @@ soil_macro <-
   select(-c(field_key, field_type, region, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na))
 
 #' Assemble explanatory variables and begin iterative selection process. 
+#' Plant functional groups and traits not included here were eliminated in previous forward selection
+#' procedures (not shown). 
 #' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
 #' detected. Then run forward selection in `dbrda()`. 
 env_vars <- sites %>% 
@@ -1146,7 +1151,7 @@ amf_fam_diff <-
   group_by(field_type, family) %>% 
   summarize(mass = mean(mass), .groups = "drop") %>% 
   pivot_wider(names_from = field_type, values_from = mass) %>% 
-  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 1))) %>% 
+  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 2))) %>% 
   arrange(-total) %>% select(-total) %>% 
   left_join(
     list(
@@ -1156,25 +1161,31 @@ amf_fam_diff <-
       Dvrss_mass = diver_em
     ) %>% map(\(df) df %>% as.data.frame() %>% select(field_type, lower.CL, upper.CL) %>% 
                 pivot_wider(names_from = field_type, values_from = c(lower.CL, upper.CL), names_glue = "{field_type}_{.value}")) %>% 
-      bind_rows(.id = "family"),
+      bind_rows(.id = "family") %>% 
+      mutate(across(where(is.numeric), ~ round(.x, 2))),
     by = join_by(family)
   ) %>% 
-  select(family, starts_with("corn"), starts_with("restored"), starts_with("remnant"))
+  mutate(corn_ci = paste(corn_lower.CL, corn_upper.CL, sep = "–"),
+         restored_ci = paste(restored_lower.CL, restored_upper.CL, sep = "–"),
+         remnant_ci = paste(remnant_lower.CL, remnant_upper.CL, sep = "–")) %>% 
+  select(family, corn, corn_ci, restored, restored_ci, remnant, remnant_ci)
+kable(amf_fam_diff, format = "pandoc", caption = "Table: AMF mass in families across field types")
+#' Pairwise contrasts
+list(glom = glom_em, clar = clar_em, para = para_em, diver = diver_em) %>% 
+  map(\(df) pairs(df, adjust = "tukey"))
 #' Model results
 list(glom = glom_glm, clar = clar_glm, para = para_glm, diver = diver_glm) %>% 
   map(\(df) df %>% anova() %>% as.data.frame()) %>% 
   bind_rows(.id = "family") %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 5))
-#' Pairwise contrasts
-list(glom = glom_em, clar = clar_em, para = para_em, diver = diver_em) %>% 
-  map(\(df) pairs(df, adjust = "fdr"))
 
 
 #' write up for all of them:
 #' example:
-#' Field type strongly affected Glomeraceae biomass (ANOVA: F(2, 22) = 23.50, p = 3.46×10⁻⁶)
-
-
+#' Field type strongly affected Glomeraceae biomass (ANOVA: F(2, 22) = 23.50, pAdj < 0.001)
+#' “We controlled multiplicity at two levels: (i) BH FDR across the four family-level omnibus tests 
+#' (field type effect), and (ii) Tukey-adjusted pairwise comparisons of field types within any model 
+#' proceeding to post-hoc analysis. Estimated marginal means (on the response scale for GLMs) were obtained via emmeans.”
 
 
 
@@ -1184,10 +1195,10 @@ list(glom = glom_em, clar = clar_em, para = para_em, diver = diver_em) %>%
 #' ## Indicator species analysis
 amf_ind <- inspan(spe=amf_avg_ma, meta=amf_meta, guild=NULL, site_dat=sites)
 amf_ind %>% 
-  select(A, B, stat, p_val_adj, field_type, family, taxon, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
+  select(field_type, family, taxon, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
   filter(taxon != "unidentified") %>% 
-  arrange(field_type, p_val_adj) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
+  arrange(field_type) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with avg biomass")
 
 

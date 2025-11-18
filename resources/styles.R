@@ -1,10 +1,16 @@
 # Graphics styles for TGR repository
 
+# Color palettes
+# hcl_wizard()
+# hcl_color_picker()
+# Field types: corn, restored, remnant:
+ft_pal <- c("#EABB38", "#96DC51", "#078F78")
+
 # Shapes and sizes
-lw <- 0.5
-sm_size <- 3
+lw <- 0.4
+sm_size <- 3.1
 lg_size <- 4.6
-yrtx_size <- 2.2
+yrtx_size <- 2.1
 
 # Ordination style
 theme_ord <-
