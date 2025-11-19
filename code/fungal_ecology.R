@@ -309,6 +309,8 @@ its_div %>%
 its_rich_em <- emmeans(its_rich_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group means and confidence intervals, 
 #' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
+#' Main effect and covariate in model significant after p value adjustment (see summary section): pairwise
+#' contrast warranted.
 #+ its_rich_em_summary,echo=FALSE
 kable(summary(its_rich_em), 
       format = "pandoc", 
@@ -765,6 +767,8 @@ amf_rich_covar$anova_t2
 amf_rich_em <- emmeans(amf_rich_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group arithmetic means and confidence intervals, 
 #' and the post hoc contrast of richness among field types. 
+#' Main effect in model significant after p value adjustment (see summary section): pairwise
+#' contrast warranted.
 #+ amf_rich_em_summary,echo=FALSE
 kable(summary(amf_rich_em), 
       format = "pandoc", 
@@ -1412,7 +1416,8 @@ leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() 
 
 #' Model results, group means, and post-hoc
 patho_rich_covar$anova_t2
-#' Sequence depth is highly significant; richness doesn't vary in groups. 
+#' Sequence depth is highly significant (also after p value adjustment); 
+#' richness doesn't vary in groups. 
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case.
 patho_rich_em <- emmeans(patho_rich_lm, ~ field_type, type = "response")
@@ -1430,7 +1435,6 @@ patho_rich_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = "Richness") +
-  # lims(y = c(0, 760)) +
   scale_fill_manual(values = c("gray", "black", "white")) +
   theme_cor +
   theme(legend.position = "none",
@@ -1896,16 +1900,7 @@ sapro_rich_glm  <- glm(richness ~ depth_clg + field_type, family = Gamma(link = 
                        data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
-
-check_model(sapro_rich_lm)
-check_model(sapro_rich_glm)
-augment(sapro_rich_lm)
-augment(sapro_rich_glm)
-par(mfrow = c(2,2))
-plot(sapro_rich_lm)
-
-#' scale-location much more uniform but still a little heavy tails,
-#' qqplot shows much better fit; leverage point now ~0.3
+#' Slight improvement to qq plot shape, slightly reduced hatvalue (not shown)
 performance::check_overdispersion(sapro_rich_glm) # not detected
 sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
@@ -1913,6 +1908,7 @@ plot(sapro_glm_sim) # DHARMa passes all tests
 
 #' Model results, group means, and post-hoc
 summary(sapro_rich_glm)
+Anova(sapro_rich_glm, type = 2)
 #' Sequence depth is significant; richness doesn't vary in groups. View trend:
 sapro_div %>% 
   group_by(field_type) %>% 
@@ -1920,8 +1916,9 @@ sapro_div %>%
             avg_depth = mean(depth), .groups = "drop") %>% 
   mutate(across(starts_with("avg"), ~ round(.x, 1))) %>% 
   kable(format = "pandoc")
-#' depth and richness in a negative relationship; depth not driving richness...
- 
+#' Inverse relationship between depth and field_type. There was a mildly significant
+#' interaction, but how to work out what that would even mean?
+#' 
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case, back-transformed.
 sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
@@ -1929,17 +1926,13 @@ sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
 kable(summary(sapro_rich_em), 
       format = "pandoc", 
       caption = "Confidence level used: 0.95")
-#+ sapro_rich_em_posthoc,echo=FALSE
-kable(pairs(sapro_rich_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' Model NS; no post hoc comparison...
 #+ sapro_richness_fig,fig.width=4,fig.height=4
 sapro_rich_fig <- 
   ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = "Richness") +
-  # lims(y = c(0, 760)) +
   scale_fill_manual(values = c("gray", "black", "white")) +
   theme_cor +
   theme(legend.position = "none",
@@ -2160,5 +2153,15 @@ sapro_abund_ft %>%
 #' Concatenate model outputs and adjust p values
 
 
-its_rich_covar$anova_t2
-amf_rich_covar$anova_t2
+list(
+  its_rich = its_rich_covar$anova_t2,
+  amf_rich = amf_rich_covar$anova_t2,
+  patho_rich = patho_rich_covar$anova_t2,
+  sapro_rich = sapro_rich_covar$anova_t2
+) %>% map(\(df) df %>% as.data.frame() %>% 
+            drop_na() %>% mutate(var = c("covariate", "test_var"))) %>% 
+  bind_rows(.id = "grp") %>% 
+  split(., ~ var) %>% 
+  map(\(df) df %>% mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 4)) %>% 
+        select(-var))
+#' Main effect only significant with its and amf...pairwise only warranted there
