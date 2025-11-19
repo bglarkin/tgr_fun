@@ -737,7 +737,8 @@ ggsave(
 amf_div <- calc_div(amf_avg, sites)
 #' 
 #' ### Richness
-#' Account for sequencing depth as a covariate. Test covar transformations for best model performance.
+#' Account for sequencing depth as a covariate. Test covar transformations 
+#' for best model performance.
 amf_rich_covar <- covar_shape_test(
   data  = amf_div,
   y     = "richness",       
@@ -1197,7 +1198,8 @@ amf_fam_diff <-
   select(family, corn, corn_ci, restored, restored_ci, remnant, remnant_ci)
 kable(amf_fam_diff, format = "pandoc", caption = "Table: AMF mass in families across field types")
 #' Pairwise contrasts
-list(glom = glom_em, clar = clar_em, para = para_em, diver = diver_em) %>% 
+#' Paraglomeraceae model was NS; no pairwise indicated
+list(glom = glom_em, clar = clar_em, diver = diver_em) %>% 
   map(\(df) pairs(df, adjust = "tukey"))
 #' Model results
 list(glom = glom_glm, clar = clar_glm, para = para_glm, diver = diver_glm) %>% 
@@ -1213,6 +1215,11 @@ list(glom = glom_glm, clar = clar_glm, para = para_glm, diver = diver_glm) %>%
 #' (field type effect), and (ii) Tukey-adjusted pairwise comparisons of field types within any model 
 #' proceeding to post-hoc analysis. Estimated marginal means (on the response scale for GLMs) were obtained via emmeans.”
 
+#' 	Omnibus: “For each AMF family, we fit a Gamma GLM with log link predicting abundance by 
+#' 	field type. We controlled the false discovery rate across the four family-level tests using 
+#' 	Benjamini–Hochberg (BH).” Pairwise: “Within models showing a field-type effect, we 
+#' 	compared estimated marginal means with Tukey adjustment for all pairwise contrasts 
+#' 	(emmeans). 
 
 
 
@@ -1382,18 +1389,18 @@ patho_div <- calc_div(patho, sites)
 #' 
 #' ### Richness
 #' Account for sequencing depth as a covariate. Compare models with raw, sqrt, and log transformed depth.
-pathorich_covar_test <- covar_shape_test(
+patho_rich_covar <- covar_shape_test(
   data  = patho_div,
   y     = "richness",       
   covar = "depth",   
   group = "field_type"           
 )
-pathorich_covar_test$compare
+patho_rich_covar$compare
 #' Sqrt transform selected based on model performance. Model with centered, sqrt depth covar
 patho_rich_lm <- lm(richness ~ depth_csq + field_type, # Interaction NS (not shown)
                     data = patho_div %>% mutate(depth_csq = sqrt(depth) - mean(sqrt(depth))))
 #' Diagnostics
-pathorich_covar_test$diagnostics
+patho_rich_covar$diagnostics
 distribution_prob(patho_rich_lm)
 #' residuals distribution normal or close, response showing group divisions
 leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% 
@@ -1404,7 +1411,7 @@ leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc
-pathorich_covar_test$anova_t2
+patho_rich_covar$anova_t2
 #' Sequence depth is highly significant; richness doesn't vary in groups. 
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case.
@@ -1562,8 +1569,8 @@ patho_ma_ord <-
   geom_point(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
   scale_fill_manual(values = c("gray", "black", "white")) +
   labs(
-    x = paste0("Axis 1 (", mva_patho$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_patho$axis_pct[2], "%)")) +
+    x = paste0("Axis 1 (", mva_patho_ma$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_patho_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -1856,7 +1863,7 @@ ggsave(
 # Putative saprotrophs ———————— ####
 #' 
 #' Retrieve pathogen sequence abundance
-sapro <- guildseq(spe$its_avg, spe_meta$its, "saprotroph")
+sapro <- guildseq(its_avg, its_meta, "saprotroph")
 #' 
 #' ## Diversity Indices
 #+ sapro_diversity
@@ -1864,10 +1871,18 @@ sapro_div <- calc_div(sapro, sites)
 #' 
 #' ### Richness
 #' Account for sequencing depth as a covariate
-sapro_rich_lm <- lm(richness ~ sqrt(depth) + field_type, data = sapro_div)
+sapro_rich_covar <- covar_shape_test(
+  data  = sapro_div,
+  y     = "richness",       
+  covar = "depth",   
+  group = "field_type"           
+)
+sapro_rich_covar$compare
+#' Log transform selected based on model performance. Model with centered, log depth covar
+sapro_rich_lm <- lm(richness ~ depth_clg + field_type,
+                    data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
-par(mfrow = c(2,2))
-plot(sapro_rich_lm) # heavy residual structure, poor qq alignment, borderline leverage
+sapro_rich_covar$diagnostics # heavy residual structure, poor qq alignment
 distribution_prob(sapro_rich_lm)
 #' residuals distribution normal or close, response showing group divisions and count 
 #' overdispersion (binomial family)
@@ -1876,11 +1891,19 @@ leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>%
 leveneTest(residuals(sapro_rich_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% 
   kable(format = "pandoc", caption = "Residuals var in groups")
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-#' LM-log transformation did not improve fit (not shown). Despite lack of unequal variance,
-#' does gamma glm improve other diagnostics?
-sapro_rich_glm  <- glm(richness ~ sqrt(depth) + field_type, family = Gamma(link = "log"), data = sapro_div)
+#' Despite lack of unequal variance, does gamma glm improve other diagnostics?
+sapro_rich_glm  <- glm(richness ~ depth_clg + field_type, family = Gamma(link = "log"), 
+                       data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
+
+check_model(sapro_rich_lm)
+check_model(sapro_rich_glm)
+augment(sapro_rich_lm)
+augment(sapro_rich_glm)
+par(mfrow = c(2,2))
+plot(sapro_rich_lm)
+
 #' scale-location much more uniform but still a little heavy tails,
 #' qqplot shows much better fit; leverage point now ~0.3
 performance::check_overdispersion(sapro_rich_glm) # not detected
@@ -2124,3 +2147,18 @@ sapro_abund_ft %>%
   filter(avg >= 10) %>% 
   kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types\n(Mean abundance >= 10 shown)")
 
+
+
+
+
+
+#' 
+#' # Omnibus summary objects
+# Summaries ———————— ####
+#' 
+#' ## Alpha diversity models
+#' Concatenate model outputs and adjust p values
+
+
+its_rich_covar$anova_t2
+amf_rich_covar$anova_t2
