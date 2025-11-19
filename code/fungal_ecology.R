@@ -242,6 +242,19 @@ its_guild <-
 
 #' 
 #' #### AMF
+amf_fam <- # sequence abundance in families
+  amf_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+  left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
+  group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+  arrange(field_name, -abund) %>% 
+  pivot_wider(names_from = "family", values_from = "abund") %>% 
+  rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_ab"),
+              Glomeraceae:Ambisporaceae) %>% 
+  left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  select(field_name, field_type, yr_since, region, everything())
 amf_fam_ma <- # family biomass (proportion of total biomass)
   amf_avg_ma %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
@@ -251,8 +264,7 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
   pivot_wider(names_from = "family", values_from = "abund") %>% 
   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_mass"),
               Glomeraceae:Ambisporaceae) %>% 
-  select(-(Archs_mass:Ambsp_mass)) %>% 
-  left_join(pfg, by = join_by(field_name)) %>% 
+  left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
@@ -1240,142 +1252,141 @@ amf_ind %>%
 
 
 
-#' #' ## Constrained Analysis
-#' #' Test explanatory variables for correlation with site ordination. Using plant data, 
-#' #' so the analysis is restricted to Wisconsin sites. Edaphic variables are too numerous 
-#' #' to include individually, so transform micro nutrients using PCA. Forb and grass 
-#' #' cover is highly collinear; use the grass-forb index produced previously with PCA. 
-#' soil_micro_pca <- 
-#'   soil %>% 
-#'   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-#'   filter(field_type == "restored", !(region %in% "FL")) %>% 
-#'   select(field_name, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na, -field_key, -field_type, -region) %>% 
-#'   column_to_rownames(var = "field_name") %>% 
-#'   decostand(method = "standardize") %>% 
-#'   rda()
-#' summary(soil_micro_pca) # 70% on first two axes
-#' soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites") %>% 
-#'   data.frame() %>% 
-#'   rename(soil_micro_1 = PC1, soil_micro_2 = PC2) %>% 
-#'   rownames_to_column(var = "field_name")
+
+
+
+#' ## Constrained Analysis
+#' Env covars processed in the ITS section (see above)
+spe_amf_wi_resto <- amf_avg_ma %>%
+  filter(field_name %in% rownames(env_expl)) %>%
+  column_to_rownames(var = "field_name")
+
+amf_mod_null <- dbrda(spe_amf_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+amf_mod_full <- dbrda(spe_amf_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+amf_mod_step <- ordistep(amf_mod_null,
+                     scope = formula(amf_mod_full),
+                     direction = "forward",
+                     permutations = 1999,
+                     trace = FALSE)
+
+#' ### Constrained Analysis Results
+amf_mod_step
+(amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
+(amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999))
+(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
+amf_mod_step$anova %>% kable(, format = "pandoc")
+#' Based on permutation tests with n=1999 permutations, 
 #' 
-#' soil_macro <- 
-#'   soil %>% 
-#'   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-#'   filter(field_type == "restored", !(region %in% "FL")) %>% 
-#'   select(-c(field_key, field_type, region, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na))
 #' 
-#' #' Assemble explanatory variables and begin iterative selection process. 
-#' #' Plant functional groups and traits not included here were eliminated in previous forward selection
-#' #' procedures (not shown). 
-#' #' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
-#' #' detected. Then run forward selection in `dbrda()`. 
-#' env_vars <- sites %>% 
-#'   filter(field_type == "restored", !(region %in% "FL")) %>% 
-#'   select(field_name, dist_axis_1) %>% # 90% on axis 1
-#'   left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
-#'   left_join(soil_macro, by = join_by(field_name)) %>% 
-#'   left_join(gf_index, by = join_by(field_name)) %>% # 92% on axis 1
-#'   select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1 removed based on initial VIF check
-#'   column_to_rownames(var = "field_name") %>% 
-#'   as.data.frame()
-#' env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
-#' env_expl <- env_vars[, setdiff(colnames(env_vars), "dist_axis_1"), drop = FALSE] %>% 
-#'   decostand("standardize")
-#' #' Check VIF
-#' env_expl %>% 
-#'   cor() %>% 
-#'   solve() %>% 
-#'   diag() %>% 
-#'   sort()
-#' #' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
-#' #' Removed soil_micro_1 and K to maintain OM in the model.
-#' #' No overfitting detected in full model; proceed with forward selection. 
-#' spe_its_wi_resto <- its_avg_ma %>% 
-#'   filter(field_name %in% rownames(env_expl)) %>% 
-#'   column_to_rownames(var = "field_name")
+#' UPDATE THE TEXT BELOW
+#' the model shows a significant
+#' correlation between the site ordination on fungal communities
+#' and the selected explanatory variables (p<0.001). The first two constrained axes are
+#' also significant (p<0.01). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community
+#' variation. Selected explanatory variables are pH and the grass-forb index; see table for
+#' individual p values and statistics.
+#'
+
+
+
+
+
+
+#' Create the figure, combine with pathogen-plant correlation figure in patchwork later:
+amf_mod_pars <-
+  dbrda(
+    spe_amf_wi_resto ~ gf_index + OM + Condition(env_cov),
+    data = env_expl,
+    distance = "bray"
+  )
+amf_mod_pars_eig <- round(amf_mod_pars$CCA$eig * 100, 1)
+
+amf_mod_scor <- scores(
+  amf_mod_pars,
+  choices = c(1, 2),
+  display = c("bp", "sites"),
+  tidy = FALSE
+)
+amf_mod_scor_site <- amf_mod_scor$sites %>%
+  data.frame() %>%
+  rownames_to_column(var = "field_name") %>%
+  left_join(sites, by = join_by(field_name))
+amf_mod_scor_bp <- amf_mod_scor$biplot %>%
+  data.frame() %>%
+  rownames_to_column(var = "envvar") %>%
+  mutate(
+    origin = 0,
+    m = dbRDA2 / dbRDA1,
+    d = sqrt(dbRDA1^2 + dbRDA2^2),
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
+    labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
+    laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+
+#+ fig6,warning=FALSE,fig.height=4,fig.width=4
+# fig6 <-
+  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  geom_segment(data = amf_mod_scor_bp,
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = "gray20") +
+  geom_text(data = amf_mod_scor_bp,
+            aes(x = labx, y = laby, label = c("grass—forb\nindex", "OM")),
+            nudge_x = c(-0.2,-0.06), nudge_y = c(0.08,0.1),
+            size = 3, color = "gray20") +
+    geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
+    geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("Constr. Axis 1 (", amf_mod_pars_eig[1], "%)"),
+    y = paste0("Constr. Axis 2 (", amf_mod_pars_eig[2], "%)")) +
+  theme_ord
+# fig6
+
+# #+ fig6_save,warning=FALSE,echo=FALSE
+# ggsave(
+#   root_path("figs", "fig6.png"),
+#   plot = fig6,
+#   width = 4,
+#   height = 4,
+#   units = "in",
+#   dpi = 600
+# )
+
+
+
+#' AMF correlations with pfg
+amf_resto <- amf_fam %>% 
+  rowwise() %>% 
+  mutate(amf_ab = sum(c_across(Glmrc_ab:Ambsp_ab))) %>% 
+  select(-c(Glmrc_ab:Ambsp_ab)) %>% 
+  filter(field_type == "restored", region != "FL") %>% 
+  # mutate(
+  #   sapro_prop = sapro_abund / fungi_abund, # no zeroes present...
+  #   sapro_logit = qlogis(sapro_prop)
+  # ) %>% 
+  # left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>% 
+  # select(-patho_abund)
+  
+  
+
+#' sarest_m_raw  <- lm(sapro_abund ~ fungi_mass + gf_index, data = sapro_resto)
+#' sarest_m_logy <- lm(log(sapro_abund) ~ fungi_mass + gf_index, data = sapro_resto)
+#' sarest_m_logx <- lm(sapro_abund ~ log(fungi_mass) + gf_index, data = sapro_resto)
+#' sarest_m_both <- lm(log(sapro_abund) ~ log(fungi_mass) + gf_index, data = sapro_resto)
+#' # consider rlm to reduce leverage
 #' 
-#' mod_null <- dbrda(spe_its_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-#' mod_full <- dbrda(spe_its_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
-#' mod_step <- ordistep(mod_null, 
-#'                      scope = formula(mod_full), 
-#'                      direction = "forward", 
-#'                      permutations = 1999, 
-#'                      trace = FALSE)
-#' 
-#' #' ### Constrained Analysis Results
-#' mod_step
-#' (mod_glax <- anova(mod_step, permutations = 1999))
-#' (mod_inax <- anova(mod_step, by = "axis", permutations = 1999))
-#' (mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
-#' mod_step$anova %>% kable(, format = "pandoc")
-#' #' Based on permutation tests with n=1999 permutations, the model shows a significant 
-#' #' correlation between the site ordination on fungal communities
-#' #' and the selected explanatory variables (p<0.001). The first two constrained axes are 
-#' #' also significant (p<0.01). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community 
-#' #' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
-#' #' individual p values and statistics. 
-#' #' 
-#' #' Create the figure, combine with pathogen-plant correlation figure in patchwork later:
-#' mod_pars <- 
-#'   dbrda(
-#'     spe_its_wi_resto ~ gf_index + pH + Condition(env_cov),
-#'     data = env_expl,
-#'     distance = "bray"
-#'   )
-#' mod_pars_eig <- round(mod_pars$CCA$eig * 100, 1)
-#' 
-#' mod_scor <- scores(
-#'   mod_pars,
-#'   choices = c(1, 2),
-#'   display = c("bp", "sites"),
-#'   tidy = FALSE
-#' )
-#' mod_scor_site <- mod_scor$sites %>% 
-#'   data.frame() %>%
-#'   rownames_to_column(var = "field_name") %>% 
-#'   left_join(sites, by = join_by(field_name))
-#' mod_scor_bp <- mod_scor$biplot %>% 
-#'   data.frame() %>% 
-#'   rownames_to_column(var = "envvar") %>% 
-#'   mutate(
-#'     origin = 0,
-#'     m = dbRDA2 / dbRDA1, 
-#'     d = sqrt(dbRDA1^2 + dbRDA2^2), 
-#'     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
-#'     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
-#'     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-#' 
-#' #+ fig6,warning=FALSE,fig.height=4,fig.width=4
-#' fig6 <- 
-#'   ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-#'   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-#'   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-#'   geom_point(fill = "black", size = sm_size, stroke = lw, shape = 21) +
-#'   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
-#'   geom_segment(data = mod_scor_bp, 
-#'                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
-#'                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-#'                color = "gray20") +
-#'   geom_text(data = mod_scor_bp, 
-#'             aes(x = labx, y = laby, label = c("grass—forb\nindex", "pH")), 
-#'             nudge_x = c(-0.2,-0.06), nudge_y = c(0.08,0.1),
-#'             size = 3, color = "gray20") +
-#'   labs(
-#'     x = paste0("Constr. Axis 1 (", mod_pars_eig[1], "%)"),
-#'     y = paste0("Constr. Axis 2 (", mod_pars_eig[2], "%)")) +
-#'   theme_ord
-#' fig6
-#' 
-#' #+ fig6_save,warning=FALSE,echo=FALSE
-#' ggsave(
-#'   root_path("figs", "fig6.png"),
-#'   plot = fig6,
-#'   width = 4,
-#'   height = 4,
-#'   units = "in",
-#'   dpi = 600
-#' )
+#' compare_performance(sarest_m_raw, sarest_m_logy, sarest_m_logx, sarest_m_both, 
+#'                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+#' par(mfrow = c(2,2))
+#' plot(sarest_m_raw)
+#' summary(sarest_m_raw)
+#' ggplot(sapro_resto, aes(x = gf_index, sapro_prop)) +
+#'   geom_text(label = rownames(sapro_resto))
+#' #' No relationshp detected. High leverage point is KORP1 but it's difficult to see a 
+#' #' significant inference based on changing it's position.
+
+
 
 
 
