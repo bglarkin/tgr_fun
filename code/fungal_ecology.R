@@ -787,7 +787,7 @@ amf_rich_fig <-
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = "Richness") +
   lims(y = c(0, 75)) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -846,7 +846,7 @@ amf_shan_fig <-
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = NULL) +
   lims(y = c(0, 32)) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -921,7 +921,7 @@ nlfa_fig <-
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   lims(y = c(0, 75)) +
   theme_cor +
   theme(legend.position = "none",
@@ -971,7 +971,7 @@ amf_ma_ord <-
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_amf_ma$axis_pct[1], "%)"),
     y = paste0("Axis 2 (", mva_amf_ma$axis_pct[2], "%)")) +
@@ -1038,7 +1038,7 @@ amf_ord <-
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_amf$axis_pct[1], "%)"),
     y = paste0("Axis 2 (", mva_amf$axis_pct[2], "%)")) +
@@ -1435,7 +1435,7 @@ patho_rich_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = "Richness") +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -1485,7 +1485,7 @@ patho_shan_fig <-
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = "Shannon diversity") +
   # lims(y = c(0, 160)) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -1522,7 +1522,7 @@ patho_ma_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -1571,7 +1571,7 @@ patho_ma_ord <-
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_patho_ma$axis_pct[1], "%)"),
     y = paste0("Axis 2 (", mva_patho_ma$axis_pct[2], "%)")) +
@@ -1646,7 +1646,7 @@ patho_ord <-
   geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_patho$axis_pct[1], "%)"),
     y = paste0("Axis 2 (", mva_patho$axis_pct[2], "%)")) +
@@ -1686,6 +1686,9 @@ patho_ind %>%
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
 
+
+
+
 #' ## Pathogen—Plant Correlations
 #' Whole-soil fungi correlated with grass and forbs; investigate whether pathogens do specifically.
 #' Use raw sequence abundances for the figure.
@@ -1708,14 +1711,13 @@ parest_m_raw  <- lm(patho_abund ~ fungi_mass + gf_index, data = patho_resto)
 parest_m_logy <- lm(log(patho_abund) ~ fungi_mass + gf_index, data = patho_resto)
 parest_m_logx <- lm(patho_abund ~ log(fungi_mass) + gf_index, data = patho_resto)
 parest_m_both <- lm(log(patho_abund) ~ log(fungi_mass) + gf_index, data = patho_resto)
-# consider rlm to reduce leverage
 
 compare_performance(parest_m_raw, parest_m_logy, parest_m_logx, parest_m_both, 
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
 
 
 #' Log-log is best. Ok, now 
-# compute a pathogen proportion before any LRT (row proportions of guilds)
+# Compute a pathogen proportion (row proportions of guilds)
 #' 1.	Does plant composition shift the relative pathogen proportion?
 ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
   geom_text(label = rownames(patho_resto))
@@ -1773,7 +1775,6 @@ augment(parest_m_abs)
 distribution_prob(parest_m_abs)
 shapiro.test(parest_m_abs$residuals)
 plot(parest_m_abs)
-summary(parest_m_abs)
 
 crPlots(parest_m_abs)
 avPlots(parest_m_abs)
@@ -1786,30 +1787,16 @@ ncvTest(parest_m_abs)
 #' Diagnostics (Shapiro p=0.64; NCV p=0.54; HC3 and LOOCV stable) support the additive log–log model.
 #' 
 
+Anova(parest_m_abs, type = 2)
+rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
+
+
 #' Elasticity of pathogen mass to fungal biomass: a 1% ↑ in biomass ≈ 1.54% ↑ in pathogen mass.
 #' gf_index is multiplicative on the original scale. One-unit increase ⇒ ×exp(0.698) ≈ ×2.01 in pathogen mass.
 #' Using your HC3 SE: 0.698 ± 1.96·0.2106 ⇒ [0.284, 1.112] ⇒ ×[1.33, 3.04].
 
 
-      
-rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
-
-
-
-
-
-
 #' and a display of effects:
-# Predictions with back-transform + smearing
-sm <- exp(mean(residuals(parest_m_abs)))     # Duan smearing
-newdat <- with(patho_resto, expand.grid(
-  fungi_mass = exp(seq(log(min(fungi_mass)), log(max(fungi_mass)), length=100)),
-  gf_index   = quantile(gf_index, c(.25,.5,.75))
-))
-newdat$pred_patho_mass <- sm * exp(predict(parest_m_abs, newdata = newdat))
-
-#' finally how to visualize...
-
 
 # Median fungal biomass on the original scale
 med_fungi <- median(patho_resto$fungi_mass, na.rm = TRUE)
@@ -1833,12 +1820,12 @@ pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%
 #+ fig7,warning=FALSE,fig.height=4,fig.width=4
 fig7 <- 
   ggplot(pred, aes(x = gf_index, y = fit_med)) +
-  geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), alpha = 0.15) +
-  geom_line() +
+  geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+  geom_line(color = "black", linewidth = lw) +
   geom_point(data = patho_resto, aes(x = gf_index, y = patho_mass),
-             fill = "black", size = sm_size, stroke = lw, shape = 21) +
+             fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(data = patho_resto, aes(x = gf_index, y = patho_mass, label = yr_since), 
-            size = yrtx_size, family = "sans", fontface = 2, color = "white") +
+            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = "Grass–forb index",
     y = "Pathogen mass",
@@ -1933,7 +1920,7 @@ sapro_rich_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = "Richness") +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -1942,12 +1929,20 @@ sapro_rich_fig <-
 #' 
 #' ### Shannon's diversity
 #' Account for sequencing depth as a covariate
-sapro_shan_lm <- lm(shannon ~ sqrt(depth) + field_type, data = sapro_div)
+sapro_shan_covar <- covar_shape_test(
+  data = sapro_div,
+  y = "shannon",
+  covar = "depth",
+  group = "field_type"
+)
+sapro_shan_covar$compare
+#' Log transform selected based on model performance. Model with centered, log depth covar
+sapro_shan_lm <- lm(shannon ~ depth_clg + field_type,
+                    data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
-par(mfrow = c(2,2))
-plot(sapro_shan_lm) # variance similar in groups 
+sapro_shan_covar$diagnostics # variance similar in groups 
 distribution_prob(sapro_shan_lm)
-#' residuals distribution most likely cauchy/normal; symmetric but long tails
+#' residuals distribution most likely normal, qq fit good, no evidence of mean/variance increase
 #' response non-normal, check variance in groups though
 leveneTest(shannon ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable(format = "pandoc")
 leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
@@ -1955,7 +1950,7 @@ leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 
 #' Model results, group means, and post-hoc
-summary(sapro_shan_lm)
+sapro_shan_covar$anova_t2
 #' Sequence depth is not a significant predictor of Shannon diversity, nor field type
 sapro_shan_em <- emmeans(sapro_shan_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group means and confidence intervals,
@@ -1966,75 +1961,41 @@ sapro_shan_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = "Shannon diversity") +
-  # lims(y = c(0, 160)) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 
 #' 
-#' ## Sequence abundance
-#' Use log ratio transformed data to detrend compositional data before differential analysis. 
-#' Transformation also corrects for different sample depths; no covariate needed. 
-sapro_ab_lm <- lm(saprotroph ~ field_type, data = its_gulr_pfg)
+#' ## Abundance
+#' Proportional biomass
+sapro_ma_lm <- lm(sapro_mass ~ field_type, data = its_guild_ma)
 par(mfrow = c(2,2))
-plot(sapro_ab_lm) 
-#' variance differs slightly in groups. Tails on qq plot diverge. Variance unequal but not bad, 
-#' two leverage points.
-distribution_prob(sapro_ab_lm)
+plot(sapro_ma_lm) 
+#' Variance looks consistent, no leverage points, poor qq fit
+distribution_prob(sapro_ma_lm)
 #' Residuals distribution fits normal, so do residuals
-leveneTest(residuals(sapro_ab_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
+leveneTest(residuals(sapro_ma_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
+#' No covariate; response and residuals tests equivalent
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal (aka homoscedastic 
 #' by group).
-#'  
-#' Try a model that 
-#' handles the heavy tails on the residual distribution better? 
-#' Try robust regression (robust M-estimator with Huber ψ).
-sapro_ab_rlm <- rlm(saprotroph ~ field_type, data = its_gulr_pfg)
-par(mfrow = c(2,2))
-plot(sapro_ab_rlm) 
-#' Minor visual improvements to fit 
-distribution_prob(sapro_ab_rlm)
-#' Residuals distribution fits normal, so do residuals
-leveneTest(residuals(sapro_ab_rlm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-sapro_ab_lm_em  <- emmeans(sapro_ab_lm,  ~ field_type, type = "response")
-sapro_ab_rlm_em <- emmeans(sapro_ab_rlm, ~ field_type, type = "response", vcov. = vcov(sapro_ab_rlm))
-as.data.frame(sapro_ab_lm_em)  %>% transform(model = "LM")
-as.data.frame(sapro_ab_rlm_em) %>% transform(model = "RLM")
-#' Evidence that the outlier has less leverage with rlm, a slightly better fit. No sign change 
-#' with CIs, so inference would be the same with OLS.
-#' Points with a high Cook's statistic remain high, but have less leverage. 
-#' Iteratively re-weighted least squares (rlm) lowers leverage for the two extreme sites, 
-#' but their Cook’s distances remain ≈ 0.5 because the robust fit reduces the 
-#' residual scale estimate, inflating studentised residuals. Coefficient estimates 
-#' changed little, confirming results are not driven by those points.
 #' 
 #' Produce model results, group means, and post-hoc, with arithmetic means from emmeans
-summary(sapro_ab_rlm)
+Anova(sapro_ma_lm)
+sapro_ma_em <- emmeans(sapro_ma_lm, ~ field_type, type = "response")
 #+ sapro_ab_em_summary,echo=FALSE
-kable(summary(sapro_ab_rlm_em),
+kable(summary(sapro_ma_em),
       format = "pandoc",
       caption = "Confidence level used: 0.95")
-#+ sapro_ab_em_posthoc,echo=FALSE
-kable(pairs(sapro_ab_rlm_em),
-      format = "pandoc",
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' Aligning statistical result with visual appearance requires a dot line plot
 #+ sapro_ab_fig,fig.width=4,fig.height=4
-sapro_ab_fig <- 
-  # sapro_div %>% 
-  # group_by(field_type) %>% 
-  # summarize(seq_ab = mean(depth), upper.CL = seq_ab + ci_u(depth), .groups = "drop") %>% 
-  ggplot(summary(sapro_ab_rlm_em), aes(x = field_type, y = emmean)) +
-  # geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  geom_point(aes(fill = field_type), shape = 21, size = sm_size) +
-  geom_text(aes(y = asymp.UCL, label = c("a", "b", "c")), vjust = -1.5, family = "sans", size = 4) + 
-  labs(x = NULL, y = "Seq. abund. (LRT)") +
-  scale_fill_manual(values = c("gray", "black", "white")) +
-  # lims(y = c(-0.6, 0.7)) +
+sapro_ma_fig <- 
+  ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -2042,64 +2003,65 @@ sapro_ab_fig <-
 
 #' 
 #' ## Beta Diversity
-#' Abundances were transformed by row proportions in sites before producing a distance matrix per
+#' 1. Sequence proportion of biomass used in the ordination
+#' 1. Abundances were transformed by row proportions in sites before producing a distance matrix per
 #' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
-#+ sapro_ord
-d_sapro <- sapro %>% 
+#' 
+#' ### Sequence proportion of biomass
+sapro_ma <- guildseq(its_avg_ma, its_meta, "saprotroph")
+#+ sapro_ma_ord
+d_sapro_ma <- sapro_ma %>% 
   data.frame(row.names = 1) %>% 
-  decostand("total") %>%
   vegdist("bray")
-mva_sapro <- mva(d = d_sapro, env = sites)
-#+ sapro_ord_results
-mva_sapro$dispersion_test
-mva_sapro$permanova
-mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_sapro_ma <- mva(d = d_sapro_ma, env = sites)
+#+ sapro_ma_ord_results
+mva_sapro_ma$dispersion_test
+mva_sapro_ma$permanova
+mva_sapro_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
 #' a PERMANOVA test. 
 #' 
-#' An effect of geographic distance (covariate) on pathogen communities was not supported. 
+#' An effect of geographic distance (covariate) on pathogen communities was detected. 
 #' With geographic distance accounted for, the test variable 'field type' significantly explained 
 #' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
 #' communities in restored and remnant fields. 
 #' 
 #' Plotting results: 
-sapro_ord_data <- mva_sapro$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_sapro_centers <- sapro_ord_data %>% 
+sapro_ma_ord_data <- mva_sapro_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_sapro_ma_centers <- sapro_ma_ord_data %>% 
   group_by(field_type) %>% 
   summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
   mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
-sapro_ord <- 
-  ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
+sapro_ma_ord <- 
+  ggplot(sapro_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_linerange(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
-  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  scale_fill_manual(values = c("gray", "black", "white")) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_sapro$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_sapro$axis_pct[2], "%)")) +
+    x = paste0("Axis 1 (", mva_sapro_ma$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_sapro_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.01))
-# guides(fill = guide_legend(position = "inside")) +
-# theme(legend.justification = c(0.03, 0.98))
 
 #' 
 #' ## Unified figure
 #+ fig5_patchwork,warning=FALSE
-fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ab_fig) +
+fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ma_fig) +
   plot_layout(heights = c(1,0.01,1)) 
-fig5 <- (fig5_ls | plot_spacer() | sapro_ord) +
+fig5 <- (fig5_ls | plot_spacer() | sapro_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
   plot_annotation(tag_levels = 'a') 
 #+ fig5,warning=FALSE,fig.height=4,fig.width=6.5
 fig5
-#' **Fig 4.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
+#' **Fig 5.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
 #' **a** OTU richness and **b** sequence abundance are shown as columns with 95 % CIs.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
 #' distances: small points = sites, large circles = field-type centroids (error bars =
@@ -2116,33 +2078,119 @@ ggsave(root_path("figs", "fig5.png"),
        units = "in",
        dpi = 600)
 
+
+
+
+#' ### Sequence abundance ordination
+#+ sapro_ord
+d_sapro <- sapro %>%
+  data.frame(row.names = 1) %>%
+  decostand("total") %>%
+  vegdist("bray")
+mva_sapro <- mva(d = d_sapro, env = sites)
+#+ sapro_ord_results
+mva_sapro$dispersion_test
+mva_sapro$permanova
+mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+#' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is
+#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of
+#' a PERMANOVA test.
+#'
+#' An effect of geographic distance (covariate) on pathogen communities was detected
+#' With geographic distance accounted for, the test variable 'field type' significantly explained
+#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
+#' communities in restored and remnant fields.
+#'
+#' Plotting results:
+sapro_ord_data <- mva_sapro$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_sapro_centers <- sapro_ord_data %>%
+  group_by(field_type) %>%
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+sapro_ord <-
+  ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  scale_fill_manual(values = ft_pal) +
+  labs(
+    x = paste0("Axis 1 (", mva_sapro$axis_pct[1], "%)"),
+    y = paste0("Axis 2 (", mva_sapro$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1.01))
+
+#' #' Supplemental figure
+#' #+ fig5_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+#' ggsave(root_path("figs", "fig5.png"),
+#'        plot = fig5,
+#'        width = 6.5,
+#'        height = 4,
+#'        units = "in",
+#'        dpi = 600)
+
+
+#' Procrustes...one significant axis, second was close
+set.seed(20251119)
+sapro_protest <- protest(
+  pcoa(d_sapro)$vectors[, 2],
+  pcoa(d_sapro_ma)$vectors[, 2],
+  permutations = 1999
+)
+sapro_protest
+
+#' Including biomass changes little. The spatial configuration both ordinations are highly correlated
+#' $R^{2}=$ `r round(sapro_protest$scale^2, 2)`, p<0.001. 
+
+
+
+
+
+
+
 #' ## Saprotroph Indicator Species
-sapro_ind <- inspan(spe$its_avg, spe_meta$its, "saprotroph", sites)
-sapro_ind_table <- 
-  sapro_ind %>% 
-  select(-otu_num, -primary_lifestyle, -p.value) %>%
-  arrange(field_type, p_val_adj)
-sapro_ind_table[1:20, ] %>% 
-  kable(format = "pandoc", caption = paste("Indicator species analysis, saprotrophs\n(First 20 rows shown)"))
-sapro_abund_ft <- 
-  guildseq(spe$its_avg, spe_meta$its, "saprotroph") %>% 
-  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-  left_join(spe_meta$its, by = join_by(otu_num)) %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  select(-otu_ID, -otu_num, -primary_lifestyle, -field_name) %>%
-  filter(species != "unidentified", abund > 0) %>% 
-  pivot_wider(names_from = "field_type", values_from = "abund", values_fn = ~ round(mean(.x), 1), values_fill = 0) %>% 
-  select(phylum:species, corn, restored, remnant) %>% 
-  rowwise() %>% 
-  mutate(avg = mean(c_across(corn:remnant)) %>% round(., 1)) %>% 
-  arrange(-corn)
-sapro_abund_ft %>% 
-  filter(avg >= 10) %>% 
-  kable(format = "pandoc", caption = "Named saprotroph species and abundances in field types\n(Mean abundance >= 10 shown)")
+sapro_ind <- inspan(its_avg, its_meta, "saprotroph", sites)
+sapro_ind %>% 
+  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
+  filter(species != "unidentified") %>% 
+  arrange(field_type, p_val_adj) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
 
 
 
 
+
+#' Saprotroph correlations with pfg
+sapro_resto <- its_guild %>% 
+  filter(field_type == "restored", region != "FL") %>% 
+  mutate(
+    sapro_prop = sapro_abund / fungi_abund, # no zeroes present...
+    sapro_logit = qlogis(sapro_prop)
+  ) %>% 
+  left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>% 
+  select(-patho_abund)
+
+sarest_m_raw  <- lm(sapro_abund ~ fungi_mass + gf_index, data = sapro_resto)
+sarest_m_logy <- lm(log(sapro_abund) ~ fungi_mass + gf_index, data = sapro_resto)
+sarest_m_logx <- lm(sapro_abund ~ log(fungi_mass) + gf_index, data = sapro_resto)
+sarest_m_both <- lm(log(sapro_abund) ~ log(fungi_mass) + gf_index, data = sapro_resto)
+# consider rlm to reduce leverage
+
+compare_performance(sarest_m_raw, sarest_m_logy, sarest_m_logx, sarest_m_both, 
+                    metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+par(mfrow = c(2,2))
+plot(sarest_m_raw)
+summary(sarest_m_raw)
+ggplot(sapro_resto, aes(x = gf_index, sapro_prop)) +
+  geom_text(label = rownames(sapro_resto))
+#' No relationshp detected. High leverage point is KORP1 but it's difficult to see a 
+#' significant inference based on changing it's position.
 
 
 #' 
