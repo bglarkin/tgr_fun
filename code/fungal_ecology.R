@@ -674,11 +674,14 @@ mod_step
 (mod_glax <- anova(mod_step, permutations = 1999))
 (mod_inax <- anova(mod_step, by = "axis", permutations = 1999))
 (mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
-mod_step$anova %>% kable(, format = "pandoc")
+anova(mod_step, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, the model shows a significant 
 #' correlation between the site ordination on fungal communities
 #' and the selected explanatory variables (p<0.001). The first two constrained axes are 
-#' also significant (p<0.01). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community 
+#' also significant (p<0.001, P<0.01). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community 
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
 #' individual p values and statistics. 
 #' 
@@ -717,8 +720,6 @@ fig6 <-
   ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  geom_point(fill = "black", size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
@@ -727,6 +728,8 @@ fig6 <-
             aes(x = labx, y = laby, label = c("grass—forb\nindex", "pH")), 
             nudge_x = c(-0.2,-0.06), nudge_y = c(0.08,0.1),
             size = 3, color = "gray20") +
+  geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("Constr. Axis 1 (", mod_pars_eig[1], "%)"),
     y = paste0("Constr. Axis 2 (", mod_pars_eig[2], "%)")) +
@@ -943,7 +946,7 @@ nlfa_fig <-
 #' 
 #' ## Beta Diversity
 #' 
-#' 1. Using proportional biomass, b-c distance (unifrac is scale invariant; it's based on the proportion 
+#' 1. Using proportional biomass, not unifrac, b-c distance (unifrac is scale invariant; it's based on the proportion 
 #' of reads on each descending branch, multiplying rows by any constant doesn't change this). 
 #' 1. Using sequence row proportions, unifrac distance to display phylogenetically aware information.
 #' 1. Contrast the two with procrustes.
@@ -975,11 +978,12 @@ p_amf_ma_centers <- amf_ma_ord_data %>%
   group_by(field_type) %>% 
   summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
   mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
+         across(ends_with("Axis.1"), ~ .x * -1)) # reverse axis values to be consistent with other plots
 amf_ma_ord <- 
-  ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  ggplot(amf_ma_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) +  # reverse axis values to be consistent with other plots
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -1003,10 +1007,10 @@ fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
 #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
 fig3
 #' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
-#' NLFA biomass **b** (95 % CI, letters = Tukey groups; P < 0.05 / 0.0001). PCoA of weighted‑UniFrac distances 
+#' NLFA biomass **b** (95 % CI, letters = Tukey groups). PCoA of BC distances on proportion of biomass abundance data
 #' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
 #' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
-#' prairie types (P < 0.01). Shading: corn grey, restored black, remnant white.
+#' prairie types. Shading: corn grey, restored black, remnant white.
 
 #+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
 ggsave(root_path("figs", "fig3.png"),
@@ -1042,11 +1046,12 @@ p_amf_centers <- amf_ord_data %>%
   group_by(field_type) %>% 
   summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
   mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
+         across(ends_with("Axis.1"), ~ .x * -1)) # reversed for consistency
 amf_ord <- 
-  ggplot(amf_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  ggplot(amf_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reversed for consistency
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -1089,7 +1094,9 @@ amf_protest <- protest(
 
 #' 
 #' ## AMF abundance in families
-#' Test proportion of biomass across field types for each family
+#' Test proportion of biomass across field types for each family. A similar contrast with 
+#' sequence abundance only returns largely NS results, highlighting the incorrect inference 
+#' when using compositional data to conduct site-differential analysis.
 #' 
 #' ### Glomeraceae
 glom_lm <- lm(Glmrc_mass ~ field_type, data = amf_fam_ma)
@@ -1289,7 +1296,8 @@ amf_mod_step$anova %>% kable(, format = "pandoc")
 
 
 
-
+#' NEED TREND CHARTS FOR ALL SELECTED VARS (PH WITH WHOLE SOIL FUNGI, OM WITH AMF, GF_INDEX FOR BOTH...
+#' WE'LL SEE WHAT HAPPENS WITH PATHO AND SAPRO). SUPPLEMENTAL FIGURES. 
 
 
 #' Create the figure, combine with pathogen-plant correlation figure in patchwork later:
