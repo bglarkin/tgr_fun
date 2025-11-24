@@ -1330,8 +1330,8 @@ amf_mod_scor_bp <- amf_mod_scor$biplot %>%
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 
-#+ fig6,warning=FALSE,fig.height=4,fig.width=4
-# fig6 <-
+#+ fig_amfConstr,warning=FALSE,fig.height=4,fig.width=4
+amfConstr <-
   ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
@@ -1349,9 +1349,9 @@ amf_mod_scor_bp <- amf_mod_scor$biplot %>%
     x = paste0("Constr. Axis 1 (", amf_mod_pars_eig[1], "%)"),
     y = paste0("Constr. Axis 2 (", amf_mod_pars_eig[2], "%)")) +
   theme_ord
-# fig6
+amfConstr
 
-# #+ fig6_save,warning=FALSE,echo=FALSE
+# #+ amfConstr_save,warning=FALSE,echo=FALSE
 # ggsave(
 #   root_path("figs", "fig6.png"),
 #   plot = fig6,
@@ -1373,7 +1373,7 @@ amf_resto <- amf_fam %>%
   #   sapro_prop = sapro_abund / fungi_abund, # no zeroes present...
   #   sapro_logit = qlogis(sapro_prop)
   # ) %>% 
-  # left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>% 
+  # left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>%
   # select(-patho_abund)
   
   
