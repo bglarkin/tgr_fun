@@ -147,10 +147,32 @@ soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26
 #' # Species, environment, and metadata wrangling
 # Metadata wrangling ———————— ####
 #' 
+#' ## Plant communities
+#' ### Plant species richness
+plant <- read_csv(root_path("clean_data/plant_avg.csv"), show_col_types = FALSE)
+prich <- plant %>% 
+  select(-BARESOIL, -LITTER, -ROSA, -SALIX) %>% # remove non-species entries
+  rowwise() %>% 
+  mutate(pl_rich = sum(c_across(where(is.numeric)) > 0)) %>% 
+  select(field_name = SITE, pl_rich)
+#' Visualize how richness varies in fields...restored in Wisconsin only as used later
+
+
+prich %>% 
+  left_join(sites, by = join_by(field_name)) %>% 
+  filter(region != "FL", field_type == "restored") %>% 
+  ggplot(aes(x = fct_reorder(field_name, yr_since), y = pl_rich)) +
+  geom_point()
+# not obviously related to field age
+
+
+
+#' 
+#' ## Plant functional groups
 #' C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
 #' Abundance data are also joined with site and env paramaters to facilitate downstream analyses.
 #' 
-#' ## Grass-forb index
+#' ### Grass-forb index
 #' C4 grass and forb cover are highly correlated (*r* = `r round(cor(pfg$forb, pfg$C4_grass), 2)`) 
 #' in restored prairies. In models or constrained ordinations, they are collinear and cannot be
 #' used simultaneously. An index of grass-forb cover is created to solve this problem. 
@@ -168,6 +190,8 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
   data.frame() %>% 
   rename(gf_index = PC1) %>% 
   rownames_to_column(var = "field_name")
+
+
 
 
 
@@ -238,7 +262,8 @@ its_guild <-
   left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, region, everything())
+  select(field_name, field_type, yr_since, region, everything()) %>% 
+  ungroup()
 
 #' 
 #' #### AMF
@@ -451,7 +476,7 @@ plfa_fig <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.02))
+        plot.tag.position = c(0, 1.1))
 
 #' 
 #' ## Beta Diversity
@@ -503,7 +528,7 @@ its_ma_ord <-
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.0))
+        plot.tag.position = c(0, 1))
 
 #' 
 #' #### Unified figure
@@ -642,6 +667,7 @@ env_vars <- sites %>%
   left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
   left_join(soil_macro, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% # 92% on axis 1
+  left_join(prich, by = join_by(field_name)) %>%
   select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1 removed based on initial VIF check
   column_to_rownames(var = "field_name") %>% 
   as.data.frame()
@@ -704,14 +730,23 @@ mod_scor_site <- mod_scor$sites %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>% 
   left_join(sites, by = join_by(field_name))
-mod_scor_bp <- mod_scor$biplot %>% 
-  data.frame() %>% 
-  rownames_to_column(var = "envvar") %>% 
+mod_scor_bp <- bind_rows(
+  mod_scor$biplot %>% 
+    data.frame() %>% 
+    rownames_to_column(var = "envvar") %>% 
+    mutate(envlabs = c(">forb", "pH")),
+  data.frame(
+    envvar = "gf_index",
+    dbRDA1 = -0.847304624873555,
+    dbRDA2 = -0.448178789544163,
+    envlabs = ">grass")
+  ) %>% 
+  arrange(envvar, envlabs) %>% 
   mutate(
     origin = 0,
     m = dbRDA2 / dbRDA1, 
     d = sqrt(dbRDA1^2 + dbRDA2^2), 
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.05,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 
@@ -723,11 +758,12 @@ fig6 <-
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = "gray20") +
+               color = c("blue3", "blue3", "gray20")) +
   geom_text(data = mod_scor_bp, 
-            aes(x = labx, y = laby, label = c("grass—forb\nindex", "pH")), 
-            nudge_x = c(-0.2,-0.06), nudge_y = c(0.08,0.1),
-            size = 3, color = "gray20") +
+            aes(x = labx, y = laby, label = envlabs), 
+            nudge_x = c(-0.1,0.1,0.02), 
+            nudge_y = c(0.06,-0.06,0.1),
+            size = 3, color = "black") +
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
@@ -745,6 +781,51 @@ ggsave(
   units = "in",
   dpi = 600
 )
+
+
+
+
+
+
+
+#' ITS correlations with pfg
+fungi_resto <- its_div %>% 
+  left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
+  left_join(sites, by = join_by(field_name, field_type)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  filter(field_type == "restored", region != "FL") %>% 
+  select(field_name, fungi_ab = depth, fungi_mass, gf_index)
+
+
+
+furest_m_raw  <- lm(fungi_ab ~ fungi_mass + gf_index, data = fungi_resto)
+furest_m_logy <- lm(log(fungi_ab) ~ fungi_mass + gf_index, data = fungi_resto)
+furest_m_logx <- lm(fungi_ab ~ log(fungi_mass) + gf_index, data = fungi_resto)
+furest_m_both <- lm(log(fungi_ab) ~ log(fungi_mass) + gf_index, data = fungi_resto)
+
+
+compare_performance(furest_m_raw, furest_m_logy, furest_m_logx, furest_m_both,
+                    metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+check_model(furest_m_logy)
+summary(furest_m_logy)
+ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
+  geom_text(label = rownames(fungi_resto))
+#' No relationshp detected with gf_index. High leverage point is again KORP1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #' 
 #' # Arbuscular mycorrhizal fungi
@@ -806,7 +887,7 @@ amf_rich_fig <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.02))
+        plot.tag.position = c(0, 1))
 
 #' 
 #' ### Shannon diversity
@@ -941,7 +1022,7 @@ nlfa_fig <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.02))
+        plot.tag.position = c(0, 1.1))
 
 #' 
 #' ## Beta Diversity
@@ -994,7 +1075,7 @@ amf_ma_ord <-
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
+        plot.tag.position = c(0, 1))
 
 #' 
 #' #### Unified figure
@@ -1369,30 +1450,23 @@ amf_resto <- amf_fam %>%
   mutate(amf_ab = sum(c_across(Glmrc_ab:Ambsp_ab))) %>% 
   select(-c(Glmrc_ab:Ambsp_ab)) %>% 
   filter(field_type == "restored", region != "FL") %>% 
-  # mutate(
-  #   sapro_prop = sapro_abund / fungi_abund, # no zeroes present...
-  #   sapro_logit = qlogis(sapro_prop)
-  # ) %>% 
-  # left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>%
-  # select(-patho_abund)
+  left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name))
   
   
 
-#' sarest_m_raw  <- lm(sapro_abund ~ fungi_mass + gf_index, data = sapro_resto)
-#' sarest_m_logy <- lm(log(sapro_abund) ~ fungi_mass + gf_index, data = sapro_resto)
-#' sarest_m_logx <- lm(sapro_abund ~ log(fungi_mass) + gf_index, data = sapro_resto)
-#' sarest_m_both <- lm(log(sapro_abund) ~ log(fungi_mass) + gf_index, data = sapro_resto)
-#' # consider rlm to reduce leverage
-#' 
-#' compare_performance(sarest_m_raw, sarest_m_logy, sarest_m_logx, sarest_m_both, 
-#'                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-#' par(mfrow = c(2,2))
-#' plot(sarest_m_raw)
-#' summary(sarest_m_raw)
-#' ggplot(sapro_resto, aes(x = gf_index, sapro_prop)) +
-#'   geom_text(label = rownames(sapro_resto))
-#' #' No relationshp detected. High leverage point is KORP1 but it's difficult to see a 
-#' #' significant inference based on changing it's position.
+amrest_m_raw  <- lm(amf_ab ~ amf_mass + gf_index, data = amf_resto)
+amrest_m_logy <- lm(log(amf_ab) ~ amf_mass + gf_index, data = amf_resto)
+amrest_m_logx <- lm(amf_ab ~ log(amf_mass) + gf_index, data = amf_resto)
+amrest_m_both <- lm(log(amf_ab) ~ log(amf_mass) + gf_index, data = amf_resto)
+
+
+compare_performance(amrest_m_raw, amrest_m_logy, amrest_m_logx, amrest_m_both,
+                    metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+check_model(amrest_m_logx)
+summary(amrest_m_logx)
+ggplot(amf_resto, aes(x = gf_index, y = amf_mass)) +
+  geom_text(label = rownames(amf_resto))
+#' No relationshp detected with gf_index. High leverage point is again KORP1.
 
 
 
@@ -1545,7 +1619,7 @@ patho_ma_fig <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.02))
+        plot.tag.position = c(0, 1.1))
 
 #' 
 #' ## Beta Diversity
@@ -1586,7 +1660,7 @@ p_patho_ma_centers <- patho_ma_ord_data %>%
 patho_ma_ord <- 
   ggplot(patho_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "white") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -1597,7 +1671,7 @@ patho_ma_ord <-
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
+        plot.tag.position = c(0, 1))
 
 #' 
 #' ## Unified figure
@@ -1719,11 +1793,11 @@ patho_ind %>%
 #' model should probably be log-log. Check to make sure:
 patho_resto <- its_guild %>% 
   filter(field_type == "restored", region != "FL") %>% 
+  left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
   mutate(
     patho_prop = patho_abund / fungi_abund, # no zeroes present...
     patho_logit = qlogis(patho_prop)
   ) %>% 
-  left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
   select(-sapro_abund)
 
 parest_m_raw  <- lm(patho_abund ~ fungi_mass + gf_index, data = patho_resto)
@@ -1745,7 +1819,7 @@ parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
 augment(parest_m_rel)
 distribution_prob(parest_m_rel)
 shapiro.test(parest_m_rel$residuals)
-plot(parest_m_rel)
+check_model(parest_m_rel)
 summary(parest_m_rel)
 
 
@@ -1863,6 +1937,29 @@ ggsave(
   units = "in",
   dpi = 600
 )
+
+
+
+
+
+
+# is plant richness related to pathogens?
+patho_resto %>% left_join(prich, by = join_by(field_name)) %>% 
+  ggplot(aes(x = pl_rich, y = patho_mass)) + 
+  geom_point()
+# not at all...and it wasn't selected in whole soil fungi either
+
+
+with(gf_index %>% left_join(prich, by = join_by(field_name)), cor(gf_index, pl_rich))
+gf_index %>% left_join(prich, by = join_by(field_name)) %>% 
+  ggplot(aes(x = gf_index, y = pl_rich)) +
+  geom_point()
+
+# Plant richness and gf_index are related, but it isn't plant richness that's 
+# driving the change in pathogen mass/communities...it's the relative proportion of 
+# grasses and forbs, irrespective of the number of plant species. 
+
+
 
 
 
@@ -2018,7 +2115,7 @@ sapro_ma_fig <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.02))
+        plot.tag.position = c(0, 1.1))
 
 #' 
 #' ## Beta Diversity
@@ -2068,7 +2165,7 @@ sapro_ma_ord <-
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
+        plot.tag.position = c(0, 1))
 
 #' 
 #' ## Unified figure
