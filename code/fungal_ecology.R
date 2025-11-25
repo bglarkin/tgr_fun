@@ -190,11 +190,18 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
   data.frame() %>% 
   rename(gf_index = PC1) %>% 
   rownames_to_column(var = "field_name")
+#' 
+#' Are field age and gf_index correlated?
+gfi_yrs <- gf_index %>% 
+  left_join(sites %>% select(field_name, yr_since), by = join_by(field_name)) %>% 
+  arrange(-gf_index) %>% 
+  mutate(yr_order = sort(yr_since))
+gfi_yrs_m <- lm(yr_since ~ yr_order, data = gfi_yrs)
+summary(gfi_yrs_m)
+shapiro.test(residuals(gfi_yrs_m))
 
 
-
-
-
+#' 
 # Visualize grass forb gradient...
 pfg_comp <- 
   pfg %>% 

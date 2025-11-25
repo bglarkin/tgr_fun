@@ -15,7 +15,7 @@
 #' 
 #' # Package and library installation
 packages_needed = c(
-    "tidyverse", "colorspace", "ggmap", "knitr", "conflicted", "gridExtra",
+    "tidyverse", "colorspace", "knitr", "conflicted", "gridExtra",
     "geosphere", "ggrepel", "sf", "rnaturalearth","rnaturalearthdata", 
     "rnaturalearthhires", "ggspatial", "maps", "ggpubr", "grid", "ggpmisc"
 )
@@ -28,10 +28,12 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
 root_path <- function(...) rprojroot::find_rstudio_root_file(...)
 
 #+ conflicts,message=FALSE
-conflict_prefer("filter", "dplyr")
-conflict_prefer("select", "dplyr")
-conflict_prefer("map", "purrr")
-conflict_prefer("annotate", "ggpp")
+conflicts_prefer(
+  dplyr::filter,
+  dplyr::select,
+  purrr::map,
+  ggpp::annotate
+)
 #' 
 #+ graphics_styles
 source(root_path("resources", "styles.R"))
