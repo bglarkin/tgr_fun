@@ -448,17 +448,6 @@ its_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-#+ its_shan_fig_save
-ggsave(
-  root_path("figs", "figS2.png"),
-  plot = FigS1,
-  height = 3,
-  width = 6,
-  units = "in",
-  dpi = 600
-)
-
-
 
 
 
@@ -551,7 +540,7 @@ its_ma_ord <-
     y = paste0("Axis 2 (", mva_its_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 
 #' 
@@ -584,6 +573,7 @@ ggsave(root_path("figs", "fig2.png"),
 
 #' 
 #' ### ITS, standardized sequence abundance
+#' Comparison figure for supplemental
 #+ its_ord
 d_its <- its_avg %>% 
   data.frame(row.names = 1) %>%
@@ -625,19 +615,25 @@ its_ord <-
   scale_fill_manual(values = ft_pal) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
 
 #' 
 #' #### Supplemental figure
-#' 
-#' #+ fig2_save,warning=FALSE,echo=FALSE
-#' ggsave(root_path("figs", "fig2.png"),
-#'        plot = fig2,
-#'        width = 6.5,
-#'        height = 4,
-#'        units = "in",
-#'        dpi = 600)
+
+#+ its_shan_ord_sup_patchwork,warning=FALSE
+its_shan_ord_sup <- (its_shan_fig | plot_spacer() | its_ord) +
+  plot_layout(widths = c(0.45, 0.01, 0.55)) +
+  plot_annotation(tag_levels = 'a') 
+#+ its_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
+its_shan_ord_sup
+#+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "figS3.png"),
+       plot = its_shan_ord_sup,
+       width = 7.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
 
 ## Use procrustes to contrast the two ordinations!
 
@@ -964,13 +960,13 @@ amf_shan_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = NULL) +
+  labs(x = NULL, y = "Shannon diversity") +
   lims(y = c(0, 32)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(-0.05, 1))
+        plot.tag.position = c(0, 1))
 
 
 
@@ -1084,7 +1080,7 @@ amf_ma_ord <-
     y = paste0("Axis 2 (", mva_amf_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 
 #' 
@@ -1152,18 +1148,25 @@ amf_ord <-
     y = paste0("Axis 2 (", mva_amf$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
 
-#' ## Supplemental figure
+#' 
+#' #### Supplemental figure
 
-#' #+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-#' ggsave(root_path("figs", "fig3.png"),
-#'        plot = fig3,
-#'        width = 6.5,
-#'        height = 4,
-#'        units = "in",
-#'        dpi = 600)
+#+ amf_shan_ord_sup_patchwork,warning=FALSE
+amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
+  plot_layout(widths = c(0.45, 0.01, 0.55)) +
+  plot_annotation(tag_levels = 'a') 
+#+ amf_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
+amf_shan_ord_sup
+#+ amf_shan_ord_sup_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "figS4.png"),
+       plot = amf_shan_ord_sup,
+       width = 7.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
 
 ## Contrast with procrustes!
 
