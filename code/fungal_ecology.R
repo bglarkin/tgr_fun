@@ -448,6 +448,23 @@ its_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
+#+ its_shan_fig_save
+ggsave(
+  root_path("figs", "figS2.png"),
+  plot = FigS1,
+  height = 3,
+  width = 6,
+  units = "in",
+  dpi = 600
+)
+
+
+
+
+
+
+
+
 
 #' 
 #' ## Abundance
@@ -955,24 +972,10 @@ amf_shan_fig <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(-0.05, 1))
 
-#' 
-#' ### Shannon's diversity figure
-#' Includes both ITS and AMF for supplemental figure
-#+ its_amf_shan_fig_pw,warning=FALSE
-FigS1 <- (its_shan_fig | plot_spacer() | amf_shan_fig) +
-    plot_layout(widths = c(1, 0.01, 1)) +
-    plot_annotation(tag_levels = 'a')
-#+ its_amf_shan_fig,warning=FALSE,fig.height=4,fig.width=7
-FigS1
-#+ amf_div_fig_save
-ggsave(
-    root_path("figs", "figS1.png"),
-    plot = FigS1,
-    height = 3,
-    width = 6,
-    units = "in",
-    dpi = 600
-)
+
+
+
+
 
 #' 
 #' ## NLFA
@@ -2330,9 +2333,26 @@ list(
   patho_rich = patho_rich_covar$anova_t2,
   sapro_rich = sapro_rich_covar$anova_t2
 ) %>% map(\(df) df %>% as.data.frame() %>% 
-            drop_na() %>% mutate(var = c("covariate", "test_var"))) %>% 
+            drop_na() %>% mutate(var = c("sequence_depth_transform", "test_var")) %>% 
+            rownames_to_column(var = "covar")) %>% 
   bind_rows(.id = "grp") %>% 
   split(., ~ var) %>% 
   map(\(df) df %>% mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 4)) %>% 
         select(-var))
 #' Main effect only significant with its and amf...pairwise only warranted there
+
+
+
+
+list(
+  its_shan = its_shan_covar$anova_t2,
+  amf_shan = amf_shan_covar$anova_t2,
+  patho_shan = patho_shan_covar$anova_t2,
+  sapro_shan = sapro_shan_covar$anova_t2
+) %>% map(\(df) df %>% as.data.frame() %>% 
+            drop_na() %>% mutate(var = c("sequence_depth_transform", "test_var")) %>% 
+            rownames_to_column(var = "covar")) %>% 
+  bind_rows(.id = "grp") %>% 
+  split(., ~ var) %>% 
+  map(\(df) df %>% mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 4)) %>% 
+        select(-var))

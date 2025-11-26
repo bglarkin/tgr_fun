@@ -74,19 +74,19 @@ theme_corf <-
   theme(
     plot.margin = margin(t = 2, r = 2, b = 2, l = 2, unit = "mm"),
     axis.title.x = element_text(
-      size = 12, face = 1,
+      size = 10, face = 1,
       margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
-      size = 12, face = 1,
+      size = 10, face = 1,
       margin = margin(t = 0, r = 2, b = 0, l = 0, unit = "mm")
     ),
     axis.text.x = element_text(
-      size = 10, face = 1,
+      size = 8, face = 1,
       margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.text.y = element_text(
-      size = 10, face = 1,
+      size = 8, face = 1,
       margin = margin(t = 0, r = 2, b = 0, l = 0, unit = "mm")
     ),
     axis.ticks.length = unit(-2, "mm"),

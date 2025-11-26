@@ -16,7 +16,8 @@
 #' - Create sample and site OTU tables
 #' - Export UNIFRAC tables for AMF
 #' - Evaluate sampling effort with rarefaction and accumulation
-
+#' 
+#' **Note:** individual sample based data needed to produce collection curves.
 #'
 #' # Resources
 
@@ -142,7 +143,7 @@ amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
 #' # Sampling depth and coverage
 #' Script running `rarecurve()` is commented out because it takes so long to execute.
 #' Data were saved to the wd and are used for making figures. These files are too large
-#' to upload to GitHub and are ignored. Please run these calls to `rarecurve()` to create
+#' to upload to GitHub and are ignored. Please run the calls to `rarecurve()` to create
 #' your own rarefaction and species accumulation data files. 
 
 #' ## Rarefaction: ITS sample
@@ -154,6 +155,7 @@ amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
 #     step = 1, tidy = TRUE)
 # write_csv(its_rc, root_path("clean_data", "its_rare_samp.csv"))
 
+#' Read in the data already produced with `rarecurve()`.
 its_rc <- read_csv(root_path("clean_data", "its_rare_samp.csv"), show_col_types = FALSE)
 
 #+ its_rarefaction,fig.width=4,fig.height=7
@@ -178,6 +180,7 @@ its_rc %>%
 #     step = 1, tidy = TRUE)
 # write_csv(its_rc_site, root_path("clean_data", "its_rare_site.csv"))
 
+#' Read in the data already produced by `rarecurve()`.
 its_rc_site <- read_csv(root_path("clean_data", "its_rare_site.csv"), show_col_types = FALSE)
 
 #+ its_rarefaction_site_avg,fig.width=4,fig.height=7
@@ -202,6 +205,7 @@ its_rc_site %>%
 #     step = 1, tidy = TRUE)
 # write_csv(amf_rc, root_path("clean_data", "amf_rare_samp.csv"))
 
+#' Read in data produced by `rarecurve()`.
 amf_rc <- read_csv(root_path("clean_data", "amf_rare_samp.csv"), show_col_types = FALSE)
 
 #+ amf_rarefaction,fig.width=4,fig.height=7
@@ -227,6 +231,7 @@ amf_rc %>%
 #     step = 1, tidy = TRUE)
 # write_csv(amf_rc_site, root_path("clean_data", "amf_rare_site.csv"))
 
+#' Read in data already produced by `rarecurve()`.
 amf_rc_site <- read_csv(root_path("clean_data", "amf_rare_site.csv"), show_col_types = FALSE)
 
 #+ amf_rarefaction_site_avg,fig.width=4,fig.height=7
@@ -266,55 +271,72 @@ rarefac <- bind_rows(
 
 #' # Output figures
 its_rare_fig <- ggplot(rarefac %>% filter(dataset == "ITS"), aes(x = Sample, y = Species, group = field_name)) +
-  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free") +
+  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "fixed") +
   geom_line(aes(color = field_type)) +
-  scale_color_discrete_qualitative(palette = "Harmonic") +
+  scale_color_manual(values = ft_pal) +
   labs(
     x = NULL,
     y = NULL) +
   theme_corf +
-  scale_x_continuous(n.breaks = 5) +
+  scale_x_continuous(breaks = seq(0, 90000, 30000)) +
   theme(legend.position = "none")
 amf_rare_fig <- ggplot(rarefac %>% filter(dataset == "AMF"), aes(x = Sample, y = Species, group = field_name)) +
-  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free") +
+  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "fixed") +
   geom_line(aes(color = field_type)) +
-  scale_color_discrete_qualitative(palette = "Harmonic") +
+  scale_color_manual(values = ft_pal) +
   labs(
     x = NULL,
     y = NULL) +
   theme_corf +
-  scale_x_continuous(n.breaks = 5) +
-  theme(legend.position = "none")
+  scale_x_continuous(breaks = seq(0, 45000, 15000)) +
+  theme(legend.position = "none",
+        strip.text.x = element_blank(),   
+        strip.background.x = element_blank())
 #' Create figure panels
 rare_panels <- (its_rare_fig / plot_spacer() / amf_rare_fig) +
   plot_layout(heights = c(1,0.01,1))
-x_lab <- ggdraw() + draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5)
-y_lab <- ggdraw() + draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5)
+x_lab <- ggdraw() + 
+  draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5, size = 10)
+y_lab <- ggdraw() + 
+  draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5, size = 10)
 rare_fig_h <- (y_lab | rare_panels) + plot_layout(widths = c(0.04, 1))
 rare_fig <- rare_fig_h / x_lab + plot_layout(heights = c(1, 0.10))
 #+ rarefaction_fig,fig.width=7,fig.height=4
 rare_fig
+#+ rarefaction_fig_save
+ggsave(
+  root_path("figs", "figS1.png"),
+  plot = rare_fig,
+  height = 4.5,
+  width = 7.5,
+  units = "in",
+  dpi = 600
+)
 
 #+ species_accumulation_fig,fig.width=7,fig.height=4
-ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
+accum_fig <- 
+  ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
     facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free_y") +
     geom_line(aes(color = field_type)) +
     geom_segment(aes(xend = samples, y = richness - sd, yend = richness + sd, color = field_type)) +
-  scale_color_discrete_qualitative(palette = "Harmonic") +
+  scale_color_manual(values = ft_pal) +
     labs(
         x = "Samples",
-        y = expression(N[0]),
+        y = "OTUs",
         caption = "Species accumulation using exact method; error = moment-based SD"
     ) +
     scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10)) +
     theme_corf +
     theme(legend.position = "none")
-
-
-
-
-
-
+#+ accum_fig_save
+ggsave(
+  root_path("figs", "figS2.png"),
+  plot = accum_fig,
+  height = 4.3,
+  width = 7.5,
+  units = "in",
+  dpi = 600
+)
 
 
 
