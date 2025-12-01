@@ -350,7 +350,7 @@ reg_dist_stats <- function(dist_mat,
   
   meta <- sites_df %>%
     select(site = field_key, ft = field_type, rg = region) %>% 
-    mutate(site = as.character(site)) %>% 
+    mutate(site = as.character(site), ft = as.character(ft)) %>% 
     filter(rg == filt_rg)
   
   pairs %>%
