@@ -5,7 +5,10 @@
 # hcl_color_picker()
 # Field types: corn, restored, remnant:
 ft_pal <- c("#EABB38", "#96DC51", "#038C98")
-
+# Plant functional groups
+qualitative_hcl(n = 5, h = c(255, -313), c = 43, l = 70, rev = FALSE, register = "pfg-col")
+qualitative_hcl(5, palette = "pfg_col")
+gfi_cols <- c("#99AADA", "#93B579")
 # Shapes and sizes
 lw <- 0.4
 sm_size <- 3.1
