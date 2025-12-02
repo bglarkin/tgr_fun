@@ -121,12 +121,12 @@ kable(ft_stats, format = "pandoc", caption = "Summary of field type pairwise dis
 cont <- ne_states(country = c("United States of America", "Canada"),
                   returnclass = "sf")
 #' Retrieve metadata for populated places (cities)
-cities <- ne_download(
-    scale = 50,
-    type = "populated_places",
-    category = "cultural",
-    returnclass = "sf"
-)
+# cities <- ne_download( # Leave commented unless data are missing from env
+#     scale = 50,
+#     type = "populated_places",
+#     category = "cultural",
+#     returnclass = "sf"
+# )
 #' Continental mapping objects
 cont_box <- st_bbox(c(
     xmin = -95,
@@ -135,16 +135,18 @@ cont_box <- st_bbox(c(
     ymax = 49.5
 ), crs = 4326)
 sf_use_s2(FALSE)
+#+ cont_crop,message=FALSE,warning=FALSE
 cont_crop <- st_crop(cont, cont_box)
+#+ cities_crop,message=FALSE,warning=FALSE
 cities_crop <- st_crop(cities, cont_box)
 #' 
 #' ### Area map data
-area_cities <- ne_download(
-    scale = 10,
-    type = "populated_places",
-    category = "cultural",
-    returnclass = "sf"
-)
+# area_cities <- ne_download( # leave commented unless missing from env
+#     scale = 10,
+#     type = "populated_places",
+#     category = "cultural",
+#     returnclass = "sf"
+# )
 counties <- st_as_sf(maps::map("county", plot = FALSE, fill = TRUE))
 #' Area mapping objects
 area_box <- st_bbox(c(
@@ -154,11 +156,13 @@ area_box <- st_bbox(c(
     ymax = 43.6
 ), crs = 4326)
 sf_use_s2(FALSE)
+#+ area_crop,message=FALSE,warning=FALSE
 area_crop <- st_crop(cont, area_box)
+#+ area_cities_crop,message=FALSE,warning=FALSE
 area_cities_crop <- st_crop(area_cities, area_box)
+#+ counties_crop,message=FALSE,warning=FALSE
 counties_crop <- st_crop(st_transform(counties, 4326), area_box)
-# Don't execute if roads data are in the local env to save time
-# area_roads <- get_osm_roads(area_box, density = 2)
+# area_roads <- get_osm_roads(area_box, density = 2) # leave commented unless missing from env
 #' 
 #' ### Site map data
 sites_sf <- st_as_sf(sites, coords = c("long", "lat"), crs = 4326, remove = FALSE)
@@ -373,9 +377,13 @@ sites_plot <-
                  ))
 #' 
 #' Produce individual region panels using `make_zoom_map()`. 
+#+ map_BM,message=FALSE,warning=FALSE
 map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", road_data = site_roads$rd_BM)
+#+ map_FG,message=FALSE,warning=FALSE
 map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", road_data = site_roads$rd_FG)
+#+ map_FL,message=FALSE,warning=FALSE
 map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", road_data = site_roads$rd_FL)
+#+ map_LP,message=FALSE,warning=FALSE
 map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", road_data = site_roads$rd_LP)
 #' 
 #+ sites_grid
