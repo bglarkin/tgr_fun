@@ -139,7 +139,6 @@ cont_crop <- st_crop(cont, cont_box)
 cities_crop <- st_crop(cities, cont_box)
 #' 
 #' ### Area map data
-#' Retrieve populated places (cities)
 area_cities <- ne_download(
     scale = 10,
     type = "populated_places",
@@ -158,21 +157,33 @@ sf_use_s2(FALSE)
 area_crop <- st_crop(cont, area_box)
 area_cities_crop <- st_crop(area_cities, area_box)
 counties_crop <- st_crop(st_transform(counties, 4326), area_box)
+# Don't execute if roads data are in the local env to save time
+# area_roads <- get_osm_roads(area_box, density = 2)
 #' 
 #' ### Site map data
 sites_sf <- st_as_sf(sites, coords = c("long", "lat"), crs = 4326, remove = FALSE)
-
-
-
-
-
+#' Per-region bboxes with user-defined buffer distance from map border. Uses 
+#' function `bbox_buffer_km()`.
+bb_BM <- bbox_buffer_km(sites_sf %>% filter(region == "BM"), buffer_km = 5)
+bb_FG <- bbox_buffer_km(sites_sf %>% filter(region == "FG"), buffer_km = 0.3)
+bb_FL <- bbox_buffer_km(sites_sf %>% filter(region == "FL"), buffer_km = 1)
+bb_LP <- bbox_buffer_km(sites_sf %>% filter(region == "LP"), buffer_km = 0.2)
+#' Retrieve roads data
+# Don't execute if roads data are in the local env to save time
+# site_roads <- list(
+#   rd_BM = get_osm_roads(bb_BM, density=4),
+#   rd_FG = get_osm_roads(bb_FG, density=8),
+#   rd_FL = get_osm_roads(bb_FL, density=8),
+#   rd_LP = get_osm_roads(bb_LP, density=8)
+# )
 
 #' 
 #' ### Map styles
 state_lab_size <- 2.4
+state_lab_col <- "darkslateblue"
 city_lab_size <- 1.8
 city_pt_size <- 1.2
-city_col <- "grey40"
+city_col <- "grey35"
 panel_lab_x <- 0.02
 panel_lab_y <- 0.98
 
@@ -184,7 +195,7 @@ cont_map <-
     data = cont_crop,
     fill = "ivory",
     color = "black",
-    size = 0.5
+    size = 0.3
   ) +
   geom_rect(
     aes(
@@ -202,8 +213,7 @@ cont_map <-
                                             "Ohio", "Illinois", "Wisconsin","Indiana")),
     aes(x = longitude, y = latitude, label = name),
     size = state_lab_size,
-    alpha = 0.5,
-    color = "darkblue",
+    color = state_lab_col,
     segment.color = NA
   ) +
   geom_point(
@@ -266,13 +276,12 @@ area_map <-
     data = area_crop,
     fill = NA,
     color = "black",
-    size = 0.5
+    size = 0.3
   ) +
   geom_sf(
-    data = get_osm_roads(area_box, density = 2),
-    color = "grey60",
-    linewidth = 0.35,
-    alpha = 0.7
+    data = area_roads,
+    color = "grey70",
+    linewidth = 0.3
   ) +
   geom_point(
     data = region_locs,
@@ -288,7 +297,7 @@ area_map <-
     size = 3,
     fontface = "bold",
     label.r = unit(0.3, "mm"),
-    label.size = 0.6,
+    label.size = 0.4,
     label.padding = unit(1.3, "mm"),
     nudge_x = c(-0.25, 0.25, -0.25, 0.10),
     nudge_y = c(0.06, -0.05, 0.02, 0.15)
@@ -297,8 +306,7 @@ area_map <-
     data = area_crop %>% filter(name %in% c("Wisconsin", "Illinois")),
     aes(x = longitude, y = latitude, label = name),
     size = state_lab_size,
-    alpha = 0.5,
-    color = "darkblue",
+    color = state_lab_col,
     nudge_x = c(0.8, 0.1),
     nudge_y = c(-1, 1.8),
     segment.color = NA
@@ -342,7 +350,6 @@ area_map <-
     panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5)
   )
 
-
 #'
 #' ## Site maps
 #' 
@@ -353,41 +360,44 @@ area_map <-
 sites_plot <-
   nudge_coords(sites %>%
                  mutate(nudge_e_m = case_when(
-                     field_name %in% c("FLRP4") ~ 100,
-                     field_name %in% c("FLRSP3") ~ -30,
-                     field_name %in% c("FLRP5") ~ -80,
+                     field_name %in% c("FLRP4") ~ 220,
+                     field_name %in% c("FLRSP3") ~ -140,
+                     field_name %in% c("FLRP5") ~ -180,
+                     field_name %in% c("FLREM1") ~ -60,
                      TRUE ~ 0),
                    nudge_n_m = case_when(
-                     field_name %in% c("MBRP1", "PHRP1", "MHRP2") ~ -1300,
-                     field_name %in% c("FLRSP1") ~ -80,
+                     field_name %in% c("MBRP1", "PHRP1", "MHRP2") ~ -1900,
+                     field_name %in% c("FLRSP1") ~ -140,
+                     field_name %in% c("FLREM1") ~ 60,
                      TRUE ~ 0)
                  ))
 #' 
-#' Per-region bboxes with user-defined buffer distance from map border. Uses 
-#' function `bbox_buffer_km()`.
-bb_BM <- bbox_buffer_km(sites_sf %>% filter(region == "BM"), buffer_km = 5)
-bb_FG <- bbox_buffer_km(sites_sf %>% filter(region == "FG"), buffer_km = 0.3)
-bb_FL <- bbox_buffer_km(sites_sf %>% filter(region == "FL"), buffer_km = 1)
-bb_LP <- bbox_buffer_km(sites_sf %>% filter(region == "LP"), buffer_km = 0.2)
-#' 
 #' Produce individual region panels using `make_zoom_map()`. 
-map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", show_counties = FALSE, road_density = 4)
-map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", show_counties = FALSE)
-map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", show_counties = FALSE)
-map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", show_counties = FALSE)
+map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", road_data = site_roads$rd_BM)
+map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", road_data = site_roads$rd_FG)
+map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", road_data = site_roads$rd_FL)
+map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", road_data = site_roads$rd_LP)
 #' 
 #+ sites_grid
 region_zoom_grid <- ggarrange(
   map_BM, NULL, map_FG, NULL, map_FL, NULL, map_LP,
   nrow = 1, align = "h", widths = c(rep(c(1, 0.02), 3), 1)
 )
-
+#' 
 #' ## Legend and citation grobs
-legend_plot <- 
+legend_plot <-
   ggplot(sites_plot, aes(x = long_plot, y = lat_plot, fill = field_type)) +
-  geom_point(shape = 21, size = sm_size, stroke = lw, color = "black") +
-  scale_fill_manual(values = ft_pal, name = "Field type",
-                    breaks = levels(sites_plot$field_type)) +
+  geom_point(
+    shape = 21,
+    size = sm_size,
+    stroke = lw,
+    color = "black"
+  ) +
+  scale_fill_manual(
+    values = ft_pal,
+    name = "Field type",
+    breaks = levels(sites_plot$field_type)
+  ) +
   guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
   theme_void() +
   theme(
@@ -395,33 +405,32 @@ legend_plot <-
     legend.box           = "horizontal",
     legend.key.height    = unit(4, "mm"),
     legend.key.width     = unit(8, "mm"),
-    legend.text          = element_text(size = 9),
+    legend.text          = element_text(size = 8),
+    legend.title        = element_text(size = 8),
     plot.margin          = margin(0, 0, 0, 0)
   )
 legend_grob <- cowplot::get_legend(legend_plot)
-credits_txt <- "Roads: © OpenStreetMap contributors via {osmextract}\nBoundaries & Names: Natural Earth via {rnaturalearth}"
+
 credits_grob <- textGrob(
-  credits_txt, x = 1, y = 0.5, hjust = 1, vjust = 0.5,
-  gp = gpar(cex = 0.8, col = "grey20")
+  "Roads: © OpenStreetMap contributors via {osmextract}\nBoundaries & Names: Natural Earth via {rnaturalearth}",
+  x = unit(1, "npc") - unit(3, "mm"),
+  y = 0.5,
+  hjust = 1,
+  vjust = 0.5,
+  gp = gpar(cex = 0.5, col = "grey20")
 )
+
 footer_row <- arrangeGrob(
   grobs   = list(legend_grob, credits_grob),
   ncol    = 2,
-  widths  = c(3, 2)
+  widths  = c(1, 1),
+  heights = unit(1, "null")
 )
 footer_panel <- as_ggplot(footer_row)
-
-
-
-
-
-
-
-
 #' 
 #' ## Final map 
 #' Balance row heights to fill white space
-fhs <- c(0.57, 0.02, 0.43)
+fhs <- c(0.56, 0.01, 0.44)
 #' Arrange
 maps_fig <- ggarrange(
   ggarrange(
@@ -438,16 +447,17 @@ maps_fig <- ggarrange(
   heights = c(1, 0.06),
   widths = c(1, 0.8)
 )
-  
 #+ tgr_map,message=FALSE,fig.height=4.9,fig.width=6.5
 maps_fig
 #' 
 ggsave(
     root_path("figs/fig1.png"),
+    plot = maps_fig,
     width = 6.5,
-    height = 6.5 * fhs[2] / fhs[1],
+    height = (6.5 * fhs[3] / fhs[1]) + 1.2, 
     units = "in",
-    dpi = 600
+    dpi = 600, 
+    bg = "white"
 )
 
 

@@ -4,7 +4,7 @@
 # hcl_wizard()
 # hcl_color_picker()
 # Field types: corn, restored, remnant:
-ft_pal <- c("#EABB38", "#96DC51", "#078F78")
+ft_pal <- c("#EABB38", "#96DC51", "#038C98")
 
 # Shapes and sizes
 lw <- 0.4

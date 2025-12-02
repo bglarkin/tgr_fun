@@ -495,13 +495,12 @@ get_osm_roads <- function(bb, density = 8) {
 # Build a zoom map over a bbox; points only, fill by field_type
 make_zoom_map <- function(bb,
                           panel_tag = NULL,
-                          legend = FALSE,
-                          show_counties = TRUE,
-                          road_density = 8) {
+                          show_counties = FALSE,
+                          road_data = NULL) {
   
   crop_states   <- st_crop(cont, bb)
   crop_counties <- if (show_counties) st_crop(st_transform(counties, 4326), bb) else NULL
-  roads         <- get_osm_roads(bb, density=road_density)
+  roads         <- road_data
   
   pts <- sites_sf %>%
     filter(long >= bb["xmin"], long <= bb["xmax"],
@@ -516,7 +515,7 @@ make_zoom_map <- function(bb,
   g <- ggplot() +
     geom_sf(data = crop_states, fill = "ivory", color = "black", linewidth = 0.5) +
     { if (!is.null(crop_counties)) geom_sf(data = crop_counties, fill = NA, color = "gray85", linewidth = 0.3) } +
-    { if (!is.null(roads)) geom_sf(data = roads, color = "grey60", linewidth = 0.35, alpha = 0.7) } +
+    { if (!is.null(roads)) geom_sf(data = roads, color = "grey70", linewidth = 0.3) } +
     geom_point(
       data = sites_plot,
       aes(x = long_plot, y = lat_plot, fill = field_type),
@@ -547,8 +546,9 @@ make_zoom_map <- function(bb,
     theme_void() +
     theme(
       panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
-      legend.position  = if (legend) "right" else "none"
+      legend.position = "none"
     )
   
   g
+  
 }
