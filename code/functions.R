@@ -422,14 +422,9 @@ covar_shape_test <- function(data, y, covar, group = field_type) {
 }
 
 #' ## Site mapping functions
-#' Functions facilitate the creation of mapping objects:
+#' Functions facilitate the creation of mapping objects
 #' 
-#' 1. 
-
-
-
-
-# Buffer a bbox by meters (robust for labeling/jitter padding)
+#' ### Create buffered bounding boxes
 bbox_buffer_km <- function(pts_sf, buffer_km = 20) {
   albers <- 5070 # NAD83 / Conus Albers
   pts_sf %>%
@@ -440,14 +435,11 @@ bbox_buffer_km <- function(pts_sf, buffer_km = 20) {
     st_transform(4326) %>%
     st_bbox()
 }
-
-
-
-
-# Convert per-row meter nudges to degrees and add *_plot columns
-# Expect these columns in `sites` (you add them manually where needed):
-#   nudge_e_m = meters to move EAST  (positive = east, negative = west)
-#   nudge_n_m = meters to move NORTH (positive = north, negative = south)
+#' 
+#' ### Create custom point nudges 
+#' Add field names manually:
+#' - nudge_e_m = meters to move EAST  (positive = east, negative = west)
+#' - nudge_n_m = meters to move NORTH (positive = north, negative = south)
 nudge_coords <- function(sites, lon_col = "long", lat_col = "lat",
                          east_col = "nudge_e_m", north_col = "nudge_n_m") {
   stopifnot(all(c(lon_col, lat_col) %in% names(sites)))
@@ -468,8 +460,8 @@ nudge_coords <- function(sites, lon_col = "long", lat_col = "lat",
       lat_plot  = .data[[lat_col]] + ifelse(is.finite(dy_deg), dy_deg, 0)
     )
 }
-
-
+#' 
+#' ### Retrieve road layer data from open street maps.
 get_osm_roads <- function(bb, density = 8) {
   
   # validate density
@@ -490,13 +482,9 @@ get_osm_roads <- function(bb, density = 8) {
   return(st_crop(res$osm_lines, st_as_sfc(bb)))
   
 }
-
-
-# Build a zoom map over a bbox; points only, fill by field_type
-make_zoom_map <- function(bb,
-                          panel_tag = NULL,
-                          show_counties = FALSE,
-                          road_data = NULL) {
+#' 
+#' ### Build site-level map panels
+make_zoom_map <- function(bb, panel_tag = NULL, show_counties = FALSE, road_data = NULL) {
   
   crop_states   <- st_crop(cont, bb)
   crop_counties <- if (show_counties) st_crop(st_transform(counties, 4326), bb) else NULL
