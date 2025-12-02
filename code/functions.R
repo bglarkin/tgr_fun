@@ -420,3 +420,135 @@ covar_shape_test <- function(data, y, covar, group = field_type) {
     diagnostics = chmd
   )
 }
+
+#' ## Site mapping functions
+#' Functions facilitate the creation of mapping objects:
+#' 
+#' 1. 
+
+
+
+
+# Buffer a bbox by meters (robust for labeling/jitter padding)
+bbox_buffer_km <- function(pts_sf, buffer_km = 20) {
+  albers <- 5070 # NAD83 / Conus Albers
+  pts_sf %>%
+    st_transform(albers) %>%
+    st_bbox() %>%
+    st_as_sfc(crs = albers) %>%
+    st_buffer(dist = buffer_km * 1000) %>%
+    st_transform(4326) %>%
+    st_bbox()
+}
+
+
+
+
+# Convert per-row meter nudges to degrees and add *_plot columns
+# Expect these columns in `sites` (you add them manually where needed):
+#   nudge_e_m = meters to move EAST  (positive = east, negative = west)
+#   nudge_n_m = meters to move NORTH (positive = north, negative = south)
+nudge_coords <- function(sites, lon_col = "long", lat_col = "lat",
+                         east_col = "nudge_e_m", north_col = "nudge_n_m") {
+  stopifnot(all(c(lon_col, lat_col) %in% names(sites)))
+  # If nudge columns are missing, treat as zeros
+  if (!(east_col  %in% names(sites))) sites[[east_col]]  <- 0
+  if (!(north_col %in% names(sites))) sites[[north_col]] <- 0
+  
+  # Vectorized meters → degrees (WGS84 approximation)
+  m_per_deg_lat <- 111320                      # ~ meters per degree latitude
+  m_per_deg_lon <- m_per_deg_lat * cospi(sites[[lat_col]] / 180)
+  
+  dx_deg <- sites[[east_col]]  / m_per_deg_lon
+  dy_deg <- sites[[north_col]] / m_per_deg_lat
+  
+  sites %>%
+    mutate(
+      long_plot = .data[[lon_col]] + ifelse(is.finite(dx_deg), dx_deg, 0),
+      lat_plot  = .data[[lat_col]] + ifelse(is.finite(dy_deg), dy_deg, 0)
+    )
+}
+
+
+get_osm_roads <- function(bb, density = 8) {
+  
+  # validate density
+  types <- c("motorway","trunk","primary","secondary",
+             "tertiary","unclassified","residential","service")
+  if (!is.numeric(density) || length(density) != 1L || !is.finite(density)) {
+    stop("`density` must be a single finite number in 1:8")
+  }
+  density <- as.integer(max(1L, min(length(types), density)))
+  vals <- types[seq_len(density)]
+  
+  # build layer
+  res <- 
+    opq(bbox = bb) %>% 
+    add_osm_feature(key = "highway", value = vals) %>% 
+    osmdata_sf()
+  
+  return(st_crop(res$osm_lines, st_as_sfc(bb)))
+  
+}
+
+
+# Build a zoom map over a bbox; points only, fill by field_type
+make_zoom_map <- function(bb,
+                          panel_tag = NULL,
+                          legend = FALSE,
+                          show_counties = TRUE,
+                          road_density = 8) {
+  
+  crop_states   <- st_crop(cont, bb)
+  crop_counties <- if (show_counties) st_crop(st_transform(counties, 4326), bb) else NULL
+  roads         <- get_osm_roads(bb, density=road_density)
+  
+  pts <- sites_sf %>%
+    filter(long >= bb["xmin"], long <= bb["xmax"],
+           lat  >= bb["ymin"], lat  <= bb["ymax"]) %>%
+    st_drop_geometry()
+  
+  # Labels only where yr_since is available (restored sites)
+  pts_lab <- sites_plot %>%
+    filter(!is.na(yr_since)) %>%
+    mutate(lbl = as.character(round(yr_since, 0)))
+  
+  g <- ggplot() +
+    geom_sf(data = crop_states, fill = "ivory", color = "black", linewidth = 0.5) +
+    { if (!is.null(crop_counties)) geom_sf(data = crop_counties, fill = NA, color = "gray85", linewidth = 0.3) } +
+    { if (!is.null(roads)) geom_sf(data = roads, color = "grey60", linewidth = 0.35, alpha = 0.7) } +
+    geom_point(
+      data = sites_plot,
+      aes(x = long_plot, y = lat_plot, fill = field_type),
+      shape = 21, size = sm_size, stroke = lw, color = "black"
+    ) +
+    geom_text(
+      data = pts_lab,
+      aes(x = long_plot, y = lat_plot, label = lbl),
+      size = yrtx_size, family = "sans", fontface = 2, color = "black"
+    ) +
+    scale_fill_manual(values = ft_pal) +
+    annotation_scale(location = "bl", width_hint = 0.35, height = grid::unit(0.15, "cm")) +
+    geom_label_npc(
+      aes(npcx = 0.02, npcy = 0.98, label = panel_tag %||% ""),
+      color = "indianred",
+      fill = "snow",
+      hjust = "left", vjust = "top",
+      size = 3, fontface = "bold",
+      label.r = unit(0.3, "mm"),
+      label.size = 0.4,
+      label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
+    ) +
+    coord_sf(
+      xlim = c(bb["xmin"], bb["xmax"]),
+      ylim = c(bb["ymin"], bb["ymax"]),
+      expand = FALSE
+    ) +
+    theme_void() +
+    theme(
+      panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
+      legend.position  = if (legend) "right" else "none"
+    )
+  
+  g
+}
