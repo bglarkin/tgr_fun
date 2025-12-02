@@ -214,10 +214,16 @@ pfg_comp <-
   left_join(gf_index, by = join_by(field_name)) %>% 
   filter(field_type == "restored", region != "FL") %>% 
   select(field_name, yr_since, gf_index, pfg, pct_comp) %>% 
-  mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb", "C3_grass", "legume", "shrubTree"))),
-         xlabs = paste(field_name, yr_since, sep = "\n"))
-ggplot(pfg_comp, aes(x = fct_reorder(xlabs, gf_index), y = pct_comp, group = pfg)) +
-  geom_col(aes(fill = pfg))
+  mutate(pfg = factor(pfg, levels = rev(c("forb", "C4_grass", "C3_grass", "legume", "shrubTree")),
+                      labels = rev(c("forb", "grass (C4)", "grass (C3)", "legume", "shrub, tree"))))
+pfg_comp_fig <- 
+  ggplot(pfg_comp, aes(x = fct_reorder(field_name, gf_index), y = pct_comp, group = pfg)) +
+  geom_col(aes(fill = pfg)) +
+  labs(x = NULL, y = "Composition, % of total cover") +
+  scale_fill_discrete_qualitative(name = "Functional group", palette = "pfg-col", rev = TRUE) +
+  theme_cor+
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
 pfg_pct <- 
   pfg %>% 
   select(field_name, C4_grass, forb) %>%
@@ -226,14 +232,31 @@ pfg_pct <-
   left_join(gf_index, by = join_by(field_name)) %>% 
   filter(field_type == "restored", region != "FL") %>% 
   select(field_name, yr_since, gf_index, pfg, pct_cvr)  %>% 
-  mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb"))),
-         xlabs = paste(field_name, yr_since, sep = "\n"))
-ggplot(pfg_pct, aes(x = fct_reorder(xlabs, gf_index), y = pct_cvr, group = pfg)) +
+  mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb"))))
+gf_pct_fig <- 
+  ggplot(pfg_pct, aes(x = fct_reorder(field_name, gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
-  geom_point(aes(color = pfg))
-
-
-
+  geom_point(aes(color = pfg)) +
+  scale_color_manual(name = "Functional group", values = gfi_cols) +
+  labs(x = NULL, y = "Percent cover") +
+  theme_cor+
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' 
+#' #### Unified figure
+#+ pfg_fig_patchwork,warning=FALSE
+pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig) +
+  plot_layout(heights = c(1,0.01,1))  +
+  plot_annotation(tag_levels = 'a') 
+#+ pfg_fig,warning=FALSE,fig.height=5,fig.width=6.5
+pfg_pct_fig
+#+ pfg_fig_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "figS8.png"),
+       plot = pfg_pct_fig,
+       width = 7.5,
+       height = 6,
+       units = "in",
+       dpi = 600)
 
 
 
@@ -555,13 +578,12 @@ fig2 <- (fig2_ls | plot_spacer() | its_ma_ord) +
 fig2
 #' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
 #' **a** OTU richness and **b** fungal biomass (PLFA) are shown as columns with 95 % CIs; lowercase
-#' letters mark significant pairwise differences (P < 0.001).
+#' letters mark significant pairwise differences.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
 #' distances: small points = sites, large circles = field-type centroids (error bars =
-#' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
+#' 95 % CI). Cornfields cluster apart from restored or remnant prairies.
 #' Numbers in black circles give years since restoration. Axis labels show the
-#' percent variation explained. Colours/shading: corn = grey, restored = black,
-#' remnant = white.
+#' percent variation explained. 
 
 #+ fig2_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig2.png"),
@@ -778,7 +800,7 @@ fig6 <-
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("blue3", "blue3", "gray20")) +
+               color = c(gfi_cols, "gray20")) +
   geom_text(data = mod_scor_bp, 
             aes(x = labx, y = laby, label = envlabs), 
             nudge_x = c(-0.1,0.1,0.02), 
@@ -831,6 +853,8 @@ summary(furest_m_logy)
 ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
   geom_text(label = rownames(fungi_resto))
 #' No relationshp detected with gf_index. High leverage point is again KORP1.
+#' ITS based community turnover is correlated with grass/forb change, but abundances
+#' of grasses/forbs aren't correlated with these fungi.
 
 
 
@@ -1325,6 +1349,7 @@ list(glom = glom_glm, clar = clar_glm, para = para_glm, diver = diver_glm) %>%
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 5))
 
 
+
 #' write up for all of them:
 #' example:
 #' Field type strongly affected Glomeraceae biomass (ANOVA: F(2, 22) = 23.50, pAdj < 0.001)
@@ -1350,6 +1375,7 @@ amf_ind %>%
   arrange(field_type) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with avg biomass")
+#' None of the identified species seem relevant for further discussion...
 
 
 
@@ -1379,11 +1405,10 @@ amf_mod_step$anova %>% kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, 
 #' 
 #' 
-#' UPDATE THE TEXT BELOW
 #' the model shows a significant
 #' correlation between the site ordination on fungal communities
 #' and the selected explanatory variables (p<0.001). The first two constrained axes are
-#' also significant (p<0.01). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community
+#' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=35.1% of the community
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for
 #' individual p values and statistics.
 #'
@@ -1702,8 +1727,7 @@ fig4
 #' distances: small points = sites, large circles = field-type centroids (error bars =
 #' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
 #' Numbers in black circles give years since restoration. Axis labels show the
-#' percent variation explained. Colours/shading: corn = grey, restored = black,
-#' remnant = white.
+#' percent variation explained. 
 
 #+ fig4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
 ggsave(root_path("figs", "fig4.png"),
@@ -2322,6 +2346,10 @@ ggplot(sapro_resto, aes(x = gf_index, sapro_prop)) +
 #' significant inference based on changing it's position.
 
 
+
+
+
+
 #' 
 #' # Omnibus summary objects
 # Summaries ———————— ####
@@ -2359,3 +2387,7 @@ list(
   split(., ~ var) %>% 
   map(\(df) df %>% mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 4)) %>% 
         select(-var))
+
+
+
+
