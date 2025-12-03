@@ -11,6 +11,84 @@
 #' # Description
 #' Functions that accompany the repository, sourced from this file to save space elsewhere
 #' 
+#' ## Sequence data processing functions
+#' ### ETL: clean OTU data and return formatted objects
+#+ function_etl
+etl <- function(spe, env = sites, taxa, traits = NULL, varname, gene, cluster_type = "otu",
+                colname_prefix, folder) {
+  varname <- enquo(varname)
+  data <- spe %>% left_join(taxa, by = join_by(`#OTU ID`))
+  
+  meta <- if (gene == "ITS") {
+    data %>%
+      mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
+      select(!starts_with(gene)) %>%
+      rename(otu_ID = `#OTU ID`) %>%
+      select(!!varname, everything()) %>%
+      separate_wider_delim(taxonomy, delim = ";",
+                           names = c("kingdom", "phylum", "class", "order", "family", "genus", "species"),
+                           too_few = "align_start") %>%
+      mutate(across(kingdom:species, ~ str_sub(.x, 4))) %>%
+      left_join(traits, by = join_by(phylum, class, order, family, genus)) %>%
+      select(-kingdom, -Confidence)
+  } else {
+    data %>%
+      mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
+      select(!starts_with(gene)) %>%
+      rename(otu_ID = `#OTU ID`) %>%
+      select(!!varname, everything()) %>%
+      separate(taxonomy,
+               into = c("class", "order", "family", "genus", "taxon", "accession"),
+               sep = ";", fill = "right") %>%
+      select(-Confidence)
+  }
+  
+  spe_samps <- data %>%
+    mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
+    select(!!varname, starts_with(gene)) %>%
+    column_to_rownames(var = as_name(varname)) %>%
+    t() %>% as.data.frame() %>% rownames_to_column("rowname") %>%
+    mutate(rowname = str_remove(rowname, colname_prefix)) %>%
+    separate_wider_delim("rowname", delim = "_", names = c("field_key", "sample")) %>%
+    mutate(across(c(field_key, sample), as.numeric)) %>%
+    left_join(env %>% select(field_key, field_name), by = join_by(field_key)) %>%
+    select(field_name, sample, everything(), -field_key) %>%
+    arrange(field_name, sample)
+  
+  spe_avg <- spe_samps %>%
+    group_by(field_name) %>%
+    summarize(across(starts_with(cluster_type), mean), .groups = "drop") %>%
+    arrange(field_name)
+  
+  samples_fields <- spe_samps %>%
+    count(field_name, name = "n") %>%
+    left_join(sites, by = join_by(field_name)) %>%
+    select(field_name, region, n) %>%
+    arrange(n, field_name) %>%
+    kable(format = "pandoc", caption = paste("Number of samples per field", gene, sep = ",\n"))
+  
+  write_csv(meta, root_path(folder, paste("spe", gene, "metadata.csv", sep = "_")))
+  write_csv(spe_samps, root_path(folder, paste("spe", gene, "samples.csv", sep = "_")))
+  write_csv(spe_avg, root_path(folder, paste("spe", gene, "avg.csv", sep = "_")))
+  
+  list(samples_fields = samples_fields, spe_meta = meta, spe_samps = spe_samps, spe_avg = spe_avg)
+}
+#' 
+#' ### Species accumulation
+#+ function_spe_accum
+spe_accum <- function(data) {
+  df <- data.frame(
+    samples = specaccum(data[, -c(1, 2)], method = "exact")$site,
+    richness = specaccum(data[, -c(1, 2)], method = "exact")$richness,
+    sd = specaccum(data[, -c(1, 2)], method = "exact")$sd
+  )
+  df
+}
+#' 
+#' ## Confidence interval helper
+#+ function_confint
+ci <- function(x) std.error(x) * qnorm(0.975)
+#' 
 #' ## Alpha diversity calculations
 #' Returns a dataframe of alpha diversity (richness, Shannon's) for analysis and plotting.
 #+ calc_diversity_function
