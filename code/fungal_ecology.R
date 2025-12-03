@@ -792,37 +792,30 @@ mod_scor_bp <- bind_rows(
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 
-#+ fig6,warning=FALSE,fig.height=4,fig.width=4
-fig6 <- 
+#+ fig6a,warning=FALSE,fig.height=4,fig.width=4
+fig6a <- 
   ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c(gfi_cols, "gray20")) +
+               color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = mod_scor_bp, 
             aes(x = labx, y = laby, label = envlabs), 
-            nudge_x = c(-0.1,0.1,0.02), 
-            nudge_y = c(0.06,-0.06,0.1),
+            nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
             size = 3, color = "black") +
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("Constr. Axis 1 (", mod_pars_eig[1], "%)"),
     y = paste0("Constr. Axis 2 (", mod_pars_eig[2], "%)")) +
-  theme_ord
-fig6
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' Will combine with 6b (AMF)
 
-#+ fig6_save,warning=FALSE,echo=FALSE
-ggsave(
-  root_path("figs", "fig6.png"),
-  plot = fig6,
-  width = 4,
-  height = 4,
-  units = "in",
-  dpi = 600
-)
 
 
 
@@ -1185,7 +1178,7 @@ amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
 #+ amf_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 amf_shan_ord_sup
 #+ amf_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS4.png"),
+ggsave(root_path("figs", "figS5.png"),
        plot = amf_shan_ord_sup,
        width = 7.5,
        height = 4,
@@ -1415,9 +1408,6 @@ amf_mod_step$anova %>% kable(, format = "pandoc")
 
 
 
-#' NEED TREND CHARTS FOR ALL SELECTED VARS (PH WITH WHOLE SOIL FUNGI, OM WITH AMF, GF_INDEX FOR BOTH...
-#' WE'LL SEE WHAT HAPPENS WITH PATHO AND SAPRO). SUPPLEMENTAL FIGURES. 
-
 
 #' Create the figure, combine with pathogen-plant correlation figure in patchwork later:
 amf_mod_pars <-
@@ -1438,9 +1428,18 @@ amf_mod_scor_site <- amf_mod_scor$sites %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
   left_join(sites, by = join_by(field_name))
-amf_mod_scor_bp <- amf_mod_scor$biplot %>%
-  data.frame() %>%
-  rownames_to_column(var = "envvar") %>%
+amf_mod_scor_bp <- bind_rows(
+  amf_mod_scor$biplot %>%
+    data.frame() %>%
+    rownames_to_column(var = "envvar") %>%
+    mutate(envlabs = c(">forb", "OM")),
+  data.frame(
+    envvar = "gf_index",
+    dbRDA1 = 0.8450446,
+    dbRDA2 = -0.4524256,
+    envlabs = ">grass")
+) %>% 
+  arrange(envvar, envlabs) %>% 
   mutate(
     origin = 0,
     m = dbRDA2 / dbRDA1,
@@ -1448,37 +1447,53 @@ amf_mod_scor_bp <- amf_mod_scor$biplot %>%
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-
-#+ fig_amfConstr,warning=FALSE,fig.height=4,fig.width=4
-amfConstr <-
-  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+#+ fig6b,warning=FALSE,fig.height=4,fig.width=4
+fig6b <-
+  ggplot(amf_mod_scor_site, aes(x = (dbRDA1 * -1), y = dbRDA2)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
+               aes(x = origin, xend = (dbRDA1 * -1), y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = "gray20") +
+               color = c("gray20", "darkblue", "darkblue")) +
   geom_text(data = amf_mod_scor_bp,
-            aes(x = labx, y = laby, label = c("grass—forb\nindex", "OM")),
-            nudge_x = c(-0.2,-0.06), nudge_y = c(0.08,0.1),
+            aes(x = (labx * -1), y = laby, label = envlabs),
+            nudge_x = (c(0.05, 0.2, -0.2) * -1), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20") +
-    geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
-    geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("Constr. Axis 1 (", amf_mod_pars_eig[1], "%)"),
     y = paste0("Constr. Axis 2 (", amf_mod_pars_eig[2], "%)")) +
-  theme_ord
-amfConstr
+  lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' 
+#' #### Unified figure
+#+ fig6_patchwork,warning=false
+fig6 <- (fig6a | plot_spacer() | fig6b) +
+  plot_layout(widths = c(0.50, 0.01, 0.50)) +
+  plot_annotation(tag_levels = 'a') 
+#+ fig6,warning=FALSE,fig.height=4,fig.width=6.5
+fig6
+#+ fig6_save,warning=FALSE,echo=FALSE
+ggsave(
+  root_path("figs", "fig6.png"),
+  plot = fig6,
+  width = 6.5,
+  height = 3.5,
+  units = "in",
+  dpi = 600
+)
 
-# #+ amfConstr_save,warning=FALSE,echo=FALSE
-# ggsave(
-#   root_path("figs", "fig6.png"),
-#   plot = fig6,
-#   width = 4,
-#   height = 4,
-#   units = "in",
-#   dpi = 600
-# )
+
+
+
+
+
+
 
 
 
@@ -1785,7 +1800,20 @@ patho_ord <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.01))
 
-#' Supplemental figure....
+
+patho_shan_fig | patho_ord
+
+# #+ figS6_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+# ggsave(root_path("figs", "fig4.png"),
+#        plot = fig4,
+#        width = 6.5,
+#        height = 4,
+#        units = "in",
+#        dpi = 600)
+
+
+
+
 #' Procrustes...
 set.seed(20251112)
 patho_protest <- protest(
@@ -2119,14 +2147,6 @@ sapro_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
-
-
-#' Unified shannons figure...
-
-
-
-
 
 #' 
 #' ## Abundance
