@@ -111,7 +111,7 @@ soil_ord_regions <-
   geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
   geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region), size = 3) +
     geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = FALSE, shape = TRUE)) +
-    scale_fill_manual(name = "Field Type", values = c("gray", "black", "white")) +
+    scale_fill_manual(name = "Field Type", values = ft_pal) +
     scale_shape_manual(name = "Region", values = c(22:25)) +
   xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
   ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
@@ -146,8 +146,8 @@ soil_ord_ftypes <-
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
     geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE, shape = TRUE)) +
   geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = TRUE, shape = FALSE)) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
-    scale_fill_manual(name = "Field Type", values = c("gray", "black", "white")) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
+    scale_fill_manual(name = "Field Type", values = ft_pal) +
     scale_shape_manual(name = "Region", values = c(22:25)) +
   xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
   ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
@@ -157,13 +157,13 @@ soil_ord_ftypes <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(-0.03, 0.90))
 
-#+ figS2,warning=FALSE,fig.height=3.5,fig.width=6.5
-figS2 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
+#+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
+figS4 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
   plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
   plot_annotation(tag_levels = 'a')
-figS2
-ggsave(root_path("figs", "figS2.png"),
-       plot = figS2,
+figS4
+ggsave(root_path("figs", "figS4.png"),
+       plot = figS4,
        width = 7.5,
        height = 4.25,
        units = "in",
