@@ -28,93 +28,21 @@ packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rp
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
-
+#' 
 #' # Functions
-
 #' ## Root path function
 root_path <- function(...) rprojroot::find_rstudio_root_file(...)
-
+#' 
+#' Repo functions loaded from a separate script to save lines here; to view the function navigate to 
+#' `functions.R` in the code folder, accessible from the root dir of the repo.
+source(root_path("code", "functions.R"))
+#' 
 #' ## Styles
 #+ graphics_styles
 source(root_path("resources", "styles.R"))
 
-#' ## ETL: clean OTU data and return formatted objects
-#+ function_etl
-etl <- function(spe, env = sites, taxa, traits = NULL, varname, gene, cluster_type = "otu",
-                colname_prefix, folder) {
-    varname <- enquo(varname)
-    data <- spe %>% left_join(taxa, by = join_by(`#OTU ID`))
-    
-    meta <- if (gene == "ITS") {
-        data %>%
-            mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
-            select(!starts_with(gene)) %>%
-            rename(otu_ID = `#OTU ID`) %>%
-            select(!!varname, everything()) %>%
-            separate_wider_delim(taxonomy, delim = ";",
-                                 names = c("kingdom", "phylum", "class", "order", "family", "genus", "species"),
-                                 too_few = "align_start") %>%
-            mutate(across(kingdom:species, ~ str_sub(.x, 4))) %>%
-            left_join(traits, by = join_by(phylum, class, order, family, genus)) %>%
-            select(-kingdom, -Confidence)
-    } else {
-        data %>%
-            mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
-            select(!starts_with(gene)) %>%
-            rename(otu_ID = `#OTU ID`) %>%
-            select(!!varname, everything()) %>%
-            separate(taxonomy,
-                     into = c("class", "order", "family", "genus", "taxon", "accession"),
-                     sep = ";", fill = "right") %>%
-            select(-Confidence)
-    }
-    
-    spe_samps <- data %>%
-        mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
-        select(!!varname, starts_with(gene)) %>%
-        column_to_rownames(var = as_name(varname)) %>%
-        t() %>% as.data.frame() %>% rownames_to_column("rowname") %>%
-        mutate(rowname = str_remove(rowname, colname_prefix)) %>%
-        separate_wider_delim("rowname", delim = "_", names = c("field_key", "sample")) %>%
-        mutate(across(c(field_key, sample), as.numeric)) %>%
-        left_join(env %>% select(field_key, field_name), by = join_by(field_key)) %>%
-        select(field_name, sample, everything(), -field_key) %>%
-        arrange(field_name, sample)
-    
-    spe_avg <- spe_samps %>%
-        group_by(field_name) %>%
-        summarize(across(starts_with(cluster_type), mean), .groups = "drop") %>%
-        arrange(field_name)
-    
-    samples_fields <- spe_samps %>%
-        count(field_name, name = "n") %>%
-        left_join(sites, by = join_by(field_name)) %>%
-        select(field_name, region, n) %>%
-        arrange(n, field_name) %>%
-        kable(format = "pandoc", caption = paste("Number of samples per field", gene, sep = ",\n"))
-    
-    write_csv(meta, root_path(folder, paste("spe", gene, "metadata.csv", sep = "_")))
-    write_csv(spe_samps, root_path(folder, paste("spe", gene, "samples.csv", sep = "_")))
-    write_csv(spe_avg, root_path(folder, paste("spe", gene, "avg.csv", sep = "_")))
-    
-    list(samples_fields = samples_fields, spe_meta = meta, spe_samps = spe_samps, spe_avg = spe_avg)
-}
 
-#' ## Species accumulation
-#+ function_spe_accum
-spe_accum <- function(data) {
-    df <- data.frame(
-        samples = specaccum(data[, -c(1, 2)], method = "exact")$site,
-        richness = specaccum(data[, -c(1, 2)], method = "exact")$richness,
-        sd = specaccum(data[, -c(1, 2)], method = "exact")$sd
-    )
-    df
-}
-
-#' ## Confidence interval helper
-#+ function_confint
-ci <- function(x) std.error(x) * qnorm(0.975)
-
+#' 
 #' # Load and process data
 
 #' ## Import data
@@ -279,7 +207,8 @@ its_rare_fig <- ggplot(rarefac %>% filter(dataset == "ITS"), aes(x = Sample, y =
     y = NULL) +
   theme_corf +
   scale_x_continuous(breaks = seq(0, 90000, 30000)) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        plot.margin = unit(rep(0,4), "mm"))
 amf_rare_fig <- ggplot(rarefac %>% filter(dataset == "AMF"), aes(x = Sample, y = Species, group = field_name)) +
   facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "fixed") +
   geom_line(aes(color = field_type)) +
@@ -291,23 +220,27 @@ amf_rare_fig <- ggplot(rarefac %>% filter(dataset == "AMF"), aes(x = Sample, y =
   scale_x_continuous(breaks = seq(0, 45000, 15000)) +
   theme(legend.position = "none",
         strip.text.x = element_blank(),   
-        strip.background.x = element_blank())
+        strip.background.x = element_blank(),
+        plot.margin = unit(rep(0,4), "mm"))
 #' Create figure panels
 rare_panels <- (its_rare_fig / plot_spacer() / amf_rare_fig) +
   plot_layout(heights = c(1,0.01,1))
 x_lab <- ggdraw() + 
-  draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5, size = 10)
+  draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5, size = 10) 
 y_lab <- ggdraw() + 
   draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5, size = 10)
-rare_fig_h <- (y_lab | rare_panels) + plot_layout(widths = c(0.04, 1))
+rare_fig_h <- (y_lab | rare_panels) + plot_layout(widths = c(0.03, 1))
 rare_fig <- rare_fig_h / x_lab + plot_layout(heights = c(1, 0.10))
+rare_fig <- rare_fig + plot_annotation(
+  theme = theme(plot.margin = unit(rep(0,4), "mm"))
+)
 #+ rarefaction_fig,fig.width=7,fig.height=4
 rare_fig
 #+ rarefaction_fig_save
 ggsave(
   root_path("figs", "figS1.png"),
   plot = rare_fig,
-  height = 4.5,
+  height = 4.24,
   width = 7.5,
   units = "in",
   dpi = 600
@@ -316,23 +249,20 @@ ggsave(
 #+ species_accumulation_fig,fig.width=7,fig.height=4
 accum_fig <- 
   ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
-    facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free_y") +
-    geom_line(aes(color = field_type)) +
-    geom_segment(aes(xend = samples, y = richness - sd, yend = richness + sd, color = field_type)) +
+  facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free_y") +
+  geom_line(aes(color = field_type)) +
+  geom_segment(aes(xend = samples, y = richness - sd, yend = richness + sd, color = field_type)) +
   scale_color_manual(values = ft_pal) +
-    labs(
-        x = "Samples",
-        y = "OTUs",
-        caption = "Species accumulation using exact method; error = moment-based SD"
-    ) +
+  labs(x = "Samples", y = "OTUs") +
     scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10)) +
     theme_corf +
-    theme(legend.position = "none")
+    theme(legend.position = "none", 
+          plot.margin = unit(c(0,2,4,2), "mm"))
 #+ accum_fig_save
 ggsave(
   root_path("figs", "figS2.png"),
   plot = accum_fig,
-  height = 4.3,
+  height = 4.25,
   width = 7.5,
   units = "in",
   dpi = 600
