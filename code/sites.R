@@ -121,12 +121,12 @@ kable(ft_stats, format = "pandoc", caption = "Summary of field type pairwise dis
 cont <- ne_states(country = c("United States of America", "Canada"),
                   returnclass = "sf")
 #' Retrieve metadata for populated places (cities)
-# cities <- ne_download( # Leave commented unless data are missing from env
-#     scale = 50,
-#     type = "populated_places",
-#     category = "cultural",
-#     returnclass = "sf"
-# )
+cities <- ne_download( 
+    scale = 50,
+    type = "populated_places",
+    category = "cultural",
+    returnclass = "sf"
+)
 #' Continental mapping objects
 cont_box <- st_bbox(c(
     xmin = -95,
@@ -141,12 +141,12 @@ cont_crop <- st_crop(cont, cont_box)
 cities_crop <- st_crop(cities, cont_box)
 #' 
 #' ### Area map data
-# area_cities <- ne_download( # leave commented unless missing from env
-#     scale = 10,
-#     type = "populated_places",
-#     category = "cultural",
-#     returnclass = "sf"
-# )
+area_cities <- ne_download(
+    scale = 10,
+    type = "populated_places",
+    category = "cultural",
+    returnclass = "sf"
+)
 counties <- st_as_sf(maps::map("county", plot = FALSE, fill = TRUE))
 #' Area mapping objects
 area_box <- st_bbox(c(
