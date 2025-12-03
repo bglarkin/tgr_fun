@@ -2120,6 +2120,14 @@ sapro_shan_fig <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 
+
+
+#' Unified shannons figure...
+
+
+
+
+
 #' 
 #' ## Abundance
 #' Proportional biomass
@@ -2388,6 +2396,8 @@ list(
   map(\(df) df %>% mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 4)) %>% 
         select(-var))
 
-
+#' Could be a slippery slope to start adjusting p values like this....
+#' 
+#' Next thing is to produce the 2x2 shannons plot...
 
 
