@@ -2,9 +2,12 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 03 November, 2025
+Last updated: 04 December, 2025
 
 - [Description](#description)
+  - [Sequence data processing
+    functions](#sequence-data-processing-functions)
+  - [Confidence interval helper](#confidence-interval-helper)
   - [Alpha diversity calculations](#alpha-diversity-calculations)
   - [Confidence intervals](#confidence-intervals)
   - [Multivariate analysis](#multivariate-analysis)
@@ -16,11 +19,99 @@ Last updated: 03 November, 2025
     Analysis](#perform-indicator-species-analysis)
   - [Calculate pairwise distances among sites and present summary
     statistics](#calculate-pairwise-distances-among-sites-and-present-summary-statistics)
+  - [Test raw and transformed covariates in linear
+    models](#test-raw-and-transformed-covariates-in-linear-models)
+  - [Site mapping functions](#site-mapping-functions)
 
 # Description
 
 Functions that accompany the repository, sourced from this file to save
 space elsewhere
+
+## Sequence data processing functions
+
+### ETL: clean OTU data and return formatted objects
+
+``` r
+etl <- function(spe, env = sites, taxa, traits = NULL, varname, gene, cluster_type = "otu",
+                colname_prefix, folder) {
+  varname <- enquo(varname)
+  data <- spe %>% left_join(taxa, by = join_by(`#OTU ID`))
+  
+  meta <- if (gene == "ITS") {
+    data %>%
+      mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
+      select(!starts_with(gene)) %>%
+      rename(otu_ID = `#OTU ID`) %>%
+      select(!!varname, everything()) %>%
+      separate_wider_delim(taxonomy, delim = ";",
+                           names = c("kingdom", "phylum", "class", "order", "family", "genus", "species"),
+                           too_few = "align_start") %>%
+      mutate(across(kingdom:species, ~ str_sub(.x, 4))) %>%
+      left_join(traits, by = join_by(phylum, class, order, family, genus)) %>%
+      select(-kingdom, -Confidence)
+  } else {
+    data %>%
+      mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
+      select(!starts_with(gene)) %>%
+      rename(otu_ID = `#OTU ID`) %>%
+      select(!!varname, everything()) %>%
+      separate(taxonomy,
+               into = c("class", "order", "family", "genus", "taxon", "accession"),
+               sep = ";", fill = "right") %>%
+      select(-Confidence)
+  }
+  
+  spe_samps <- data %>%
+    mutate(!!varname := paste0(cluster_type, "_", row_number())) %>%
+    select(!!varname, starts_with(gene)) %>%
+    column_to_rownames(var = as_name(varname)) %>%
+    t() %>% as.data.frame() %>% rownames_to_column("rowname") %>%
+    mutate(rowname = str_remove(rowname, colname_prefix)) %>%
+    separate_wider_delim("rowname", delim = "_", names = c("field_key", "sample")) %>%
+    mutate(across(c(field_key, sample), as.numeric)) %>%
+    left_join(env %>% select(field_key, field_name), by = join_by(field_key)) %>%
+    select(field_name, sample, everything(), -field_key) %>%
+    arrange(field_name, sample)
+  
+  spe_avg <- spe_samps %>%
+    group_by(field_name) %>%
+    summarize(across(starts_with(cluster_type), mean), .groups = "drop") %>%
+    arrange(field_name)
+  
+  samples_fields <- spe_samps %>%
+    count(field_name, name = "n") %>%
+    left_join(sites, by = join_by(field_name)) %>%
+    select(field_name, region, n) %>%
+    arrange(n, field_name) %>%
+    kable(format = "pandoc", caption = paste("Number of samples per field", gene, sep = ",\n"))
+  
+  write_csv(meta, root_path(folder, paste("spe", gene, "metadata.csv", sep = "_")))
+  write_csv(spe_samps, root_path(folder, paste("spe", gene, "samples.csv", sep = "_")))
+  write_csv(spe_avg, root_path(folder, paste("spe", gene, "avg.csv", sep = "_")))
+  
+  list(samples_fields = samples_fields, spe_meta = meta, spe_samps = spe_samps, spe_avg = spe_avg)
+}
+```
+
+### Species accumulation
+
+``` r
+spe_accum <- function(data) {
+  df <- data.frame(
+    samples = specaccum(data[, -c(1, 2)], method = "exact")$site,
+    richness = specaccum(data[, -c(1, 2)], method = "exact")$richness,
+    sd = specaccum(data[, -c(1, 2)], method = "exact")$sd
+  )
+  df
+}
+```
+
+## Confidence interval helper
+
+``` r
+ci <- function(x) std.error(x) * qnorm(0.975)
+```
 
 ## Alpha diversity calculations
 
@@ -39,8 +130,9 @@ calc_div <- function(spe, site_dat) {
     ) %>% 
     select(-starts_with("otu")) %>% 
     as_tibble() %>% 
+    ungroup() %>% 
     left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-    mutate(across(starts_with("field"), ~ factor(.x, ordered = FALSE)))
+    select(field_name, field_type, depth, richness, shannon)
   
   return(div_data)
   
@@ -109,17 +201,6 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
     rownames_to_column(var = "field_name") %>% 
     left_join(env, by = join_by(field_name))
   
-  # Envfit (legacy, output not used)
-  if (!is.null(seed)) set.seed(seed + 1L)
-  p_fit <- envfit(
-    p_vec ~ yr_since,
-    data       = env,
-    choices    = c(1, 2),
-    na.rm      = TRUE,
-    permutations = nperm
-  )
-  p_fit_sco <- scores(p_fit, display = "bp")
-  
   # Homogeneity of multivariate dispersion
   disper <- betadisper(d, clust_vec, bias.adjust = TRUE)
   if (!is.null(seed)) set.seed(seed + 2L)
@@ -184,9 +265,7 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
     ordination_scores  = p_sco,
     dispersion_test    = mvdisper,
     permanova          = gl_permtest,
-    pairwise_contrasts = contrasts,
-    vector_fit_result  = p_fit,
-    vector_fit_scores  = p_fit_sco
+    pairwise_contrasts = contrasts
   )
 }
 ```
@@ -310,15 +389,24 @@ filters OTUs for indicators of field types.
 
 ``` r
 inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
-  data <- guildseq(spe, meta, guild) %>% 
-    left_join(site_dat, by = join_by(field_name))
-  spe <- data.frame(
-    data %>% select(field_name, starts_with("otu")),
-    row.names = 1
-  )
-  grp = data$field_type
+  if(is.null(guild)) {
+    data <- spe %>% left_join(site_dat, by = join_by(field_name))
+    spe_g <- data.frame(
+      data %>% select(field_name, starts_with("otu")),
+      row.names = 1)
+    grp <- data$field_type
+  } else {
+    data <- guildseq(spe, meta, guild) %>% 
+      left_join(site_dat, by = join_by(field_name))
+    spe_g <- data.frame(
+      data %>% select(field_name, starts_with("otu")),
+      row.names = 1)
+    grp <- data$field_type
+  }
+  
+  # Indicator species analysis
   mp <- multipatt(
-    spe, grp, max.order = 1, 
+    x = spe_g, cluster = grp, func = "IndVal.g", max.order = 1, 
     control = how(nperm = nperm))
   si <- mp$sign %>% 
     select(index, stat, p.value) %>% 
@@ -342,13 +430,28 @@ inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
     pivot_longer(cols = corn:remnant, 
                  names_to = "field_type", 
                  values_to = "B")
+  
+  # Join to abundance in field types
+  seq_abund <- 
+    spe_g %>% 
+    rownames_to_column(var = "field_name") %>% 
+    pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+    left_join(site_dat %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+    group_by(field_type, otu_num) %>% 
+    summarize(avg = mean(abund),
+              ci = qnorm(0.975) * sd(abund) / sqrt(n()),
+              .groups = "drop") %>% 
+    pivot_wider(names_from = "field_type", values_from = c("avg", "ci"), names_glue = "{field_type}_{.value}") %>% 
+    select(otu_num, starts_with("corn"), starts_with("restor"), starts_with("rem"))
+  
   out <- 
     si %>% 
     left_join(A, by = join_by(otu_num, field_type)) %>% 
     left_join(B, by = join_by(otu_num, field_type)) %>% 
     left_join(meta %>% select(-otu_ID), by = join_by(otu_num)) %>% 
+    left_join(seq_abund, by = join_by(otu_num)) %>% 
     select(otu_num, A, B, stat, p.value, p_val_adj, 
-           field_type, primary_lifestyle, everything()) %>% 
+           field_type, everything()) %>% 
     arrange(field_type, -stat)
   
   return(out)
@@ -374,7 +477,7 @@ reg_dist_stats <- function(dist_mat,
   
   meta <- sites_df %>%
     select(site = field_key, ft = field_type, rg = region) %>% 
-    mutate(site = as.character(site)) %>% 
+    mutate(site = as.character(site), ft = as.character(ft)) %>% 
     filter(rg == filt_rg)
   
   pairs %>%
@@ -389,5 +492,197 @@ reg_dist_stats <- function(dist_mat,
       max_dist = max(dist, na.rm = TRUE),
       .groups = "drop"
     )
+}
+```
+
+## Test raw and transformed covariates in linear models
+
+Function `covar_shape_test()` compares a series of linear models with
+raw, square root, or log transforms of the covariate. It selects the
+best model based on various criteria.
+
+``` r
+covar_shape_test <- function(data, y, covar, group = field_type) {
+  
+  resp <- ensym(y)
+  x    <- ensym(covar)
+  g    <- ensym(group)
+  
+  df <- data %>% 
+    select(!!resp, !!g, x_raw = !!x) %>% 
+    mutate(x_lin  = as.numeric(scale(x_raw, center = TRUE, scale = FALSE)),
+           x_sqrt = as.numeric(scale(sqrt(pmax(x_raw, 0)), center = TRUE, scale = FALSE)),
+           x_log  = as.numeric(scale(log1p(pmax(x_raw, 0)), center = TRUE, scale = FALSE))
+    ) %>% drop_na()
+  
+  f_lin  <- new_formula(expr(!!resp), expr(x_lin  + !!g))
+  f_sqrt <- new_formula(expr(!!resp), expr(x_sqrt + !!g))
+  f_log  <- new_formula(expr(!!resp), expr(x_log  + !!g))
+  
+  # Fit candidate models
+  m_lin  <- lm(f_lin,  data = df)
+  m_sqrt <- lm(f_sqrt, data = df)
+  m_log  <- lm(f_log,  data = df)
+  
+  # Compare candidate fits
+  cmp <- compare_performance(
+    lin = m_lin, sqrt = m_sqrt, log = m_log,
+    metrics = c("AIC","RMSE","R2"), rank = TRUE
+  )
+  best_name <- cmp$Name[1]
+  best_mod  <- switch(best_name, m_lin = m_lin, m_sqrt = m_sqrt, m_log = m_log)
+  
+  # Type-II tests (unbalanced design; additive model)
+  anova_t2 <- Anova(best_mod, type = 2)
+  
+  # LS-means for group at centered covariate
+  emm <- emmeans(best_mod, specs = as_name(g))
+  
+  chmd <- check_model(best_mod)
+  
+  # return everything
+  list(
+    data      = df,
+    compare   = cmp,
+    best_name = best_name,
+    best_model= best_mod,
+    anova_t2  = anova_t2,
+    emmeans   = emm,
+    diagnostics = chmd
+  )
+}
+```
+
+## Site mapping functions
+
+Functions facilitate the creation of mapping objects
+
+### Create buffered bounding boxes
+
+``` r
+bbox_buffer_km <- function(pts_sf, buffer_km = 20) {
+  albers <- 5070 # NAD83 / Conus Albers
+  pts_sf %>%
+    st_transform(albers) %>%
+    st_bbox() %>%
+    st_as_sfc(crs = albers) %>%
+    st_buffer(dist = buffer_km * 1000) %>%
+    st_transform(4326) %>%
+    st_bbox()
+}
+```
+
+### Create custom point nudges
+
+Add field names manually: - nudge_e_m = meters to move EAST (positive =
+east, negative = west) - nudge_n_m = meters to move NORTH (positive =
+north, negative = south)
+
+``` r
+nudge_coords <- function(sites, lon_col = "long", lat_col = "lat",
+                         east_col = "nudge_e_m", north_col = "nudge_n_m") {
+  stopifnot(all(c(lon_col, lat_col) %in% names(sites)))
+  # If nudge columns are missing, treat as zeros
+  if (!(east_col  %in% names(sites))) sites[[east_col]]  <- 0
+  if (!(north_col %in% names(sites))) sites[[north_col]] <- 0
+  
+  # Vectorized meters → degrees (WGS84 approximation)
+  m_per_deg_lat <- 111320                      # ~ meters per degree latitude
+  m_per_deg_lon <- m_per_deg_lat * cospi(sites[[lat_col]] / 180)
+  
+  dx_deg <- sites[[east_col]]  / m_per_deg_lon
+  dy_deg <- sites[[north_col]] / m_per_deg_lat
+  
+  sites %>%
+    mutate(
+      long_plot = .data[[lon_col]] + ifelse(is.finite(dx_deg), dx_deg, 0),
+      lat_plot  = .data[[lat_col]] + ifelse(is.finite(dy_deg), dy_deg, 0)
+    )
+}
+```
+
+### Retrieve road layer data from open street maps.
+
+``` r
+get_osm_roads <- function(bb, density = 8) {
+  
+  # validate density
+  types <- c("motorway","trunk","primary","secondary",
+             "tertiary","unclassified","residential","service")
+  if (!is.numeric(density) || length(density) != 1L || !is.finite(density)) {
+    stop("`density` must be a single finite number in 1:8")
+  }
+  density <- as.integer(max(1L, min(length(types), density)))
+  vals <- types[seq_len(density)]
+  
+  # build layer
+  res <- 
+    opq(bbox = bb) %>% 
+    add_osm_feature(key = "highway", value = vals) %>% 
+    osmdata_sf()
+  
+  return(st_crop(res$osm_lines, st_as_sfc(bb)))
+  
+}
+```
+
+### Build site-level map panels
+
+``` r
+make_zoom_map <- function(bb, panel_tag = NULL, show_counties = FALSE, road_data = NULL) {
+  
+  crop_states   <- st_crop(cont, bb)
+  crop_counties <- if (show_counties) st_crop(st_transform(counties, 4326), bb) else NULL
+  roads         <- road_data
+  
+  pts <- sites_sf %>%
+    filter(long >= bb["xmin"], long <= bb["xmax"],
+           lat  >= bb["ymin"], lat  <= bb["ymax"]) %>%
+    st_drop_geometry()
+  
+  # Labels only where yr_since is available (restored sites)
+  pts_lab <- sites_plot %>%
+    filter(!is.na(yr_since)) %>%
+    mutate(lbl = as.character(round(yr_since, 0)))
+  
+  g <- ggplot() +
+    geom_sf(data = crop_states, fill = "ivory", color = "black", linewidth = 0.5) +
+    { if (!is.null(crop_counties)) geom_sf(data = crop_counties, fill = NA, color = "gray85", linewidth = 0.3) } +
+    { if (!is.null(roads)) geom_sf(data = roads, color = "grey70", linewidth = 0.3) } +
+    geom_point(
+      data = sites_plot,
+      aes(x = long_plot, y = lat_plot, fill = field_type),
+      shape = 21, size = sm_size, stroke = lw, color = "black"
+    ) +
+    geom_text(
+      data = pts_lab,
+      aes(x = long_plot, y = lat_plot, label = lbl),
+      size = yrtx_size, family = "sans", fontface = 2, color = "black"
+    ) +
+    scale_fill_manual(values = ft_pal) +
+    annotation_scale(location = "bl", width_hint = 0.35, height = grid::unit(0.15, "cm")) +
+    geom_label_npc(
+      aes(npcx = 0.02, npcy = 0.98, label = panel_tag %||% ""),
+      color = "indianred",
+      fill = "snow",
+      hjust = "left", vjust = "top",
+      size = 3, fontface = "bold",
+      label.r = unit(0.3, "mm"),
+      label.size = 0.4,
+      label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
+    ) +
+    coord_sf(
+      xlim = c(bb["xmin"], bb["xmax"]),
+      ylim = c(bb["ymin"], bb["ymax"]),
+      expand = FALSE
+    ) +
+    theme_void() +
+    theme(
+      panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
+      legend.position = "none"
+    )
+  
+  g
+  
 }
 ```

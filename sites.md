@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 03 November, 2025
+Last updated: 04 December, 2025
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -13,8 +13,10 @@ Last updated: 03 November, 2025
   - [Site pairwise distances](#site-pairwise-distances)
 - [Maps](#maps)
   - [Map data](#map-data)
-  - [Regional map](#regional-map)
+  - [Continental map](#continental-map)
   - [Area map](#area-map)
+  - [Site maps](#site-maps)
+  - [Legend and citation grobs](#legend-and-citation-grobs)
   - [Final map](#final-map)
 
 # Description
@@ -26,9 +28,10 @@ Last updated: 03 November, 2025
 
 ``` r
 packages_needed = c(
-    "tidyverse", "colorspace", "ggmap", "knitr", "conflicted", "gridExtra",
+    "tidyverse", "colorspace", "knitr", "conflicted", "grid", "gridExtra",
     "geosphere", "ggrepel", "sf", "rnaturalearth","rnaturalearthdata", 
-    "rnaturalearthhires", "ggspatial", "maps", "ggpubr", "grid", "ggpmisc"
+    "rnaturalearthhires", "ggspatial", "maps", "ggpubr", "ggpmisc",
+    "osmdata", "cowplot"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -43,10 +46,12 @@ root_path <- function(...) rprojroot::find_rstudio_root_file(...)
 ```
 
 ``` r
-conflict_prefer("filter", "dplyr")
-conflict_prefer("select", "dplyr")
-conflict_prefer("map", "purrr")
-conflict_prefer("annotate", "ggpp")
+conflicts_prefer(
+  dplyr::filter,
+  dplyr::select,
+  purrr::map,
+  ggpp::annotate
+)
 ```
 
 ``` r
@@ -68,27 +73,16 @@ source(root_path("code", "functions.R"))
 
 ``` r
 sites <-
-    read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>%
-    glimpse() # Any reason to not recode field_type to factor here?
+  read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
+  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 ```
-
-    ## Rows: 25
-    ## Columns: 8
-    ## $ field_key  <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
-    ## $ field_name <chr> "BBRP1", "ERRP1", "FGC1", "FGREM1", "FGRP1", "FLC1", "FLC2", "FLREM1", "FLRP1", "FLRP4", "FLRP5", "FLRSP1", "FLRSP2", "FLRS…
-    ## $ region     <chr> "BM", "BM", "FG", "FG", "FG", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "FL", "BM", "LP", "LP", "LP", "LP", "BM", "BM…
-    ## $ lat        <dbl> 43.09989, 43.06588, 43.16087, 43.16172, 43.14381, 41.85941, 41.84370, 41.86043, 41.83457, 41.83491, 41.83439, 41.84074, 41.…
-    ## $ long       <dbl> -89.72517, -89.80358, -88.89045, -88.88973, -88.88175, -88.25148, -88.22913, -88.25288, -88.25159, -88.25050, -88.25318, -8…
-    ## $ field_type <chr> "restored", "restored", "corn", "remnant", "restored", "corn", "corn", "remnant", "restored", "restored", "restored", "rest…
-    ## $ yr_restore <dbl> 2000, 2013, NA, NA, 2001, NA, NA, NA, 1976, 1980, 1981, 2006, 2006, 2006, 1988, NA, NA, 2012, 2012, NA, 1998, 2009, 2014, N…
-    ## $ yr_since   <dbl> 16, 3, NA, NA, 15, NA, NA, NA, 40, 36, 35, 10, 10, 10, 28, NA, NA, 4, 4, NA, 18, 7, 2, NA, 11
 
 Calculate region locations
 
 ``` r
 region_locs <- sites %>%
-    group_by(region) %>%
-    summarize(long_cen = mean(long),
+  group_by(region) %>%
+  summarize(long_cen = mean(long),
               lat_cen = mean(lat),
               .groups = "drop")
 ```
@@ -104,16 +98,16 @@ field_types <- sites %>%
   pivot_wider(names_from = field_type, values_from = n:yr_max) %>% 
   select(region, starts_with("n"), yr_min_restored, yr_max_restored)
 kable(field_types,
-      format = "pandoc",
-      caption = "Count of sites by type in each area & age of restored fields:\nBM = Blue Mounds, FG = Faville Grove,\nFL = Fermilab, LP = Lake Petite")
+  format = "pandoc",
+  caption = "Count of sites by type in each area & age of restored fields:\nBM = Blue Mounds, FG = Faville Grove,\nFL = Fermilab, LP = Lake Petite")
 ```
 
-| region | n_corn | n_remnant | n_restored | yr_min_restored | yr_max_restored |
-|:-------|-------:|----------:|-----------:|----------------:|----------------:|
-| BM     |      1 |         1 |          7 |               2 |              28 |
-| FG     |      1 |         1 |          1 |              15 |              15 |
-| FL     |      2 |         1 |          6 |              10 |              40 |
-| LP     |      1 |         1 |          2 |               4 |               4 |
+| region | n_corn | n_restored | n_remnant | yr_min_restored | yr_max_restored |
+|:-------|-------:|-----------:|----------:|----------------:|----------------:|
+| BM     |      1 |          7 |         1 |               2 |              28 |
+| FG     |      1 |          1 |         1 |              15 |              15 |
+| FL     |      2 |          6 |         1 |              10 |              40 |
+| LP     |      1 |          2 |         1 |               4 |               4 |
 
 Count of sites by type in each area & age of restored fields: BM = Blue
 Mounds, FG = Faville Grove, FL = Fermilab, LP = Lake Petite
@@ -223,18 +217,18 @@ Summary of field type pairwise distances
 
 ## Map data
 
-Create two panel map with regional and area views. \### Regional map
+Create two panel map with regional and area views. \### Continental map
 data Retrieve layer for US states and Canadian provinces.
 
 ``` r
-regions <- ne_states(country = c("United States of America", "Canada"),
-                     returnclass = "sf")
+cont <- ne_states(country = c("United States of America", "Canada"),
+                  returnclass = "sf")
 ```
 
 Retrieve metadata for populated places (cities)
 
 ``` r
-cities <- ne_download(
+cities <- ne_download( 
     scale = 50,
     type = "populated_places",
     category = "cultural",
@@ -242,42 +236,31 @@ cities <- ne_download(
 )
 ```
 
-    ## Reading layer `ne_50m_populated_places' from data source 
-    ##   `/private/var/folders/f2/v4gkwmsn0nbd3fmypfh2wl740000gp/T/RtmpLnCJGe/ne_50m_populated_places.shp' using driver `ESRI Shapefile'
-    ## Simple feature collection with 1251 features and 137 fields
-    ## Geometry type: POINT
-    ## Dimension:     XY
-    ## Bounding box:  xmin: -175.2206 ymin: -90 xmax: 179.2166 ymax: 78.22097
-    ## Geodetic CRS:  WGS 84
+    ## Reading 'ne_50m_populated_places.zip' from naturalearth...
 
-Regional mapping objects
+Continental mapping objects
 
 ``` r
-regional_box <- st_bbox(c(
+cont_box <- st_bbox(c(
     xmin = -95,
     ymin = 39.25,
     xmax = -81,
     ymax = 49.5
 ), crs = 4326)
 sf_use_s2(FALSE)
-regions_crop <- st_crop(regions, regional_box)
 ```
 
-    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
-
-    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
+    ## Spherical geometry (s2) switched off
 
 ``` r
-cities_crop <- st_crop(cities, regional_box)
+cont_crop <- st_crop(cont, cont_box)
 ```
 
-    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
-
-    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
+``` r
+cities_crop <- st_crop(cities, cont_box)
+```
 
 ### Area map data
-
-Retrieve populated places (cities)
 
 ``` r
 area_cities <- ne_download(
@@ -288,13 +271,7 @@ area_cities <- ne_download(
 )
 ```
 
-    ## Reading layer `ne_10m_populated_places' from data source 
-    ##   `/private/var/folders/f2/v4gkwmsn0nbd3fmypfh2wl740000gp/T/RtmpLnCJGe/ne_10m_populated_places.shp' using driver `ESRI Shapefile'
-    ## Simple feature collection with 7342 features and 137 fields
-    ## Geometry type: POINT
-    ## Dimension:     XY
-    ## Bounding box:  xmin: -179.59 ymin: -90 xmax: 179.3833 ymax: 82.48332
-    ## Geodetic CRS:  WGS 84
+    ## Reading 'ne_10m_populated_places.zip' from naturalearth...
 
 ``` r
 counties <- st_as_sf(maps::map("county", plot = FALSE, fill = TRUE))
@@ -310,221 +287,350 @@ area_box <- st_bbox(c(
     ymax = 43.6
 ), crs = 4326)
 sf_use_s2(FALSE)
-area_crop <- st_crop(regions, area_box)
 ```
 
-    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
-
-    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
+``` r
+area_crop <- st_crop(cont, area_box)
+```
 
 ``` r
 area_cities_crop <- st_crop(area_cities, area_box)
 ```
 
-    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
-
-    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
-
 ``` r
 counties_crop <- st_crop(st_transform(counties, 4326), area_box)
+# area_roads <- get_osm_roads(area_box, density = 2) # leave commented unless missing from env
 ```
 
-    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
+### Site map data
 
-    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
+``` r
+sites_sf <- st_as_sf(sites, coords = c("long", "lat"), crs = 4326, remove = FALSE)
+```
+
+Per-region bboxes with user-defined buffer distance from map border.
+Uses function `bbox_buffer_km()`.
+
+``` r
+bb_BM <- bbox_buffer_km(sites_sf %>% filter(region == "BM"), buffer_km = 5)
+bb_FG <- bbox_buffer_km(sites_sf %>% filter(region == "FG"), buffer_km = 0.3)
+bb_FL <- bbox_buffer_km(sites_sf %>% filter(region == "FL"), buffer_km = 1)
+bb_LP <- bbox_buffer_km(sites_sf %>% filter(region == "LP"), buffer_km = 0.2)
+```
+
+Retrieve roads data
+
+``` r
+# Don't execute if roads data are in the local env to save time
+# site_roads <- list(
+#   rd_BM = get_osm_roads(bb_BM, density=4),
+#   rd_FG = get_osm_roads(bb_FG, density=8),
+#   rd_FL = get_osm_roads(bb_FL, density=8),
+#   rd_LP = get_osm_roads(bb_LP, density=8)
+# )
+```
 
 ### Map styles
 
 ``` r
 state_lab_size <- 2.4
+state_lab_col <- "darkslateblue"
 city_lab_size <- 1.8
 city_pt_size <- 1.2
-city_col <- "grey40"
+city_col <- "grey35"
 panel_lab_x <- 0.02
 panel_lab_y <- 0.98
 ```
 
-## Regional map
+## Continental map
 
 ``` r
-regional_map <-
-    ggplot() +
-    geom_sf(
-        data = regions_crop,
-        fill = "ivory",
-        color = "black",
-        size = 0.5
-    ) +
-    geom_rect(
-        aes(
-            xmin = -90.3,
-            ymin = 41.5,
-            xmax = -87.4,
-            ymax = 43.45
-        ),
-        fill = NA,
-        color = "indianred",
-        linewidth = 0.6
-    ) +
-    geom_text_repel(
-        data = regions_crop %>% filter(
-            name %in% c(
-                "Minnesota",
-                "Iowa",
-                "Ontario",
-                "Michigan",
-                "Ohio",
-                "Illinois",
-                "Wisconsin",
-                "Indiana"
-            )
-        ),
-        aes(x = longitude, y = latitude, label = name),
-        size = state_lab_size,
-        alpha = 0.5,
-        color = "darkblue",
-        segment.color = NA
-    ) +
-    geom_point(
-        data = cities_crop,
-        aes(x = LONGITUDE, y = LATITUDE),
-        color = city_col,
-        size = city_pt_size
-    ) +
-    geom_text_repel(
-        data = cities_crop,
-        aes(x = LONGITUDE, y = LATITUDE, label = NAME),
-        size = city_lab_size,
-        color = city_col,
-        nudge_y = 0
-    ) +
-    annotation_scale(location = "bl", 
-                     width_hint = 0.4,
-                     height = unit(0.15, "cm")) +
-    annotation_north_arrow(
-        location = "bl",
-        which_north = "true",
-        height = unit(0.75, "cm"),
-        width = unit(0.75, "cm"),
-        pad_x = unit(0.25, "cm"),
-        pad_y = unit(0.55, "cm"),
-        style = north_arrow_fancy_orienteering()
-    ) +
-    geom_label_npc(
-        aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "A"), 
-        hjust = "left",
-        vjust = "top",
-        size = 3,
-        fontface = "bold",
-        label.r = unit(0.3, "mm"),
-        label.size = 0.4,
-        label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
-    ) +
-    coord_sf(
-        xlim = c(regional_box$xmin, regional_box$xmax),
-        ylim = c(regional_box$ymin, regional_box$ymax),
-        expand = FALSE
-    ) +
-    theme_void() +
-    theme(#aspect.ratio = 1,
-        panel.grid.major = element_blank(),
-        panel.background = element_rect(fill = "aliceblue"))
+cont_map <-
+  ggplot() +
+  geom_sf(
+    data = cont_crop,
+    fill = "ivory",
+    color = "black",
+    size = 0.3
+  ) +
+  geom_rect(
+    aes(
+      xmin = -90.3,
+      ymin = 41.5,
+      xmax = -87.4,
+      ymax = 43.45
+    ),
+    fill = NA,
+    color = "indianred",
+    linewidth = 0.6
+  ) +
+  geom_text_repel(
+    data = cont_crop %>% filter(name %in% c("Minnesota", "Iowa", "Ontario", "Michigan",
+                                            "Ohio", "Illinois", "Wisconsin","Indiana")),
+    aes(x = longitude, y = latitude, label = name),
+    size = state_lab_size,
+    color = state_lab_col,
+    segment.color = NA
+  ) +
+  geom_point(
+    data = cities_crop,
+    aes(x = LONGITUDE, y = LATITUDE),
+    color = city_col,
+    size = city_pt_size
+  ) +
+  geom_text_repel(
+    data = cities_crop,
+    aes(x = LONGITUDE, y = LATITUDE, label = NAME),
+    size = city_lab_size,
+    color = city_col,
+    nudge_y = 0
+  ) +
+  annotation_scale(
+    location = "bl",
+    width_hint = 0.4,
+    height = unit(0.15, "cm")
+  ) +
+  geom_label_npc(
+    aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "A"),
+    hjust = "left",
+    vjust = "top",
+    size = 3,
+    fontface = "bold",
+    label.r = unit(0.3, "mm"),
+    label.size = 0.4,
+    label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
+  ) +
+  coord_sf(
+    xlim = c(cont_box$xmin, cont_box$xmax),
+    ylim = c(cont_box$ymin, cont_box$ymax),
+    expand = FALSE
+  ) +
+  theme_void() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5)
+  )
 ```
 
 ## Area map
 
 ``` r
 area_map <-
-    ggplot() +
-    geom_sf(
-        data = area_crop,
-        fill = "ivory",
-        color = "black",
-        size = 0.5
-    ) +
-    geom_sf(data = counties,
-            fill = NA,
-            color = "gray80") +
-    geom_point(
-        data = region_locs,
-        aes(x = long_cen, y = lat_cen),
-        color = "indianred",
-        size = 3
-    ) +
-    geom_label_repel(
-        data = region_locs,
-        aes(x = long_cen, y = lat_cen, label = region),
-        color = "indianred",
-        fill = "snow",
-        size = 3,
-        fontface = "bold",
-        label.r = unit(0.3, "mm"),
-        label.size = 0.6,
-        label.padding = unit(1.3, "mm"),
-        nudge_x = c(-0.25, 0.25, -0.25, 0.10),
-        nudge_y = c(0.06, -0.05, 0.02, 0.15)
-    ) +
-    geom_text_repel(
-        data = area_crop %>%
-            filter(name %in% c("Wisconsin", "Illinois")),
-        aes(x = longitude, y = latitude, label = name),
-        size = state_lab_size,
-        alpha = 0.5,
-        color = "darkblue",
-        nudge_x = c(0.8, 0.1),
-        nudge_y = c(-1, 1.8),
-        segment.color = NA
-    ) +
-    geom_point(
-        data = area_cities_crop,
-        aes(x = LONGITUDE, y = LATITUDE),
-        color = city_col,
-        size = city_pt_size
-    ) +
-    geom_text_repel(
-        data = area_cities_crop,
-        aes(x = LONGITUDE, y = LATITUDE, label = NAME),
-        size = city_lab_size,
-        color = city_col,
-        nudge_y = 0
-    ) +
-    annotation_scale(location = "bl", 
-                     width_hint = 0.4,
-                     height = unit(0.15, "cm")) +
-    geom_label_npc(
-        aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "B"), 
-        hjust = "left",
-        vjust = "top",
-        size = 3,
-        fontface = "bold",
-        label.r = unit(0.3, "mm"),
-        label.size = 0.4,
-        label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
-    ) +
-    coord_sf(
-        xlim = c(area_box$xmin, area_box$xmax),
-        ylim = c(area_box$ymin, area_box$ymax),
-        expand = FALSE
-    ) +
-    theme_void() +
-    theme(#aspect.ratio = 1,
-        panel.grid.major = element_blank(),
-        panel.background = element_rect(fill = "aliceblue"))
+  ggplot() +
+  geom_sf(
+    data = counties,
+    fill = "ivory",
+    color = "gray80") +
+  geom_sf(
+    data = area_crop,
+    fill = NA,
+    color = "black",
+    size = 0.3
+  ) +
+  geom_sf(
+    data = area_roads,
+    color = "grey70",
+    linewidth = 0.3
+  ) +
+  geom_point(
+    data = region_locs,
+    aes(x = long_cen, y = lat_cen),
+    color = "indianred",
+    size = 3
+  ) +
+  geom_label_repel(
+    data = region_locs,
+    aes(x = long_cen, y = lat_cen, label = region),
+    color = "indianred",
+    fill = "snow",
+    size = 3,
+    fontface = "bold",
+    label.r = unit(0.3, "mm"),
+    label.size = 0.4,
+    label.padding = unit(1.3, "mm"),
+    nudge_x = c(-0.25, 0.25, -0.25, 0.10),
+    nudge_y = c(0.06, -0.05, 0.02, 0.15)
+  ) +
+  geom_text_repel(
+    data = area_crop %>% filter(name %in% c("Wisconsin", "Illinois")),
+    aes(x = longitude, y = latitude, label = name),
+    size = state_lab_size,
+    color = state_lab_col,
+    nudge_x = c(0.8, 0.1),
+    nudge_y = c(-1, 1.8),
+    segment.color = NA
+  ) +
+  geom_point(
+    data = area_cities_crop,
+    aes(x = LONGITUDE, y = LATITUDE),
+    color = city_col,
+    size = city_pt_size
+  ) +
+  geom_text_repel(
+    data = area_cities_crop,
+    aes(x = LONGITUDE, y = LATITUDE, label = NAME),
+    size = city_lab_size,
+    color = city_col,
+    nudge_y = 0
+  ) +
+  annotation_scale(
+    location = "bl",
+    width_hint = 0.4,
+    height = unit(0.15, "cm")
+  ) +
+  annotation_north_arrow(
+    location = "tr",
+    which_north = "true",
+    height = unit(0.75, "cm"),
+    width = unit(0.75, "cm"),
+    pad_x = unit(0.2, "cm"),
+    pad_y = unit(0.25, "cm"),
+    style = north_arrow_fancy_orienteering()
+  ) +
+  geom_label_npc(
+    aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "B"),
+    hjust = "left",
+    vjust = "top",
+    size = 3,
+    fontface = "bold",
+    label.r = unit(0.3, "mm"),
+    label.size = 0.4,
+    label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
+  ) +
+  coord_sf(
+    xlim = c(area_box$xmin, area_box$xmax),
+    ylim = c(area_box$ymin, area_box$ymax),
+    expand = FALSE
+  ) +
+  theme_void() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5)
+  )
+```
+
+## Site maps
+
+Use `nudge_coords` to prevent overlap of points where sites lie close
+together. Nudge values are in meters. Positive values nudge in the
+indicated directions of east or north (e.g., nudge_e_m is east in
+meters); negative values nudge to the west or south.
+
+``` r
+sites_plot <-
+  nudge_coords(sites %>%
+                 mutate(nudge_e_m = case_when(
+                     field_name %in% c("FLRP4") ~ 220,
+                     field_name %in% c("FLRSP3") ~ -140,
+                     field_name %in% c("FLRP5") ~ -180,
+                     field_name %in% c("FLREM1") ~ -60,
+                     TRUE ~ 0),
+                   nudge_n_m = case_when(
+                     field_name %in% c("MBRP1", "PHRP1", "MHRP2") ~ -1900,
+                     field_name %in% c("FLRSP1") ~ -140,
+                     field_name %in% c("FLREM1") ~ 60,
+                     TRUE ~ 0)
+                 ))
+```
+
+Produce individual region panels using `make_zoom_map()`.
+
+``` r
+map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", road_data = site_roads$rd_BM)
+```
+
+``` r
+map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", road_data = site_roads$rd_FG)
+```
+
+``` r
+map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", road_data = site_roads$rd_FL)
+```
+
+``` r
+map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", road_data = site_roads$rd_LP)
+```
+
+``` r
+region_zoom_grid <- ggarrange(
+  map_BM, NULL, map_FG, NULL, map_FL, NULL, map_LP,
+  nrow = 1, align = "h", widths = c(rep(c(1, 0.02), 3), 1)
+)
+```
+
+## Legend and citation grobs
+
+``` r
+legend_plot <-
+  ggplot(sites_plot, aes(x = long_plot, y = lat_plot, fill = field_type)) +
+  geom_point(
+    shape = 21,
+    size = sm_size,
+    stroke = lw,
+    color = "black"
+  ) +
+  scale_fill_manual(
+    values = ft_pal,
+    name = "Field type",
+    breaks = levels(sites_plot$field_type)
+  ) +
+  guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
+  theme_void() +
+  theme(
+    legend.position      = "bottom",
+    legend.box           = "horizontal",
+    legend.key.height    = unit(4, "mm"),
+    legend.key.width     = unit(8, "mm"),
+    legend.text          = element_text(size = 8),
+    legend.title        = element_text(size = 8),
+    plot.margin          = margin(0, 0, 0, 0)
+  )
+legend_grob <- cowplot::get_legend(legend_plot)
+
+credits_grob <- textGrob(
+  "Roads: © OpenStreetMap contributors via {osmextract}\nBoundaries & Names: Natural Earth via {rnaturalearth}",
+  x = unit(1, "npc") - unit(3, "mm"),
+  y = 0.5,
+  hjust = 1,
+  vjust = 0.5,
+  gp = gpar(cex = 0.5, col = "grey20")
+)
+
+footer_row <- arrangeGrob(
+  grobs   = list(legend_grob, credits_grob),
+  ncol    = 2,
+  widths  = c(1, 1),
+  heights = unit(1, "null")
+)
+footer_panel <- as_ggplot(footer_row)
 ```
 
 ## Final map
 
+Balance row heights to fill white space
+
 ``` r
-maps_fig <-
+fhs <- c(0.56, 0.01, 0.44)
+```
+
+Arrange
+
+``` r
+maps_fig <- ggarrange(
+  ggarrange(
     ggarrange(
-        regional_map,
-        NULL,
-        area_map,
-        nrow = 1,
-        ncol = 3,
-        align = "h",
-        widths = c(1, 0.02, 1)
-    )
+      cont_map, NULL, area_map, 
+      nrow = 1, ncol = 3, widths = c(1, 0.02, 1)
+      ),
+    NULL,
+    region_zoom_grid,
+    nrow = 3, heights = fhs
+  ),
+  footer_panel,
+  ncol = 1, 
+  heights = c(1, 0.06),
+  widths = c(1, 0.8)
+)
 ```
 
     ## Scale on map varies by more than 10%, scale bar may be inaccurate
@@ -533,14 +639,16 @@ maps_fig <-
 maps_fig
 ```
 
-<img src="resources/sites_files/figure-gfm/tgr_map-1.png" style="display: block; margin: auto;" />
+![](resources/sites_files/figure-gfm/tgr_map-1.png)<!-- -->
 
 ``` r
 ggsave(
     root_path("figs/fig1.png"),
+    plot = maps_fig,
     width = 6.5,
-    height = 3.25,
+    height = (6.5 * fhs[3] / fhs[1]) + 1.2, 
     units = "in",
-    dpi = 600
+    dpi = 600, 
+    bg = "white"
 )
 ```

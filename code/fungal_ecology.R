@@ -46,7 +46,8 @@ conflicts_prefer(
   dplyr::filter(),
   dplyr::select(),
   dplyr::where(),
-  vegan::diversity()
+  vegan::diversity(),
+  purrr::map()
 )
 #' 
 #+ graphics_styles
@@ -1469,7 +1470,7 @@ fig6b <-
 #' 
 #' #### Unified figure
 #' Display results of constrained analysis for ITS and AMF
-#+ fig6_patchwork,warning=false
+#+ fig6_patchwork,warning=FALSE
 fig6 <- (fig6a | plot_spacer() | fig6b) +
   plot_layout(widths = c(0.50, 0.01, 0.50)) +
   plot_annotation(tag_levels = 'a') 
@@ -1651,16 +1652,16 @@ leveneTest(residuals(patho_ma_lm) ~ fa$field_type) %>% as.data.frame() %>% kable
 #' Model results, group means, and post-hoc, with arithmetic means from emmeans
 anova(patho_ma_lm)
 patho_ma_em <- emmeans(patho_ma_lm, ~ field_type, type = "response")
-#+ plfa_em_summary,echo=FALSE
+#+ patho_plfa_em_summary,echo=FALSE
 kable(summary(patho_ma_em), 
       format = "pandoc", 
       caption = "Confidence level used: 0.95")
-#+ plfa_em_posthoc,echo=FALSE
+#+ patho_plfa_em_posthoc,echo=FALSE
 kable(pairs(patho_ma_em), 
       format = "pandoc", 
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 
-#+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
+#+ patho_plfa_fig,fig.width=4,fig.height=4,fig.align='center'
 patho_ma_fig <- 
   ggplot(summary(patho_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
@@ -1805,7 +1806,7 @@ patho_shan_ord_sup <- (patho_shan_fig | plot_spacer() | patho_ord) +
   plot_annotation(tag_levels = 'a') 
 #+ patho_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 patho_shan_ord_sup
-#+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
+#+ patho_shan_ord_sup_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "figS6.png"),
        plot = patho_shan_ord_sup,
        width = 7.5,
@@ -2313,7 +2314,7 @@ sapro_shan_ord_sup <- (sapro_shan_fig | plot_spacer() | sapro_ord) +
   plot_annotation(tag_levels = 'a') 
 #+ sapro_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 sapro_shan_ord_sup
-#+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
+#+ sapro_shan_ord_sup_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "figS7.png"),
        plot = sapro_shan_ord_sup,
        width = 7.5,
