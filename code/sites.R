@@ -238,15 +238,6 @@ cont_map <-
     width_hint = 0.4,
     height = unit(0.15, "cm")
   ) +
-  annotation_north_arrow(
-    location = "bl",
-    which_north = "true",
-    height = unit(0.75, "cm"),
-    width = unit(0.75, "cm"),
-    pad_x = unit(0.25, "cm"),
-    pad_y = unit(0.55, "cm"),
-    style = north_arrow_fancy_orienteering()
-  ) +
   geom_label_npc(
     aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "A"),
     hjust = "left",
@@ -332,6 +323,15 @@ area_map <-
     location = "bl",
     width_hint = 0.4,
     height = unit(0.15, "cm")
+  ) +
+  annotation_north_arrow(
+    location = "tr",
+    which_north = "true",
+    height = unit(0.75, "cm"),
+    width = unit(0.75, "cm"),
+    pad_x = unit(0.2, "cm"),
+    pad_y = unit(0.25, "cm"),
+    style = north_arrow_fancy_orienteering()
   ) +
   geom_label_npc(
     aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "B"),

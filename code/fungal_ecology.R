@@ -1086,11 +1086,11 @@ p_amf_ma_centers <- amf_ma_ord_data %>%
          across(ends_with("Axis.1"), ~ .x * -1)) # reverse axis values to be consistent with other plots
 amf_ma_ord <- 
   ggplot(amf_ma_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) +  # reverse axis values to be consistent with other plots
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_amf_ma$axis_pct[1], "%)"),
@@ -1154,11 +1154,11 @@ p_amf_centers <- amf_ord_data %>%
          across(ends_with("Axis.1"), ~ .x * -1)) # reversed for consistency
 amf_ord <- 
   ggplot(amf_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reversed for consistency
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_amf$axis_pct[1], "%)"),
@@ -1398,18 +1398,14 @@ amf_mod_step$anova %>% kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, 
 #' 
 #' 
-#' the model shows a significant
+#' After accounting for inter-site pairwise distance as a covariate, the model shows a significant
 #' correlation between the site ordination on fungal communities
 #' and the selected explanatory variables (p<0.001). The first two constrained axes are
 #' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=35.1% of the community
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for
 #' individual p values and statistics.
-#'
-
-
-
-
-#' Create the figure, combine with pathogen-plant correlation figure in patchwork later:
+#' 
+#' ### AMF constrained figure
 amf_mod_pars <-
   dbrda(
     spe_amf_wi_resto ~ gf_index + OM + Condition(env_cov),
@@ -1472,12 +1468,18 @@ fig6b <-
         plot.tag.position = c(0, 1))
 #' 
 #' #### Unified figure
+#' Display results of constrained analysis for ITS and AMF
 #+ fig6_patchwork,warning=false
 fig6 <- (fig6a | plot_spacer() | fig6b) +
   plot_layout(widths = c(0.50, 0.01, 0.50)) +
   plot_annotation(tag_levels = 'a') 
 #+ fig6,warning=FALSE,fig.height=4,fig.width=6.5
 fig6
+#' Results of constrained analysis on **a** whole-soil fungi and **b** arbuscular mycorrhizal fungi.
+#' Percent variation explained by each constrained axis is shown with axis labels. Points show locations
+#' of restored fields in Wisconsin based on fungal community distance. Blue arrows show the grass-forb 
+#' index with labels indicating the direction of relative increase in grasses or forbs, respectively,
+#' along the index. The black arrows show significant constraints from edaphic properties. 
 #+ fig6_save,warning=FALSE,echo=FALSE
 ggsave(
   root_path("figs", "fig6.png"),
@@ -1487,10 +1489,6 @@ ggsave(
   units = "in",
   dpi = 600
 )
-
-
-
-
 
 
 
@@ -1712,11 +1710,11 @@ p_patho_ma_centers <- patho_ma_ord_data %>%
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
 patho_ma_ord <- 
   ggplot(patho_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_patho_ma$axis_pct[1], "%)"),
@@ -1786,11 +1784,11 @@ p_patho_centers <- patho_ord_data %>%
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
 patho_ord <- 
   ggplot(patho_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "white") +
   geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_patho$axis_pct[1], "%)"),
@@ -1798,20 +1796,22 @@ patho_ord <-
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
-
-
-patho_shan_fig | patho_ord
-
-# #+ figS6_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-# ggsave(root_path("figs", "fig4.png"),
-#        plot = fig4,
-#        width = 6.5,
-#        height = 4,
-#        units = "in",
-#        dpi = 600)
-
-
+        plot.tag.position = c(0, 1))
+#' 
+#' #### Supplemental figure
+#+ patho_shan_ord_sup_patchwork,warning=FALSE
+patho_shan_ord_sup <- (patho_shan_fig | plot_spacer() | patho_ord) +
+  plot_layout(widths = c(0.45, 0.01, 0.55)) +
+  plot_annotation(tag_levels = 'a') 
+#+ patho_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
+patho_shan_ord_sup
+#+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "figS6.png"),
+       plot = patho_shan_ord_sup,
+       width = 7.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
 
 
 #' Procrustes...
@@ -2292,11 +2292,11 @@ p_sapro_centers <- sapro_ord_data %>%
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
 sapro_ord <-
   ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
     x = paste0("Axis 1 (", mva_sapro$axis_pct[1], "%)"),
@@ -2304,16 +2304,23 @@ sapro_ord <-
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.01))
+        plot.tag.position = c(0, 1))
+#' 
+#' #### Supplemental figure
+#+ sapro_shan_ord_sup_patchwork,warning=FALSE
+sapro_shan_ord_sup <- (sapro_shan_fig | plot_spacer() | sapro_ord) +
+  plot_layout(widths = c(0.45, 0.01, 0.55)) +
+  plot_annotation(tag_levels = 'a') 
+#+ sapro_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
+sapro_shan_ord_sup
+#+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "figS7.png"),
+       plot = sapro_shan_ord_sup,
+       width = 7.5,
+       height = 4,
+       units = "in",
+       dpi = 600)
 
-#' #' Supplemental figure
-#' #+ fig5_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-#' ggsave(root_path("figs", "fig5.png"),
-#'        plot = fig5,
-#'        width = 6.5,
-#'        height = 4,
-#'        units = "in",
-#'        dpi = 600)
 
 
 #' Procrustes...one significant axis, second was close
