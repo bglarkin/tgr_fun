@@ -662,7 +662,8 @@ its_protest <- protest(
   pcoa(d_its_ma)$vectors[, 1:2],
   permutations = 1999
 )
-#' Including biomass changes little. The spatial configuration both ordinations are highly correlated
+its_protest
+#' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(its_protest$scale^2, 2)`, p<0.001. 
 #' 
 #' ## Constrained Analysis
@@ -1184,6 +1185,7 @@ amf_protest <- protest(
   pcoa(d_amf_ma, correction = "lingoes")$vectors[, 1:3],
   permutations = 1999
 )
+amf_protest
 #' The ordinations differ in spatial arrangement somewhat, with a correlation of
 #' $R^{2}=$ `r round(amf_protest$scale^2, 2)`, however, the null that these solutions are unrelated
 #' is still rejected at p<0.001. Clearly, the low biomass in cornfields is a driving difference in 
@@ -1804,7 +1806,7 @@ patho_protest <- protest(
   permutations = 1999
 )
 patho_protest
-#' Including biomass changes little. The spatial configuration both ordinations are highly correlated
+#' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(patho_protest$scale^2, 2)`, p<0.001. 
 
 #' 
@@ -2303,7 +2305,7 @@ sapro_protest <- protest(
   permutations = 1999
 )
 sapro_protest
-#' Including biomass changes little. The spatial configuration both ordinations are highly correlated
+#' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(sapro_protest$scale^2, 2)`, p<0.001. 
 
 #' 
