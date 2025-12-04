@@ -24,6 +24,7 @@ Last updated: 04 December, 2025
   - [Diversity Indices](#diversity-indices)
   - [Abundance](#abundance)
   - [Beta Diversity](#beta-diversity)
+  - [Constrained Analysis](#constrained-analysis)
 - [Arbuscular mycorrhizal fungi](#arbuscular-mycorrhizal-fungi)
   - [Diversity Indices](#diversity-indices-1)
   - [NLFA](#nlfa)
@@ -35,12 +36,14 @@ Last updated: 04 December, 2025
   - [Abundance](#abundance-1)
   - [Beta Diversity](#beta-diversity-2)
   - [Unified figure](#unified-figure-4)
+  - [Pathogen Indicator Species](#pathogen-indicator-species)
   - [Pathogen—Plant Correlations](#pathogenplant-correlations)
 - [Putative saprotrophs](#putative-saprotrophs)
   - [Diversity Indices](#diversity-indices-3)
   - [Abundance](#abundance-2)
   - [Beta Diversity](#beta-diversity-3)
   - [Unified figure](#unified-figure-5)
+  - [Saprotroph Indicator Species](#saprotroph-indicator-species)
 - [Omnibus summary objects](#omnibus-summary-objects)
   - [Alpha diversity models](#alpha-diversity-models)
 
@@ -946,12 +949,13 @@ plfa_fig <-
 
 ## Beta Diversity
 
-1.  Using proportional biomass, b-c distance, Waller et al. 
-2.  Using sequence row proportions, b-c distance [McKnight et
-    al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
+1.  Using biomass-weighted relative abundance [Waller et
+    al. 2023](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/1365-2745.14392)
+2.  Using sequence-based relative abundance [McKnight et
+    al. 2019](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
 3.  Contrast the two with procrustes
 
-### ITS, proportional biomass
+### ITS, biomass-weighted relative abundance
 
 ``` r
 d_its_ma <- its_avg_ma %>% 
@@ -1076,9 +1080,9 @@ Cornfields cluster apart from restored or remnant prairies. Numbers in
 black circles give years since restoration. Axis labels show the percent
 variation explained.
 
-### ITS, standardized sequence abundance
+### ITS, sequence-based relative abundance
 
-Comparison figure for supplemental
+Comparison figure and stats for supplemental
 
 ``` r
 d_its <- its_avg %>% 
@@ -1194,14 +1198,30 @@ its_shan_ord_sup
 
 ![](resources/fungal_ecology_files/figure-gfm/its_shan_ord_sup-1.png)<!-- -->
 
+#### Contrast community metrics
+
+Procrustes test on PCoA values using axes with eigenvalues exceeding a
+broken stick model
+
+``` r
+set.seed(20251111)
+its_protest <- protest(
+  pcoa(d_its)$vectors[, 1:2],
+  pcoa(d_its_ma)$vectors[, 1:2],
+  permutations = 1999
+)
+```
+
 Including biomass changes little. The spatial configuration both
-ordinations are highly correlated $R^{2}=$ 0.97, p\<0.001. \##
-Constrained Analysis Test explanatory variables for correlation with
-site ordination. Using plant data, so the analysis is restricted to
-Wisconsin sites. Edaphic variables are too numerous to include
-individually, so transform micro nutrients using PCA. Forb and grass
-cover is highly collinear; use the grass-forb index produced previously
-with PCA.
+ordinations are highly correlated $R^{2}=$ 0.97, p\<0.001.
+
+## Constrained Analysis
+
+Test explanatory variables for correlation with site ordination. Using
+plant data, so the analysis is restricted to Wisconsin sites. Edaphic
+variables are too numerous to include individually, so transform micro
+nutrients using PCA. Forb and grass cover is highly collinear; use the
+grass-forb index produced previously with PCA.
 
 ``` r
 soil_micro_pca <- 
@@ -2027,15 +2047,15 @@ nlfa_fig <-
 
 ## Beta Diversity
 
-1.  Using proportional biomass, not unifrac, b-c distance (unifrac is
-    scale invariant; it’s based on the proportion of reads on each
+1.  Using biomass-weighted relative abundance and b-c distance (unifrac
+    is scale invariant; it’s based on the proportion of reads on each
     descending branch, multiplying rows by any constant doesn’t change
     this).
-2.  Using sequence row proportions, unifrac distance to display
-    phylogenetically aware information.
+2.  Using sequence-based relative abundance and unifrac distance to
+    display phylogenetically aware information.
 3.  Contrast the two with procrustes.
 
-### AMF, proportional biomass
+### AMF, biomass-weighted relative abundance
 
 ``` r
 d_amf_ma <- amf_avg_ma %>% 
@@ -2160,7 +2180,7 @@ centroids ±95 % CI. Numbers in points give years since restoration. Axes
 show % variance. Corn clusters apart from both prairie types. Shading:
 corn grey, restored black, remnant white.
 
-### AMF, sequence relative abundance, unifrac distance
+### AMF, sequence-based relative abundance, unifrac distance
 
 ``` r
 d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
@@ -2272,6 +2292,20 @@ amf_shan_ord_sup
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/amf_shan_ord_sup-1.png)<!-- -->
+
+#### Contrast community metrics
+
+Procrustes test on PCoA values using axes with eigenvalues exceeding a
+broken stick model
+
+``` r
+set.seed(20251111)
+amf_protest <- protest(
+  pcoa(d_amf, correction = "lingoes")$vectors[, 1:3],
+  pcoa(d_amf_ma, correction = "lingoes")$vectors[, 1:3],
+  permutations = 1999
+)
+```
 
 The ordinations differ in spatial arrangement somewhat, with a
 correlation of $R^{2}=$ 0.63, however, the null that these solutions are
@@ -3469,12 +3503,8 @@ patho_ma_fig <-
 
 ## Beta Diversity
 
-1.  Sequence proportion of biomass used in the ordination
-2.  Abundances were transformed by row proportions in sites before
-    producing a distance matrix per [McKnight et
-    al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
-
-### Sequence proportion of biomass
+Community distances handled similarly to previous \### Biomass-weighted
+relative abundance
 
 ``` r
 patho_ma <- guildseq(its_avg_ma, its_meta, "plant_pathogen")
@@ -3602,7 +3632,7 @@ distances: small points = sites, large circles = field-type centroids
 remnant prairies (P \< 0.01). Numbers in black circles give years since
 restoration. Axis labels show the percent variation explained.
 
-### Sequence abundance ordination
+### Sequence-based relative abundance
 
 ``` r
 d_patho <- patho %>% 
@@ -3717,7 +3747,10 @@ patho_shan_ord_sup
 
 ![](resources/fungal_ecology_files/figure-gfm/patho_shan_ord_sup-1.png)<!-- -->
 
-Procrustes…
+#### Contrast community metrics
+
+Procrustes test on PCoA values using axes with eigenvalues exceeding a
+broken stick model
 
 ``` r
 set.seed(20251112)
@@ -3741,10 +3774,13 @@ patho_protest
     ## Number of permutations: 1999
 
 Including biomass changes little. The spatial configuration both
-ordinations are highly correlated $R^{2}=$ 0.78, p\<0.001. \## Pathogen
-Indicator Species Use as a tool to find species for discussion.
-Unbalanced design and bias to agricultural soil research may make the
-indicator stats less appropriate for other use.
+ordinations are highly correlated $R^{2}=$ 0.78, p\<0.001.
+
+## Pathogen Indicator Species
+
+Use as a tool to find species for discussion. Unbalanced design and bias
+to agricultural soil research may make the indicator stats less
+appropriate for other use.
 
 ``` r
 patho_ind <- inspan(its_avg, its_meta, "plant_pathogen", sites)
@@ -3818,7 +3854,7 @@ ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
   geom_text(label = rownames(patho_resto))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-130-1.png)<!-- -->
 
 ``` r
 parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
@@ -3872,7 +3908,7 @@ shapiro.test(parest_m_rel$residuals)
 check_model(parest_m_rel)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-130-2.png)<!-- -->
 
 ``` r
 summary(parest_m_rel)
@@ -3936,7 +3972,7 @@ coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
 crPlots(parest_m_rel, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-3.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-130-3.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_rel)
@@ -3957,7 +3993,7 @@ ggplot(patho_resto, aes(x = gf_index, y = log(fungi_mass))) +
   geom_text(label = rownames(patho_resto))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-1.png)<!-- -->
 
 ``` r
 parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
@@ -4012,7 +4048,7 @@ par(mfrow = c(2,2))
 plot(parest_m_biom)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-2.png)<!-- -->
 
 ``` r
 summary(parest_m_biom)
@@ -4079,7 +4115,7 @@ significant
 crPlots(parest_m_biom, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_biom)
@@ -4098,7 +4134,7 @@ ggplot(patho_resto, aes(x = log(fungi_mass), y = log(patho_mass))) +
   geom_text(label = rownames(patho_resto))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
 
 ``` r
 augment(parest_m_abs)
@@ -4151,19 +4187,19 @@ shapiro.test(parest_m_abs$residuals)
 plot(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-2.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-3.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-4.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-5.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-2.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-3.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-4.png)<!-- -->![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-5.png)<!-- -->
 
 ``` r
 crPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-6.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-6.png)<!-- -->
 
 ``` r
 avPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-7.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-7.png)<!-- -->
 
 ``` r
 coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
@@ -4192,7 +4228,7 @@ coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
 crPlots(parest_m_abs, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-8.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-8.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_abs)
@@ -4337,7 +4373,7 @@ Diagnostics
 sapro_rich_covar$diagnostics # heavy residual structure, poor qq alignment
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-141-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-140-1.png)<!-- -->
 
 ``` r
 distribution_prob(sapro_rich_lm)
@@ -4396,7 +4432,7 @@ sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
 
 Slight improvement to qq plot shape, slightly reduced hatvalue (not
 shown)
@@ -4417,7 +4453,7 @@ sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-144-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point Model results,
 group means, and post-hoc
@@ -4548,7 +4584,7 @@ Diagnostics
 sapro_shan_covar$diagnostics # variance similar in groups 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-150-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-149-1.png)<!-- -->
 
 ``` r
 distribution_prob(sapro_shan_lm)
@@ -4641,7 +4677,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-154-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -4721,12 +4757,8 @@ sapro_ma_fig <-
 
 ## Beta Diversity
 
-1.  Sequence proportion of biomass used in the ordination
-2.  Abundances were transformed by row proportions in sites before
-    producing a distance matrix per [McKnight et
-    al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
-
-### Sequence proportion of biomass
+Community distance handled similarly to previous \### Biomass-weighted
+relative abundance
 
 ``` r
 sapro_ma <- guildseq(its_avg_ma, its_meta, "saprotroph")
@@ -4854,7 +4886,7 @@ remnant prairies (P \< 0.01). Numbers in black circles give years since
 restoration. Axis labels show the percent variation explained.
 Colours/shading: corn = grey, restored = black, remnant = white.
 
-### Sequence abundance ordination
+### Sequence-based relative abundance
 
 ``` r
 d_sapro <- sapro %>%
@@ -4967,7 +4999,10 @@ sapro_shan_ord_sup
 
 ![](resources/fungal_ecology_files/figure-gfm/sapro_shan_ord_sup-1.png)<!-- -->
 
-Procrustes…one significant axis, second was close
+#### Contrast community metrics
+
+Procrustes test on PCoA values using axes with eigenvalues exceeding a
+broken stick model
 
 ``` r
 set.seed(20251119)
@@ -4991,8 +5026,9 @@ sapro_protest
     ## Number of permutations: 1999
 
 Including biomass changes little. The spatial configuration both
-ordinations are highly correlated $R^{2}=$ 0.86, p\<0.001. \##
-Saprotroph Indicator Species
+ordinations are highly correlated $R^{2}=$ 0.86, p\<0.001.
+
+## Saprotroph Indicator Species
 
 ``` r
 sapro_ind <- inspan(its_avg, its_meta, "saprotroph", sites)
@@ -5064,7 +5100,7 @@ par(mfrow = c(2,2))
 plot(sarest_m_raw)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-163-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-161-1.png)<!-- -->
 
 ``` r
 summary(sarest_m_raw)
@@ -5095,7 +5131,7 @@ ggplot(sapro_resto, aes(x = gf_index, sapro_prop)) +
   geom_text(label = rownames(sapro_resto))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-163-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-161-2.png)<!-- -->
 
 No relationshp detected. High leverage point is KORP1 but it’s difficult
 to see a significant inference based on changing it’s position.

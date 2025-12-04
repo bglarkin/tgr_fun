@@ -477,8 +477,6 @@ its_shan_fig <-
 
 
 
-
-
 #' 
 #' ## Abundance
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
@@ -518,12 +516,11 @@ plfa_fig <-
 #' 
 #' ## Beta Diversity
 #' 
-#' 1. Using proportional biomass, b-c distance, Waller et al. 
-#' 1. Using sequence row proportions, b-c distance
-#' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
+#' 1. Using biomass-weighted relative abundance [Waller et al. 2023](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/1365-2745.14392)
+#' 1. Using sequence-based relative abundance [McKnight et al. 2019](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
 #' 1. Contrast the two with procrustes
 #' 
-#' ### ITS, proportional biomass
+#' ### ITS, biomass-weighted relative abundance
 #+ its_ord_ma
 d_its_ma <- its_avg_ma %>% 
   data.frame(row.names = 1) %>% 
@@ -595,8 +592,8 @@ ggsave(root_path("figs", "fig2.png"),
        dpi = 600)
 
 #' 
-#' ### ITS, standardized sequence abundance
-#' Comparison figure for supplemental
+#' ### ITS, sequence-based relative abundance
+#' Comparison figure and stats for supplemental
 #+ its_ord
 d_its <- its_avg %>% 
   data.frame(row.names = 1) %>%
@@ -640,10 +637,8 @@ its_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
 #' 
 #' #### Supplemental figure
-
 #+ its_shan_ord_sup_patchwork,warning=FALSE
 its_shan_ord_sup <- (its_shan_fig | plot_spacer() | its_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
@@ -657,23 +652,19 @@ ggsave(root_path("figs", "figS3.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
-## Use procrustes to contrast the two ordinations!
-
+#' 
+#' #### Contrast community metrics
+#' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
+#+ its_protest
 set.seed(20251111)
 its_protest <- protest(
   pcoa(d_its)$vectors[, 1:2],
   pcoa(d_its_ma)$vectors[, 1:2],
   permutations = 1999
 )
-
 #' Including biomass changes little. The spatial configuration both ordinations are highly correlated
 #' $R^{2}=$ `r round(its_protest$scale^2, 2)`, p<0.001. 
-
-
-
-
-
+#' 
 #' ## Constrained Analysis
 #' Test explanatory variables for correlation with site ordination. Using plant data, 
 #' so the analysis is restricted to Wisconsin sites. Edaphic variables are too numerous 
@@ -1051,12 +1042,12 @@ nlfa_fig <-
 #' 
 #' ## Beta Diversity
 #' 
-#' 1. Using proportional biomass, not unifrac, b-c distance (unifrac is scale invariant; it's based on the proportion 
+#' 1. Using biomass-weighted relative abundance and b-c distance (unifrac is scale invariant; it's based on the proportion 
 #' of reads on each descending branch, multiplying rows by any constant doesn't change this). 
-#' 1. Using sequence row proportions, unifrac distance to display phylogenetically aware information.
+#' 1. Using sequence-based relative abundance and unifrac distance to display phylogenetically aware information.
 #' 1. Contrast the two with procrustes.
 #' 
-#' ### AMF, proportional biomass
+#' ### AMF, biomass-weighted relative abundance
 #+ amf_ord_ma
 d_amf_ma <- amf_avg_ma %>% 
   data.frame(row.names = 1) %>% 
@@ -1125,7 +1116,7 @@ ggsave(root_path("figs", "fig3.png"),
        units = "in",
        dpi = 600)
 
-#' ### AMF, sequence relative abundance, unifrac distance
+#' ### AMF, sequence-based relative abundance, unifrac distance
 #' 
 #+ amf_ord
 d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
@@ -1168,10 +1159,8 @@ amf_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
 #' 
 #' #### Supplemental figure
-
 #+ amf_shan_ord_sup_patchwork,warning=FALSE
 amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
@@ -1185,25 +1174,20 @@ ggsave(root_path("figs", "figS5.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
-## Contrast with procrustes!
-
+#' 
+#' #### Contrast community metrics
+#' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
+#+ amf_protest
 set.seed(20251111)
 amf_protest <- protest(
   pcoa(d_amf, correction = "lingoes")$vectors[, 1:3],
   pcoa(d_amf_ma, correction = "lingoes")$vectors[, 1:3],
   permutations = 1999
 )
-
-
 #' The ordinations differ in spatial arrangement somewhat, with a correlation of
 #' $R^{2}=$ `r round(amf_protest$scale^2, 2)`, however, the null that these solutions are unrelated
 #' is still rejected at p<0.001. Clearly, the low biomass in cornfields is a driving difference in 
 #' the biomass-aware ordination, which, as a result, should possibly be preferred in this case.
-
-
-
-
 #' 
 #' ## AMF abundance in families
 #' Test proportion of biomass across field types for each family. A similar contrast with 
@@ -1675,12 +1659,8 @@ patho_ma_fig <-
 
 #' 
 #' ## Beta Diversity
-#' 
-#' 1. Sequence proportion of biomass used in the ordination
-#' 1. Abundances were transformed by row proportions in sites before producing a distance matrix per
-#' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
-#' 
-#' ### Sequence proportion of biomass
+#' Community distances handled similarly to previous
+#' ### Biomass-weighted relative abundance
 patho_ma <- guildseq(its_avg_ma, its_meta, "plant_pathogen")
 #+ patho_ma_ord
 d_patho_ma <- patho_ma %>% 
@@ -1755,7 +1735,7 @@ ggsave(root_path("figs", "fig4.png"),
 
 
 
-#' ### Sequence abundance ordination
+#' ### Sequence-based relative abundance
 d_patho <- patho %>% 
   data.frame(row.names = 1) %>% 
   decostand("total") %>%
@@ -1813,9 +1793,10 @@ ggsave(root_path("figs", "figS6.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
-
-#' Procrustes...
+#' 
+#' #### Contrast community metrics
+#' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
+#+ patho_protest
 set.seed(20251112)
 patho_protest <- protest(
   pcoa(d_patho)$vectors[, 1:3],
@@ -1823,17 +1804,10 @@ patho_protest <- protest(
   permutations = 1999
 )
 patho_protest
-
 #' Including biomass changes little. The spatial configuration both ordinations are highly correlated
 #' $R^{2}=$ `r round(patho_protest$scale^2, 2)`, p<0.001. 
 
-
-
-
-
-
-
-
+#' 
 #' ## Pathogen Indicator Species
 #' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
 #' research may make the indicator stats less appropriate for other use.
@@ -1847,7 +1821,7 @@ patho_ind %>%
 
 
 
-
+#' 
 #' ## Pathogen—Plant Correlations
 #' Whole-soil fungi correlated with grass and forbs; investigate whether pathogens do specifically.
 #' Use raw sequence abundances for the figure.
@@ -2185,11 +2159,8 @@ sapro_ma_fig <-
 
 #' 
 #' ## Beta Diversity
-#' 1. Sequence proportion of biomass used in the ordination
-#' 1. Abundances were transformed by row proportions in sites before producing a distance matrix per
-#' [McKnight et al.](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
-#' 
-#' ### Sequence proportion of biomass
+#' Community distance handled similarly to previous
+#' ### Biomass-weighted relative abundance
 sapro_ma <- guildseq(its_avg_ma, its_meta, "saprotroph")
 #+ sapro_ma_ord
 d_sapro_ma <- sapro_ma %>% 
@@ -2263,7 +2234,7 @@ ggsave(root_path("figs", "fig5.png"),
 
 
 
-#' ### Sequence abundance ordination
+#' ### Sequence-based relative abundance
 #+ sapro_ord
 d_sapro <- sapro %>%
   data.frame(row.names = 1) %>%
@@ -2321,10 +2292,10 @@ ggsave(root_path("figs", "figS7.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
-
-
-#' Procrustes...one significant axis, second was close
+#' 
+#' #### Contrast community metrics
+#' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
+#+ sapro_protest
 set.seed(20251119)
 sapro_protest <- protest(
   pcoa(d_sapro)$vectors[, 2],
@@ -2332,16 +2303,10 @@ sapro_protest <- protest(
   permutations = 1999
 )
 sapro_protest
-
 #' Including biomass changes little. The spatial configuration both ordinations are highly correlated
 #' $R^{2}=$ `r round(sapro_protest$scale^2, 2)`, p<0.001. 
 
-
-
-
-
-
-
+#' 
 #' ## Saprotroph Indicator Species
 sapro_ind <- inspan(its_avg, its_meta, "saprotroph", sites)
 sapro_ind %>% 

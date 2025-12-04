@@ -250,8 +250,6 @@ cont_box <- st_bbox(c(
 sf_use_s2(FALSE)
 ```
 
-    ## Spherical geometry (s2) switched off
-
 ``` r
 cont_crop <- st_crop(cont, cont_box)
 ```
