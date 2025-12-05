@@ -22,13 +22,13 @@ Last updated: 05 December, 2025
 - [Functions](#functions)
 - [Whole Soil Fungi](#whole-soil-fungi-1)
   - [Diversity Indices](#diversity-indices)
-  - [Abundance](#abundance)
+  - [Abundance (PLFA biomass)](#abundance-plfa-biomass)
   - [Beta Diversity](#beta-diversity)
   - [Constrained Analysis](#constrained-analysis)
   - [Fungi‒pfg correlations](#fungipfg-correlations)
 - [Arbuscular mycorrhizal fungi](#arbuscular-mycorrhizal-fungi)
   - [Diversity Indices](#diversity-indices-1)
-  - [NLFA](#nlfa)
+  - [Abundance (NLFA biomass)](#abundance-nlfa-biomass)
   - [Beta Diversity](#beta-diversity-1)
   - [AMF abundance in families](#amf-abundance-in-families)
   - [Indicator species analysis](#indicator-species-analysis)
@@ -36,14 +36,14 @@ Last updated: 05 December, 2025
   - [AMF correlations with pfg](#amf-correlations-with-pfg)
 - [Putative plant pathogens](#putative-plant-pathogens)
   - [Diversity Indices](#diversity-indices-2)
-  - [Abundance](#abundance-1)
+  - [Abundance](#abundance)
   - [Beta Diversity](#beta-diversity-2)
   - [Unified figure](#unified-figure-4)
   - [Pathogen Indicator Species](#pathogen-indicator-species)
   - [Pathogen—pfg correlations](#pathogenpfg-correlations)
 - [Putative saprotrophs](#putative-saprotrophs)
   - [Diversity Indices](#diversity-indices-3)
-  - [Abundance](#abundance-2)
+  - [Abundance](#abundance-1)
   - [Beta Diversity](#beta-diversity-3)
   - [Unified figure](#unified-figure-5)
   - [Saprotroph Indicator Species](#saprotroph-indicator-species)
@@ -863,7 +863,7 @@ its_shan_fig <-
         plot.tag.position = c(0, 1))
 ```
 
-## Abundance
+## Abundance (PLFA biomass)
 
 ``` r
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
@@ -1913,7 +1913,7 @@ amf_shan_fig <-
         plot.tag.position = c(0, 1))
 ```
 
-## NLFA
+## Abundance (NLFA biomass)
 
 ``` r
 nlfa_lm <- lm(amf ~ field_type, data = fa)
