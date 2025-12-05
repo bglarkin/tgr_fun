@@ -60,7 +60,6 @@ source(root_path("resources", "styles.R"))
 #' ## Site metadata and design
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-
 #' 
 #' ### Wrangle site metadata
 #' Intersite geographic distance will be used as a covariate in clustering. 
@@ -71,7 +70,6 @@ field_dist_pcoa$values[c(1,2), c(1,2)] %>%
   kable(format = "pandoc")
 #' First axis of geographic distance PCoA explains 91% of the variation among sites. 
 sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
-
 #' 
 #' ## Fatty Acids: Biomass
 #' Use only 18.2 for soil fungi
@@ -82,7 +80,6 @@ fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>%
     sites %>% select(field_name, field_type),
     by = join_by(field_name)
   )
-
 #' 
 #' ## Sites-species tables
 #' CSV files were produced in `sequence_data.R`. Average sequence abundance at sites included here.
@@ -97,7 +94,6 @@ its_meta = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types
          across(everything(), ~ replace_na(., "unidentified")))
 amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
   mutate(across(everything(), ~ replace_na(., "unidentified")))
-
 #' 
 #' ### Wrangle additional species and metadata objects
 # Species data wrangling ———————— ####
@@ -135,17 +131,17 @@ amf_ps <- phyloseq(
     phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
   sample_data(sites %>% column_to_rownames(var = "field_name"))
 )
-
+#' 
 #' ## Plant data
 #' Abundance in functional groups and by species are only available from Wisconsin sites. 
 #' Only C4_grass and forbs are used. Others: C3_grass, legume, and shrubTree were found 
 #' previously to have high VIF in models or were not chosen in forward selection. 
 pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FALSE) 
-
+#' 
 #' ## Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
-
-#' # Species, environment, and metadata wrangling
+#' 
+#' # Species, environment, and metadata
 # Metadata wrangling ———————— ####
 #' 
 #' ## Plant communities
@@ -155,19 +151,15 @@ prich <- plant %>%
   select(-BARESOIL, -LITTER, -ROSA, -SALIX) %>% # remove non-species entries
   rowwise() %>% 
   mutate(pl_rich = sum(c_across(where(is.numeric)) > 0)) %>% 
-  select(field_name = SITE, pl_rich)
-#' Visualize how richness varies in fields...restored in Wisconsin only as used later
-
-
-prich %>% 
+  select(field_name = SITE, pl_rich) %>% 
   left_join(sites, by = join_by(field_name)) %>% 
   filter(region != "FL", field_type == "restored") %>% 
-  ggplot(aes(x = fct_reorder(field_name, yr_since), y = pl_rich)) +
-  geom_point()
-# not obviously related to field age
-
-
-
+  ungroup()
+#' Visualize how richness varies in fields...restored in Wisconsin only as used later
+with(prich, cor.test(yr_since, pl_rich))
+#' Years since restoration isn't obviously related to plant species richness. The trend is fewer
+#' species with older fields, but the correlation isn't significant, again KORP is a high 
+#' leverage point.
 #' 
 #' ## Plant functional groups
 #' C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
@@ -195,13 +187,11 @@ gf_index = scores(pfg_pca, choices = 1, display = "sites") %>%
 #' Are field age and gf_index correlated?
 gfi_yrs <- gf_index %>% 
   left_join(sites %>% select(field_name, yr_since), by = join_by(field_name)) %>% 
-  arrange(-gf_index) %>% 
-  mutate(yr_order = sort(yr_since))
-gfi_yrs_m <- lm(yr_since ~ yr_order, data = gfi_yrs)
-summary(gfi_yrs_m)
-shapiro.test(residuals(gfi_yrs_m))
-
-
+  arrange(-gf_index)
+with(gfi_yrs, cor.test(yr_since, gf_index))
+#' The relatively strong correlation suggests that different restoration methods over time
+#' are still reflected in plant composition. Years since restoration is highly related to 
+#' plant community change. 
 #' 
 # Visualize grass forb gradient...
 pfg_comp <- 
@@ -218,9 +208,9 @@ pfg_comp <-
   mutate(pfg = factor(pfg, levels = rev(c("forb", "C4_grass", "C3_grass", "legume", "shrubTree")),
                       labels = rev(c("forb", "grass (C4)", "grass (C3)", "legume", "shrub, tree"))))
 pfg_comp_fig <- 
-  ggplot(pfg_comp, aes(x = fct_reorder(field_name, gf_index), y = pct_comp, group = pfg)) +
+  ggplot(pfg_comp, aes(x = fct_reorder(field_name, -gf_index), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
-  labs(x = NULL, y = "Composition, % of total cover") +
+  labs(x = NULL, y = "Percent composition") +
   scale_fill_discrete_qualitative(name = "Functional group", palette = "pfg-col", rev = TRUE) +
   theme_cor+
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -235,7 +225,7 @@ pfg_pct <-
   select(field_name, yr_since, gf_index, pfg, pct_cvr)  %>% 
   mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb"))))
 gf_pct_fig <- 
-  ggplot(pfg_pct, aes(x = fct_reorder(field_name, gf_index), y = pct_cvr, group = pfg)) +
+  ggplot(pfg_pct, aes(x = fct_reorder(field_name, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
   geom_point(aes(color = pfg)) +
   scale_color_manual(name = "Functional group", values = gfi_cols) +
@@ -243,11 +233,20 @@ gf_pct_fig <-
   theme_cor+
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
+yrs_fig <- 
+  ggplot(gfi_yrs %>% mutate(grp = "a"), aes(x = fct_reorder(field_name, -gf_index), y = yr_since, group = grp)) +
+  geom_step() +
+  geom_point() +
+  labs(x = NULL, y = "Yrs. since resto.") +
+  theme_cor+
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1.1))
+  
 #' 
 #' #### Unified figure
 #+ pfg_fig_patchwork,warning=FALSE
-pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig) +
-  plot_layout(heights = c(1,0.01,1))  +
+pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig) +
+  plot_layout(heights = c(1,0.01,1,0.01,0.5))  +
   plot_annotation(tag_levels = 'a') 
 #+ pfg_fig,warning=FALSE,fig.height=5,fig.width=6.5
 pfg_pct_fig
@@ -255,14 +254,9 @@ pfg_pct_fig
 ggsave(root_path("figs", "figS8.png"),
        plot = pfg_pct_fig,
        width = 7.5,
-       height = 6,
+       height = 7.5,
        units = "in",
        dpi = 600)
-
-
-
-
-
 #' 
 #' ## Whole soil fungi
 #' Wrangle data to produce proportional biomass in guilds for its and families for amf
@@ -295,7 +289,6 @@ its_guild <-
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything()) %>% 
   ungroup()
-
 #' 
 #' #### AMF
 amf_fam <- # sequence abundance in families
@@ -324,7 +317,6 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
-
 #' 
 #' # Functions
 #' Executed from a separate script to save lines here; to view the function navigate to 
@@ -332,12 +324,12 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
 # Functions ———————— ####
 source(root_path("code", "functions.R"))
 
+
 #' 
 #' # Whole Soil Fungi
 # Whole soil fungi ———————— ####
 #' 
 #' ## Diversity Indices
-
 #+ its_diversity
 its_div <- calc_div(its_avg, sites)
 #' 
@@ -361,7 +353,7 @@ leveneTest(richness ~ field_type, data = its_div) %>% as.data.frame() %>% kable(
 leveneTest(residuals(its_rich_lm) ~ its_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals/response distributions do not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
-
+#' 
 #' Model results, group means, and post-hoc. Use Type II SS for test of variables due to unbalanced design.
 its_rich_covar$anova_t2
 #' Sequence depth is significant, less so than field type. Check relationship of depth and field type. 
@@ -402,7 +394,6 @@ its_rich_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ### Shannon's diversity
 #' Account for sequencing depth as a covariate. Test covariate transformations.
@@ -440,7 +431,7 @@ augment(its_shan_lm) %>%
 #' CV constant to declining.
 #' Relatively low p value likely due to unequal variance in restored and remnant despite similar means.
 #' Unbalanced data. 
-
+#' 
 #' Model results, group means, and post-hoc. Type II SS used due to unbalanced design.
 its_shan_covar$anova_t2
 #' Sequence depth is not a significant predictor of Shannon diversity.
@@ -472,11 +463,6 @@ its_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
-
-
-
-
 #' 
 #' ## Abundance
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
@@ -488,7 +474,7 @@ distribution_prob(plfa_lm)
 leveneTest(residuals(plfa_lm) ~ fa$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
+#' 
 #' Model results, group means, and post-hoc, with arithmetic means from emmeans
 anova(plfa_lm)
 plfa_em <- emmeans(plfa_lm, ~ field_type, type = "response")
@@ -500,7 +486,6 @@ kable(summary(plfa_em),
 kable(pairs(plfa_em), 
       format = "pandoc", 
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-
 #+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
 plfa_fig <- 
   ggplot(summary(plfa_em), aes(x = field_type, y = emmean)) +
@@ -512,7 +497,6 @@ plfa_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.1))
-
 #' 
 #' ## Beta Diversity
 #' 
@@ -563,7 +547,6 @@ its_ma_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
 #' 
 #' #### Unified figure
 #+ fig2_patchwork,warning=FALSE
@@ -590,7 +573,6 @@ ggsave(root_path("figs", "fig2.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
 #' 
 #' ### ITS, sequence-based relative abundance
 #' Comparison figure and stats for supplemental
@@ -684,18 +666,18 @@ soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites")
   data.frame() %>% 
   rename(soil_micro_1 = PC1, soil_micro_2 = PC2) %>% 
   rownames_to_column(var = "field_name")
-
 soil_macro <- 
   soil %>% 
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
   filter(field_type == "restored", !(region %in% "FL")) %>% 
   select(-c(field_key, field_type, region, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na))
-
+#' 
 #' Assemble explanatory variables and begin iterative selection process. 
 #' Plant functional groups and traits not included here were eliminated in previous forward selection
 #' procedures (not shown). 
 #' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
 #' detected. Then run forward selection in `dbrda()`. 
+#' 
 env_vars <- sites %>% 
   filter(field_type == "restored", !(region %in% "FL")) %>% 
   select(field_name, dist_axis_1) %>% # 90% on axis 1
@@ -721,7 +703,6 @@ env_expl %>%
 spe_its_wi_resto <- its_avg_ma %>% 
   filter(field_name %in% rownames(env_expl)) %>% 
   column_to_rownames(var = "field_name")
-
 mod_null <- dbrda(spe_its_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
 mod_full <- dbrda(spe_its_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
 mod_step <- ordistep(mod_null, 
@@ -729,7 +710,7 @@ mod_step <- ordistep(mod_null,
                      direction = "forward", 
                      permutations = 1999, 
                      trace = FALSE)
-
+#' 
 #' ### Constrained Analysis Results
 mod_step
 (mod_glax <- anova(mod_step, permutations = 1999))
@@ -754,7 +735,6 @@ mod_pars <-
     distance = "bray"
   )
 mod_pars_eig <- round(mod_pars$CCA$eig * 100, 1)
-
 mod_scor <- scores(
   mod_pars,
   choices = c(1, 2),
@@ -784,7 +764,6 @@ mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.05,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-
 #+ fig6a,warning=FALSE,fig.height=4,fig.width=4
 fig6a <- 
   ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
@@ -808,15 +787,8 @@ fig6a <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' Will combine with 6b (AMF)
-
-
-
-
-
-
-
-
-#' ITS correlations with pfg
+#' 
+#' ## Fungi‒pfg correlations
 fungi_resto <- its_div %>% 
   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
@@ -824,14 +796,16 @@ fungi_resto <- its_div %>%
   filter(field_type == "restored", region != "FL") %>% 
   select(field_name, fungi_ab = depth, fungi_mass, gf_index)
 
-
-
+fuma_rest_m <- lm(fungi_mass ~ gf_index, data = fungi_resto)
+check_model(fuma_rest_m)
+summary(fuma_rest_m)
+#' PFG doesn't strongly predict fungal biomass at sites. How are mass and sequence 
+#' abundance related?
 furest_m_raw  <- lm(fungi_ab ~ fungi_mass + gf_index, data = fungi_resto)
 furest_m_logy <- lm(log(fungi_ab) ~ fungi_mass + gf_index, data = fungi_resto)
 furest_m_logx <- lm(fungi_ab ~ log(fungi_mass) + gf_index, data = fungi_resto)
 furest_m_both <- lm(log(fungi_ab) ~ log(fungi_mass) + gf_index, data = fungi_resto)
-
-
+#' 
 compare_performance(furest_m_raw, furest_m_logy, furest_m_logx, furest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
 check_model(furest_m_logy)
@@ -841,21 +815,6 @@ ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
 #' No relationshp detected with gf_index. High leverage point is again KORP1.
 #' ITS based community turnover is correlated with grass/forb change, but abundances
 #' of grasses/forbs aren't correlated with these fungi.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #' 
 #' # Arbuscular mycorrhizal fungi
@@ -886,7 +845,7 @@ leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(
 leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals/response distributions do not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
+#' 
 #' Model results, group means, and post-hoc
 amf_rich_covar$anova_t2
 #' Sequencing depth not a significant predictor of amf richness
@@ -918,7 +877,6 @@ amf_rich_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ### Shannon diversity
 #' Account for sequencing depth as a covariate. Test covar transformations for best model performance.
@@ -946,7 +904,7 @@ leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type) %>% as.data.frame() %>% 
 #' Residuals/response distributions do not suggest the need for transformation.
 #' Covariate adds little added explanatory value.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
+#' 
 #' Model results, group means, and post-hoc
 Anova(amf_shan_lm, type = 2)
 #' Sequencing depth not a significant predictor of Shannon diversity. Produce arithmetic means
@@ -977,12 +935,6 @@ amf_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
-
-
-
-
-
 #' 
 #' ## NLFA
 nlfa_lm <- lm(amf ~ field_type, data = fa)
@@ -1012,7 +964,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 performance::check_overdispersion(nlfa_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
-
+#' 
 #' Model results, group means, and post-hoc
 summary(nlfa_glm)
 anova(nlfa_glm) # Decline in residual deviance worth the cost in df
@@ -1025,7 +977,6 @@ kable(summary(nlfa_em),
 kable(pairs(nlfa_em),
       format = "pandoc",
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
-
 #+ nlfa_fig,fig.width=4,fig.height=4,
 nlfa_fig <-
   ggplot(summary(nlfa_em), aes(x = field_type, y = response)) +
@@ -1039,7 +990,6 @@ nlfa_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.1))
-
 #' 
 #' ## Beta Diversity
 #' 
@@ -1092,7 +1042,6 @@ amf_ma_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
 #' 
 #' #### Unified figure
 #+ fig3_patchwork,warning=FALSE
@@ -1116,7 +1065,7 @@ ggsave(root_path("figs", "fig3.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
+#' 
 #' ### AMF, sequence-based relative abundance, unifrac distance
 #' 
 #+ amf_ord
@@ -1196,6 +1145,12 @@ amf_protest
 #' sequence abundance only returns largely NS results, highlighting the incorrect inference 
 #' when using compositional data to conduct site-differential analysis.
 #' 
+#' For each AMF family, fit a Gamma GLM with log link predicting biomass-weighted relative abundance by 
+#' field type. We controlled the false discovery rate across the four family-level tests using a
+#' Benjamini–Hochberg (BH) false discovery rate correction. For pairwise contrasts, within models 
+#' showing a significant field-type effect, compare estimated marginal means with Tukey adjustment 
+#' for all pairwise contrasts (emmeans). 
+#' 
 #' ### Glomeraceae
 glom_lm <- lm(Glmrc_mass ~ field_type, data = amf_fam_ma)
 par(mfrow = c(2,2))
@@ -1223,11 +1178,10 @@ glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >
 check_model(glom_glm) # corroborates
 performance::check_overdispersion(glom_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
-
+#' 
 #' Model results, group means, and post-hoc
 anova(glom_glm) # Decline in residual deviance worth the cost in df
 glom_em <- emmeans(glom_glm, ~ field_type, type = "response")
-
 #' 
 #' ### Claroideoglomeraceae
 clar_lm <- lm(Clrdg_mass ~ field_type, data = amf_fam_ma)
@@ -1245,11 +1199,10 @@ glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier po
 check_model(clar_glm) # corroborates
 performance::check_overdispersion(clar_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
-
+#' 
 #' Model results, group means, and post-hoc
 anova(clar_glm) # Decline in residual deviance worth the cost in df
 clar_em <- emmeans(clar_glm, ~ field_type, type = "response")
-
 #' 
 #' ### Paraglomeraceae
 para_lm <- lm(Clrdg_mass ~ field_type, data = amf_fam_ma)
@@ -1267,12 +1220,11 @@ glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier po
 check_model(para_glm) # corroborates
 performance::check_overdispersion(para_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
-
+#' 
 #' Model results, group means, and post-hoc
 anova(para_glm) # field_type not significant
 para_em <- emmeans(para_glm, ~ field_type, type = "response")
 #' Pairwise significance not appropriate due to overall variable NS
-
 #' 
 #' ### Diversisporaceae
 diver_glm <- glm(Dvrss_mass ~ field_type, family = Gamma(link = "log"), data = amf_fam_ma)
@@ -1285,11 +1237,9 @@ performance::check_overdispersion(diver_glm) # not detected
 #' Model results, group means, and post-hoc
 anova(diver_glm) # Decline in residual deviance worth the cost in df
 diver_em <- emmeans(diver_glm, ~ field_type, type = "response")
-
 #' 
 #' ### Gigasporaceae and others
 #' Zeroes in data; comparison not warranted
-
 #' 
 #' ### Results table
 #' Combine later with confidence intervals and corrected p values
@@ -1327,25 +1277,6 @@ list(glom = glom_glm, clar = clar_glm, para = para_glm, diver = diver_glm) %>%
   map(\(df) df %>% anova() %>% as.data.frame()) %>% 
   bind_rows(.id = "family") %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 5))
-
-
-
-#' write up for all of them:
-#' example:
-#' Field type strongly affected Glomeraceae biomass (ANOVA: F(2, 22) = 23.50, pAdj < 0.001)
-#' “We controlled multiplicity at two levels: (i) BH FDR across the four family-level omnibus tests 
-#' (field type effect), and (ii) Tukey-adjusted pairwise comparisons of field types within any model 
-#' proceeding to post-hoc analysis. Estimated marginal means (on the response scale for GLMs) were obtained via emmeans.”
-
-#' 	Omnibus: “For each AMF family, we fit a Gamma GLM with log link predicting abundance by 
-#' 	field type. We controlled the false discovery rate across the four family-level tests using 
-#' 	Benjamini–Hochberg (BH).” Pairwise: “Within models showing a field-type effect, we 
-#' 	compared estimated marginal means with Tukey adjustment for all pairwise contrasts 
-#' 	(emmeans). 
-
-
-
-
 #' 
 #' ## Indicator species analysis
 amf_ind <- inspan(spe=amf_avg_ma, meta=amf_meta, guild=NULL, site_dat=sites)
@@ -1356,12 +1287,7 @@ amf_ind %>%
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with avg biomass")
 #' None of the identified species seem relevant for further discussion...
-
-
-
-
-
-
+#' 
 #' ## Constrained Analysis
 #' Env covars processed in the ITS section (see above)
 spe_amf_wi_resto <- amf_avg_ma %>%
@@ -1375,7 +1301,7 @@ amf_mod_step <- ordistep(amf_mod_null,
                      direction = "forward",
                      permutations = 1999,
                      trace = FALSE)
-
+#' 
 #' ### Constrained Analysis Results
 amf_mod_step
 (amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
@@ -1383,9 +1309,7 @@ amf_mod_step
 (amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
 amf_mod_step$anova %>% kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, 
-#' 
-#' 
-#' After accounting for inter-site pairwise distance as a covariate, the model shows a significant
+#' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
 #' correlation between the site ordination on fungal communities
 #' and the selected explanatory variables (p<0.001). The first two constrained axes are
 #' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=35.1% of the community
@@ -1476,28 +1400,22 @@ ggsave(
   units = "in",
   dpi = 600
 )
-
-
-
-
-
-
-#' AMF correlations with pfg
+#' 
+#' ## AMF correlations with pfg
 amf_resto <- amf_fam %>% 
   rowwise() %>% 
   mutate(amf_ab = sum(c_across(Glmrc_ab:Ambsp_ab))) %>% 
   select(-c(Glmrc_ab:Ambsp_ab)) %>% 
   filter(field_type == "restored", region != "FL") %>% 
   left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name))
-  
-  
-
+amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
+check_model(amma_rest_m)
+summary(amma_rest_m)
+#' No simple linear relationship. Check contributions of biomass and sequence abundance.
 amrest_m_raw  <- lm(amf_ab ~ amf_mass + gf_index, data = amf_resto)
 amrest_m_logy <- lm(log(amf_ab) ~ amf_mass + gf_index, data = amf_resto)
 amrest_m_logx <- lm(amf_ab ~ log(amf_mass) + gf_index, data = amf_resto)
 amrest_m_both <- lm(log(amf_ab) ~ log(amf_mass) + gf_index, data = amf_resto)
-
-
 compare_performance(amrest_m_raw, amrest_m_logy, amrest_m_logx, amrest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
 check_model(amrest_m_logx)
@@ -1505,11 +1423,6 @@ summary(amrest_m_logx)
 ggplot(amf_resto, aes(x = gf_index, y = amf_mass)) +
   geom_text(label = rownames(amf_resto))
 #' No relationshp detected with gf_index. High leverage point is again KORP1.
-
-
-
-
-
 
 #' 
 #' # Putative plant pathogens
@@ -1544,7 +1457,7 @@ leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() 
   kable(format = "pandoc", caption = "Residuals var in groups")
 #' Residuals/response distributions do not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
+#' 
 #' Model results, group means, and post-hoc
 patho_rich_covar$anova_t2
 #' Sequence depth is highly significant (also after p value adjustment); 
@@ -1571,7 +1484,6 @@ patho_rich_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ### Shannon's diversity
 #' Account for sequencing depth as a covariate. Test transformations of covariate.
@@ -1594,7 +1506,7 @@ leveneTest(shannon ~ field_type, data = patho_div) %>% as.data.frame() %>% kable
 leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals distribution does not suggest the need for further model selection.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
+#' 
 #' Model results, group means, and post-hoc
 patho_shan_covar$anova_t2
 #' Sequence depth is a significant predictor of Shannon diversity, field type is not.
@@ -1621,7 +1533,6 @@ patho_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ## Abundance
 patho_ma_lm <- lm(patho_mass ~ field_type, data = its_guild_ma)
@@ -1634,7 +1545,7 @@ leveneTest(residuals(patho_ma_lm) ~ fa$field_type) %>% as.data.frame() %>% kable
 #' No covariate, response and residuals tests equivalent.
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
+#' 
 #' Model results, group means, and post-hoc, with arithmetic means from emmeans
 anova(patho_ma_lm)
 patho_ma_em <- emmeans(patho_ma_lm, ~ field_type, type = "response")
@@ -1646,7 +1557,6 @@ kable(summary(patho_ma_em),
 kable(pairs(patho_ma_em), 
       format = "pandoc", 
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-
 #+ patho_plfa_fig,fig.width=4,fig.height=4,fig.align='center'
 patho_ma_fig <- 
   ggplot(summary(patho_ma_em), aes(x = field_type, y = emmean)) +
@@ -1658,7 +1568,6 @@ patho_ma_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.1))
-
 #' 
 #' ## Beta Diversity
 #' Community distances handled similarly to previous
@@ -1706,7 +1615,6 @@ patho_ma_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ## Unified figure
 #+ fig4_patchwork,warning=FALSE
@@ -1724,7 +1632,7 @@ fig4
 #' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
 #' Numbers in black circles give years since restoration. Axis labels show the
 #' percent variation explained. 
-
+#' 
 #+ fig4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
 ggsave(root_path("figs", "fig4.png"),
        plot = fig4,
@@ -1732,11 +1640,7 @@ ggsave(root_path("figs", "fig4.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
-
-
-
-
+#' 
 #' ### Sequence-based relative abundance
 d_patho <- patho %>% 
   data.frame(row.names = 1) %>% 
@@ -1808,7 +1712,6 @@ patho_protest <- protest(
 patho_protest
 #' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(patho_protest$scale^2, 2)`, p<0.001. 
-
 #' 
 #' ## Pathogen Indicator Species
 #' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
@@ -1820,19 +1723,9 @@ patho_ind %>%
   arrange(field_type, p_val_adj) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
-
-
-
 #' 
-#' ## Pathogen—Plant Correlations
-#' Whole-soil fungi correlated with grass and forbs; investigate whether pathogens do specifically.
-#' Use raw sequence abundances for the figure.
-
-
-#' we need to find out whether fungal biomass or gf_index are are helping/hurting the 
-#' relationship with pathogen absolute sequence abundance. 
-#' Since sequence abundance * biomass, the composite variable, is a product, the diagnostic
-#' model should probably be log-log. Check to make sure:
+#' ## Pathogen—pfg correlations
+#' Pathogen abundance correlated with grass and forbs. 
 patho_resto <- its_guild %>% 
   filter(field_type == "restored", region != "FL") %>% 
   left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
@@ -1841,29 +1734,34 @@ patho_resto <- its_guild %>%
     patho_logit = qlogis(patho_prop)
   ) %>% 
   select(-sapro_abund)
-
+#' Inspect simple linear relationship.
+pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
+check_model(pama_rest_m)
+summary(pama_rest_m)
+#' GF index and biomass weighted relative abundance of pathogens aren't strongly 
+#' related. We need to find out how total fungal biomass relates to gf_index in defining the 
+#' relationship with pathogen absolute sequence abundance. Essentially, using total biomass
+#' as a covariate removes the compositional element of total sequence abundance. 
+#' Since sequence abundance * biomass, the composite variable, is a product, the diagnostic
+#' model should probably be log-log. Check to make sure:
 parest_m_raw  <- lm(patho_abund ~ fungi_mass + gf_index, data = patho_resto)
 parest_m_logy <- lm(log(patho_abund) ~ fungi_mass + gf_index, data = patho_resto)
 parest_m_logx <- lm(patho_abund ~ log(fungi_mass) + gf_index, data = patho_resto)
 parest_m_both <- lm(log(patho_abund) ~ log(fungi_mass) + gf_index, data = patho_resto)
-
 compare_performance(parest_m_raw, parest_m_logy, parest_m_logx, parest_m_both, 
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-
-
-#' Log-log is best. Ok, now 
-# Compute a pathogen proportion (row proportions of guilds)
-#' 1.	Does plant composition shift the relative pathogen proportion?
+#' Log-log is best. For further investigation, Compute a pathogen proportion (row proportions 
+#' of guilds).
+#' 
+#' ### Does plant composition shift the relative pathogen proportion?
 ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
   geom_text(label = rownames(patho_resto))
 
 parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
-augment(parest_m_rel)
 distribution_prob(parest_m_rel)
 shapiro.test(parest_m_rel$residuals)
 check_model(parest_m_rel)
 summary(parest_m_rel)
-
 
 slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
   coef(lm(patho_logit ~ gf_index, data = patho_resto[-i, ]))["gf_index"]
@@ -1872,78 +1770,76 @@ summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
 
 coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
 coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
+par(mfrow = c(1,1))
 crPlots(parest_m_rel, terms = ~ gf_index)
 ncvTest(parest_m_rel)
-
 #' A linear model indicated a positive association between grass–forb index 
-#' and the logit share of pathogen sequences (β̂ = …, 95% CI …, adj. R² = 0.63, n = 10).
-#' Results were robust to HC3 standard errors and to robust regression (bisquare), with similar slope estimates.
-
-
-#' 	2.	Does plant composition affect total fungal biomass?
+#' and the logit share of pathogen sequences (β = 0.67, 95% CI = 0.26-1.08, R2adj = 0.63, n = 10).
+#' Results were robust to HC3 standard errors and to robust regression (bisquare), 
+#' with similar slope estimates in a leave-one-out test. Model residuals did not deviate from normal 
+#' based on a shapiro test. 
+#' 
+#' ### Does plant composition affect total fungal biomass?
 ggplot(patho_resto, aes(x = gf_index, y = log(fungi_mass))) +
   geom_text(label = rownames(patho_resto))
 parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
-augment(parest_m_biom)
 distribution_prob(parest_m_biom)
-shapiro.test(parest_m_biom$residuals)
+shapiro.test(parest_m_biom$residuals) # residuals distribution non-normal
 par(mfrow = c(2,2))
 plot(parest_m_biom)
 summary(parest_m_biom)
 
-
 coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slope and SEs also NS
 coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
+#' Non-normal residuals distribution suggests the need for corroboration. Try a nonparametric test.
 with(patho_resto, cor.test(gf_index, log(fungi_mass), method = "spearman", exact = FALSE)) # nonparametric correlation NS
 #' OLS and robust estimates agree on direction/magnitude; effect not significant
+par(mfrow = c(1,1))
 crPlots(parest_m_biom, terms = ~ gf_index)
 ncvTest(parest_m_biom)
-
-
-#' 	3.	Does gf_index still matter for absolute pathogens once biomass is in the model?
-parest_m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = patho_resto)
-
+#' The model likely works well enough to show that there's not a strong relationship between GF index
+#' and total fungal biomass, which agrees with what we found before with biomass as an untransformed
+#' response variable. 
+#' 
+#' ### Does gf_index still matter for absolute pathogens once biomass is in the model?
 ggplot(patho_resto, aes(x = log(fungi_mass), y = log(patho_mass))) +
   geom_text(label = rownames(patho_resto))
+parest_m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = patho_resto)
 
 augment(parest_m_abs)
 distribution_prob(parest_m_abs)
 shapiro.test(parest_m_abs$residuals)
+#' Residuals distribution difference from normal rejected by shapiro test and machine learning approach
+par(mfrow = c(2,2))
 plot(parest_m_abs)
-
+#' Sturcture, leverage point detected
 crPlots(parest_m_abs)
 avPlots(parest_m_abs)
-
-coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
+#' Relationships appear monotonic (in log-log space). 
+coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
 coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
+par(mfrow = c(1,1))
 crPlots(parest_m_abs, terms = ~ gf_index)
 ncvTest(parest_m_abs)
-
 #' Diagnostics (Shapiro p=0.64; NCV p=0.54; HC3 and LOOCV stable) support the additive log–log model.
 #' 
-
+#' Results:
 Anova(parest_m_abs, type = 2)
+#+ parest_m_abs_rsq,warning=FALSE,message=FALSE
 rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
-
-
-#' Elasticity of pathogen mass to fungal biomass: a 1% ↑ in biomass ≈ 1.54% ↑ in pathogen mass.
-#' gf_index is multiplicative on the original scale. One-unit increase ⇒ ×exp(0.698) ≈ ×2.01 in pathogen mass.
-#' Using your HC3 SE: 0.698 ± 1.96·0.2106 ⇒ [0.284, 1.112] ⇒ ×[1.33, 3.04].
-
-
-#' and a display of effects:
-
-# Median fungal biomass on the original scale
+#' Elasticity of pathogen mass to fungal biomass: a 1% increase in biomass ≈ 1.54% increase in pathogen mass.
+#' Gf_index is multiplicative on the original scale. One-unit increase in gf_index ≈ exp(0.698) ≈ 2.01 in pathogen mass.
+#' Including HC3 SE: 0.698 ± 1.96·0.2106 = exp(0.284, 1.112) = (1.33, 3.04).
+#' 
+#' View results:
+#' Median fungal biomass on the original scale and model prediction for figure.
 med_fungi <- median(patho_resto$fungi_mass, na.rm = TRUE)
-
-# Prediction grid: vary gf_index, hold fungi_mass at its median
 newdat <- tibble(
   gf_index   = seq(min(patho_resto$gf_index, na.rm = TRUE),
                    max(patho_resto$gf_index, na.rm = TRUE),
                    length.out = 200),
   fungi_mass = med_fungi
 )
-
 # Predict on the log scale, then back-transform to the original scale
 pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%
   mutate(
@@ -1951,8 +1847,7 @@ pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%
     lwr_med = exp(.fitted - 1.96 * .se.fit),
     upr_med = exp(.fitted + 1.96 * .se.fit)
   )
-
-#+ fig7,warning=FALSE,fig.height=4,fig.width=4
+#+ fig7_data,warning=FALSE
 fig7 <- 
   ggplot(pred, aes(x = gf_index, y = fit_med)) +
   geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
@@ -1967,9 +1862,8 @@ fig7 <-
     caption = paste0("Curve shown at median fungal biomass")
   ) +
   theme_cor
-
+#+ fig7,warning=FALSE,fig.height=4,fig.width=4
 fig7
-
 #+ fig7_save,warning=FALSE,echo=FALSE
 ggsave(
   root_path("figs", "fig7.png"),
@@ -1979,33 +1873,19 @@ ggsave(
   units = "in",
   dpi = 600
 )
-
-
-
-
-
-
-# is plant richness related to pathogens?
+#' ### Alternative explanations
+#' Is plant richness related to pathogens?
 patho_resto %>% left_join(prich, by = join_by(field_name)) %>% 
   ggplot(aes(x = pl_rich, y = patho_mass)) + 
   geom_point()
-# not at all...and it wasn't selected in whole soil fungi either
-
-
-with(gf_index %>% left_join(prich, by = join_by(field_name)), cor(gf_index, pl_rich))
+#' not at all...and it wasn't selected in whole soil fungi either
+with(gf_index %>% left_join(prich, by = join_by(field_name)), cor.test(gf_index, pl_rich))
 gf_index %>% left_join(prich, by = join_by(field_name)) %>% 
   ggplot(aes(x = gf_index, y = pl_rich)) +
   geom_point()
-
-# Plant richness and gf_index are related, but it isn't plant richness that's 
-# driving the change in pathogen mass/communities...it's the relative proportion of 
-# grasses and forbs, irrespective of the number of plant species. 
-
-
-
-
-
-
+#' Plant richness relationship with GF index is weak and driven by a single outlier site. 
+#' The relative proportion of grasses and forbs is related to pathogen abundance 
+#' irrespective of the number of plant species. 
 
 #' 
 #' # Putative saprotrophs
@@ -2050,7 +1930,7 @@ performance::check_overdispersion(sapro_rich_glm) # not detected
 sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 #' Gamma glm is the best choice; no high-leverage point
-
+#' 
 #' Model results, group means, and post-hoc
 summary(sapro_rich_glm)
 Anova(sapro_rich_glm, type = 2)
@@ -2083,7 +1963,6 @@ sapro_rich_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ### Shannon's diversity
 #' Account for sequencing depth as a covariate
@@ -2124,7 +2003,6 @@ sapro_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ## Abundance
 #' Proportional biomass
@@ -2158,7 +2036,6 @@ sapro_ma_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.1))
-
 #' 
 #' ## Beta Diversity
 #' Community distance handled similarly to previous
@@ -2205,7 +2082,6 @@ sapro_ma_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
 #' 
 #' ## Unified figure
 #+ fig5_patchwork,warning=FALSE
@@ -2224,7 +2100,6 @@ fig5
 #' Numbers in black circles give years since restoration. Axis labels show the
 #' percent variation explained. Colours/shading: corn = grey, restored = black,
 #' remnant = white.
-
 #+ fig5_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
 ggsave(root_path("figs", "fig5.png"),
        plot = fig5,
@@ -2232,10 +2107,7 @@ ggsave(root_path("figs", "fig5.png"),
        height = 4,
        units = "in",
        dpi = 600)
-
-
-
-
+#' 
 #' ### Sequence-based relative abundance
 #+ sapro_ord
 d_sapro <- sapro %>%
@@ -2307,7 +2179,6 @@ sapro_protest <- protest(
 sapro_protest
 #' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(sapro_protest$scale^2, 2)`, p<0.001. 
-
 #' 
 #' ## Saprotroph Indicator Species
 sapro_ind <- inspan(its_avg, its_meta, "saprotroph", sites)
@@ -2317,12 +2188,8 @@ sapro_ind %>%
   arrange(field_type, p_val_adj) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
-
-
-
-
-
-#' Saprotroph correlations with pfg
+#' 
+#' ## Saprotroph correlations with pfg
 sapro_resto <- its_guild %>% 
   filter(field_type == "restored", region != "FL") %>% 
   mutate(
@@ -2336,7 +2203,6 @@ sarest_m_raw  <- lm(sapro_abund ~ fungi_mass + gf_index, data = sapro_resto)
 sarest_m_logy <- lm(log(sapro_abund) ~ fungi_mass + gf_index, data = sapro_resto)
 sarest_m_logx <- lm(sapro_abund ~ log(fungi_mass) + gf_index, data = sapro_resto)
 sarest_m_both <- lm(log(sapro_abund) ~ log(fungi_mass) + gf_index, data = sapro_resto)
-# consider rlm to reduce leverage
 
 compare_performance(sarest_m_raw, sarest_m_logy, sarest_m_logx, sarest_m_both, 
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
@@ -2347,52 +2213,3 @@ ggplot(sapro_resto, aes(x = gf_index, sapro_prop)) +
   geom_text(label = rownames(sapro_resto))
 #' No relationshp detected. High leverage point is KORP1 but it's difficult to see a 
 #' significant inference based on changing it's position.
-
-
-
-
-
-
-#' 
-#' # Omnibus summary objects
-# Summaries ———————— ####
-#' 
-#' ## Alpha diversity models
-#' Concatenate model outputs and adjust p values
-
-
-list(
-  its_rich = its_rich_covar$anova_t2,
-  amf_rich = amf_rich_covar$anova_t2,
-  patho_rich = patho_rich_covar$anova_t2,
-  sapro_rich = sapro_rich_covar$anova_t2
-) %>% map(\(df) df %>% as.data.frame() %>% 
-            drop_na() %>% mutate(var = c("sequence_depth_transform", "test_var")) %>% 
-            rownames_to_column(var = "covar")) %>% 
-  bind_rows(.id = "grp") %>% 
-  split(., ~ var) %>% 
-  map(\(df) df %>% mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 4)) %>% 
-        select(-var))
-#' Main effect only significant with its and amf...pairwise only warranted there
-
-
-
-
-list(
-  its_shan = its_shan_covar$anova_t2,
-  amf_shan = amf_shan_covar$anova_t2,
-  patho_shan = patho_shan_covar$anova_t2,
-  sapro_shan = sapro_shan_covar$anova_t2
-) %>% map(\(df) df %>% as.data.frame() %>% 
-            drop_na() %>% mutate(var = c("sequence_depth_transform", "test_var")) %>% 
-            rownames_to_column(var = "covar")) %>% 
-  bind_rows(.id = "grp") %>% 
-  split(., ~ var) %>% 
-  map(\(df) df %>% mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 4)) %>% 
-        select(-var))
-
-#' Could be a slippery slope to start adjusting p values like this....
-#' 
-#' Next thing is to produce the 2x2 shannons plot...
-
-
