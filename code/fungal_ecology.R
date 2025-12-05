@@ -241,14 +241,13 @@ yrs_fig <-
   theme_cor+
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1))
-  
 #' 
 #' #### Unified figure
 #+ pfg_fig_patchwork,warning=FALSE
 pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig) +
   plot_layout(heights = c(1,0.01,1,0.01,0.5))  +
   plot_annotation(tag_levels = 'a') 
-#+ pfg_fig,warning=FALSE,fig.height=5,fig.width=6.5
+#+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "figS8.png"),
@@ -809,7 +808,7 @@ furest_m_both <- lm(log(fungi_ab) ~ log(fungi_mass) + gf_index, data = fungi_res
 #' 
 compare_performance(furest_m_raw, furest_m_logy, furest_m_logx, furest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-#+ cm2,warning=FALSE,fig.width=7,fig.height=8
+#+ cm2,warning=FALSE,fig.width=5,fig.height=5
 check_model(furest_m_logy)
 summary(furest_m_logy)
 ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
@@ -958,6 +957,7 @@ fa %>%
 #' CV increases with mean, suggesting > proportional mean/variance relationship. 
 #' Determine best model choice of log-transformed response or gamma glm.
 nlfa_lm_log   <- lm(log(amf) ~ field_type, data = fa)
+par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
 
@@ -1170,6 +1170,7 @@ amf_fam_ma %>%
   kable(format = "pandoc", caption = "Mean and CV relationship in groups")
 #' Corroborates the mean/variance relationship. Proceed with log transformation or gamma glm
 glom_lm_log   <- lm(log(Glmrc_mass) ~ field_type, data = amf_fam_ma)
+par(mfrow = c(2,2))
 plot(glom_lm_log) # some improvement, leverage point still exists
 ncvTest(glom_lm_log) # p=0.29, null of constant variance not rejected, model fit is improved
 #' Gamma glm to reduce leverage point...
@@ -1428,6 +1429,7 @@ compare_performance(amrest_m_raw, amrest_m_logy, amrest_m_logx, amrest_m_both,
 #+ cm8,warning=FALSE,fig.width=7,fig.height=8
 check_model(amrest_m_logx)
 summary(amrest_m_logx)
+#+ amf_resto_fig,warning=FALSE,fig.height=5,fig.width=5
 ggplot(amf_resto, aes(x = gf_index, y = amf_mass)) +
   geom_text(label = rownames(amf_resto))
 #' No relationshp detected with gf_index. High leverage point is again KORP1.
@@ -1763,6 +1765,7 @@ compare_performance(parest_m_raw, parest_m_logy, parest_m_logx, parest_m_both,
 #' of guilds).
 #' 
 #' ### Does plant composition shift the relative pathogen proportion?
+#+ patho_logit_gfi_fig,warning=FALSE,fig.width=5,fig.height=5
 ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
   geom_text(label = rownames(patho_resto))
 
@@ -1790,6 +1793,7 @@ ncvTest(parest_m_rel)
 #' based on a shapiro test. 
 #' 
 #' ### Does plant composition affect total fungal biomass?
+#+ patho_resto_gfi_fig,warning=FALSE,fig.width=5,fig.height=5
 ggplot(patho_resto, aes(x = gf_index, y = log(fungi_mass))) +
   geom_text(label = rownames(patho_resto))
 parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
@@ -1812,6 +1816,7 @@ ncvTest(parest_m_biom)
 #' response variable. 
 #' 
 #' ### Does gf_index still matter for absolute pathogens once biomass is in the model?
+#+ patho_resto_massmass_fig,warning=FALSE,fig.width=5,fig.height=5
 ggplot(patho_resto, aes(x = log(fungi_mass), y = log(patho_mass))) +
   geom_text(label = rownames(patho_resto))
 parest_m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = patho_resto)
@@ -1885,11 +1890,13 @@ ggsave(
 )
 #' ### Alternative explanations
 #' Is plant richness related to pathogens?
+#+ patho_resto_prich_fig,warning=FALSE,fig.width=5,fig.height=5
 patho_resto %>% left_join(prich, by = join_by(field_name)) %>% 
   ggplot(aes(x = pl_rich, y = patho_mass)) + 
   geom_point()
 #' not at all...and it wasn't selected in whole soil fungi either
 with(gf_index %>% left_join(prich, by = join_by(field_name)), cor.test(gf_index, pl_rich))
+#+ patho_resto_gfi_prich_fig,warning=FALSE,fig.width=5,fig.height=5
 gf_index %>% left_join(prich, by = join_by(field_name)) %>% 
   ggplot(aes(x = gf_index, y = pl_rich)) +
   geom_point()
@@ -2219,6 +2226,7 @@ compare_performance(sarest_m_raw, sarest_m_logy, sarest_m_logx, sarest_m_both,
 par(mfrow = c(2,2))
 plot(sarest_m_raw)
 summary(sarest_m_raw)
+#+ sapro_resto_gfi_fig,warning=FALSE,fig.width=5,fig.height=5
 ggplot(sapro_resto, aes(x = gf_index, sapro_prop)) +
   geom_text(label = rownames(sapro_resto))
 #' No relationshp detected. High leverage point is KORP1 but it's difficult to see a 
