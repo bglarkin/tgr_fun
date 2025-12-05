@@ -465,7 +465,7 @@ its_shan_fig <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' 
-#' ## Abundance
+#' ## Abundance (PLFA biomass)
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
 par(mfrow = c(2,2))
 plot(plfa_lm) 
@@ -941,7 +941,7 @@ amf_shan_fig <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' 
-#' ## NLFA
+#' ## Abundance (NLFA biomass)
 nlfa_lm <- lm(amf ~ field_type, data = fa)
 #' Diagnostics
 par(mfrow = c(2,2))
