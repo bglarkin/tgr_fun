@@ -558,7 +558,7 @@ Diagnostics
 its_rich_covar$diagnostics
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/its_rich_covar_diagnostics-1.png)<!-- -->
 
 Long tails, some midrange structure, no leverage points
 
@@ -726,7 +726,7 @@ Diagnostics
 its_shan_covar$diagnostics
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/its_shan_covar_diagnostics-1.png)<!-- -->
 
 Lots of residual structure, no leverage points, no evidence for
 increasing mean/var relationship.
@@ -871,7 +871,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
 
 variance differs slightly in groups. Tails on qq plot diverge, lots of
 groups structure visible.
@@ -1650,7 +1650,7 @@ Diagnostics
 amf_rich_covar$diagnostics
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-59-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/amf_rich_covar_diagnostics-1.png)<!-- -->
 
 Long tails, one outlier without significant leverage…mean/variance
 relationship shows no trend…
@@ -1794,14 +1794,14 @@ Diagnostics
 amf_shan_covar$diagnostics
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-66-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/amf_shan_covar_diagnostics-1.png)<!-- -->
 
 ``` r
 par(mfrow = c(2,2))
 plot(amf_shan_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-66-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/amf_shan_covar_diagnostics-2.png)<!-- -->
 
 Variance somewhat non-constant in groups, qqplot fit is poor, one
 leverage point (Cook’s \> 0.5), a cornfield with high richness. Mean
@@ -1926,7 +1926,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-72-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-68-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -1991,7 +1991,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -2007,7 +2007,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-74-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-2.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2408,7 +2408,7 @@ par(mfrow = c(2,2))
 plot(glom_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
 
 ``` r
 distribution_prob(glom_lm)
@@ -2472,7 +2472,7 @@ par(mfrow = c(2,2))
 plot(glom_lm_log) # some improvement, leverage point still exists
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-77-1.png)<!-- -->
 
 ``` r
 ncvTest(glom_lm_log) # p=0.29, null of constant variance not rejected, model fit is improved
@@ -2495,7 +2495,7 @@ glom_glm_diag <- glm.diag(glom_glm)
 glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
 
 ``` r
 check_model(glom_glm) # corroborates
@@ -2549,7 +2549,7 @@ par(mfrow = c(2,2))
 plot(clar_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-85-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
 
 ``` r
 distribution_prob(clar_lm)
@@ -2595,7 +2595,7 @@ clar_glm_diag <- glm.diag(clar_glm)
 glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-88-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-84-1.png)<!-- -->
 
 ``` r
 check_model(clar_glm) # corroborates
@@ -2649,7 +2649,7 @@ par(mfrow = c(2,2))
 plot(para_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-90-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-86-1.png)<!-- -->
 
 ``` r
 distribution_prob(para_lm)
@@ -2695,7 +2695,7 @@ para_glm_diag <- glm.diag(para_glm)
 glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-93-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-89-1.png)<!-- -->
 
 ``` r
 check_model(para_glm) # corroborates
@@ -2754,7 +2754,7 @@ diver_glm_diag <- glm.diag(diver_glm)
 glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-96-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
 
 ``` r
 check_model(diver_glm) # corroborates
@@ -3275,7 +3275,7 @@ Diagnostics
 patho_rich_covar$diagnostics
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-111-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/patho_rich_covar_diagnostics-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_rich_lm)
@@ -3415,7 +3415,7 @@ Diagnostics
 patho_shan_covar$diagnostics # variance similar in groups 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-117-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/patho_shan_covar_diagnostics-1.png)<!-- -->
 
 ``` r
 distribution_prob(patho_shan_lm)
@@ -3526,7 +3526,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-121-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-115-1.png)<!-- -->
 
 no serious violations observed
 
@@ -4232,7 +4232,7 @@ par(mfrow = c(1,1))
 crPlots(parest_m_biom, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-135-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-129-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_biom)
@@ -4313,7 +4313,7 @@ par(mfrow = c(2,2))
 plot(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-136-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-130-1.png)<!-- -->
 
 Sturcture, leverage point detected
 
@@ -4321,13 +4321,13 @@ Sturcture, leverage point detected
 crPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-137-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-1.png)<!-- -->
 
 ``` r
 avPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-137-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-2.png)<!-- -->
 
 Relationships appear monotonic (in log-log space).
 
@@ -4359,7 +4359,7 @@ par(mfrow = c(1,1))
 crPlots(parest_m_abs, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-138-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_abs)
@@ -4539,7 +4539,7 @@ Diagnostics
 sapro_rich_covar$diagnostics # heavy residual structure, poor qq alignment
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-146-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/sapro_rich_covar_diagnostics-1.png)<!-- -->
 
 ``` r
 distribution_prob(sapro_rich_lm)
@@ -4598,7 +4598,7 @@ sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-148-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-141-1.png)<!-- -->
 
 Slight improvement to qq plot shape, slightly reduced hatvalue (not
 shown)
@@ -4619,7 +4619,7 @@ sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-149-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point
 
@@ -4751,7 +4751,7 @@ Diagnostics
 sapro_shan_covar$diagnostics # variance similar in groups 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-155-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/sapro_shan_covar_diagnostics-1.png)<!-- -->
 
 ``` r
 distribution_prob(sapro_shan_lm)
@@ -4844,7 +4844,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-159-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-151-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -5266,7 +5266,7 @@ par(mfrow = c(2,2))
 plot(sarest_m_raw)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-167-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-159-1.png)<!-- -->
 
 ``` r
 summary(sarest_m_raw)
