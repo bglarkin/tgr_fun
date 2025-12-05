@@ -344,6 +344,7 @@ its_rich_covar$compare
 #' Best model does not use transformation of covariate.
 its_rich_lm <- lm(richness ~ depth + field_type, data = its_div) # Interaction NS (not shown)
 #' Diagnostics
+#+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 its_rich_covar$diagnostics
 #' Long tails, some midrange structure, no leverage points
 distribution_prob(its_rich_lm)
@@ -408,6 +409,7 @@ its_shan_covar$compare
 its_shan_lm <- lm(shannon ~ depth_clg + field_type, 
                   data = its_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
+#+ its_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 its_shan_covar$diagnostics
 #' Lots of residual structure, no leverage points, no evidence for increasing mean/var relationship.
 distribution_prob(its_shan_lm)
@@ -796,7 +798,7 @@ fungi_resto <- its_div %>%
   select(field_name, fungi_ab = depth, fungi_mass, gf_index)
 
 fuma_rest_m <- lm(fungi_mass ~ gf_index, data = fungi_resto)
-#+ cm1,warning=FALSE,fig.width=7,fig.height=8
+#+ cm1,warning=FALSE,fig.width=7,fig.height=9
 check_model(fuma_rest_m)
 summary(fuma_rest_m)
 #' PFG doesn't strongly predict fungal biomass at sites. How are mass and sequence 
@@ -808,7 +810,7 @@ furest_m_both <- lm(log(fungi_ab) ~ log(fungi_mass) + gf_index, data = fungi_res
 #' 
 compare_performance(furest_m_raw, furest_m_logy, furest_m_logx, furest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-#+ cm2,warning=FALSE,fig.width=5,fig.height=5
+#+ cm2,warning=FALSE,fig.width=7,fig.height=9
 check_model(furest_m_logy)
 summary(furest_m_logy)
 ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
@@ -838,6 +840,7 @@ amf_rich_covar$compare
 amf_rich_lm <- lm(richness ~ depth_clg + field_type, 
                   data = amf_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
+#+ amf_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 amf_rich_covar$diagnostics
 #' Long tails, one outlier without significant leverage...mean/variance relationship shows no trend...
 distribution_prob(amf_rich_lm)
@@ -891,6 +894,7 @@ amf_shan_covar$compare
 #' Models are equivalent; no transformation selected on parsimony grounds
 amf_shan_lm <- lm(shannon ~ depth + field_type, data = amf_div)
 #' Diagnostics
+#+ amf_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 amf_shan_covar$diagnostics
 par(mfrow = c(2,2))
 plot(amf_shan_lm)
@@ -1178,7 +1182,7 @@ glom_glm <- glm(Glmrc_mass ~ field_type, family = Gamma(link = "log"), data = am
 #' Diagnostics
 glom_glm_diag <- glm.diag(glom_glm)
 glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
-#+ cm3,warning=FALSE,fig.width=7,fig.height=8
+#+ cm3,warning=FALSE,fig.width=7,fig.height=9
 check_model(glom_glm) # corroborates
 performance::check_overdispersion(glom_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1200,7 +1204,7 @@ clar_glm <- glm(Clrdg_mass ~ field_type, family = Gamma(link = "log"), data = am
 #' Diagnostics
 clar_glm_diag <- glm.diag(clar_glm)
 glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
-#+ cm4,warning=FALSE,fig.width=7,fig.height=8
+#+ cm4,warning=FALSE,fig.width=7,fig.height=9
 check_model(clar_glm) # corroborates
 performance::check_overdispersion(clar_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1222,7 +1226,7 @@ para_glm <- glm(Prglm_mass ~ field_type, family = Gamma(link = "log"), data = am
 #' Diagnostics
 para_glm_diag <- glm.diag(para_glm)
 glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
-#+ cm5,warning=FALSE,fig.width=7,fig.height=8
+#+ cm5,warning=FALSE,fig.width=7,fig.height=9
 check_model(para_glm) # corroborates
 performance::check_overdispersion(para_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1237,7 +1241,7 @@ diver_glm <- glm(Dvrss_mass ~ field_type, family = Gamma(link = "log"), data = a
 #' Diagnostics
 diver_glm_diag <- glm.diag(diver_glm)
 glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
-#+ cm6,warning=FALSE,fig.width=7,fig.height=8
+#+ cm6,warning=FALSE,fig.width=7,fig.height=9
 check_model(diver_glm) # corroborates
 performance::check_overdispersion(diver_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1416,7 +1420,7 @@ amf_resto <- amf_fam %>%
   filter(field_type == "restored", region != "FL") %>% 
   left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name))
 amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
-#+ cm7,warning=FALSE,fig.width=7,fig.height=8
+#+ cm7,warning=FALSE,fig.width=7,fig.height=9
 check_model(amma_rest_m)
 summary(amma_rest_m)
 #' No simple linear relationship. Check contributions of biomass and sequence abundance.
@@ -1426,7 +1430,7 @@ amrest_m_logx <- lm(amf_ab ~ log(amf_mass) + gf_index, data = amf_resto)
 amrest_m_both <- lm(log(amf_ab) ~ log(amf_mass) + gf_index, data = amf_resto)
 compare_performance(amrest_m_raw, amrest_m_logy, amrest_m_logx, amrest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-#+ cm8,warning=FALSE,fig.width=7,fig.height=8
+#+ cm8,warning=FALSE,fig.width=7,fig.height=9
 check_model(amrest_m_logx)
 summary(amrest_m_logx)
 #+ amf_resto_fig,warning=FALSE,fig.height=5,fig.width=5
@@ -1458,6 +1462,7 @@ patho_rich_covar$compare
 patho_rich_lm <- lm(richness ~ depth_csq + field_type, # Interaction NS (not shown)
                     data = patho_div %>% mutate(depth_csq = sqrt(depth) - mean(sqrt(depth))))
 #' Diagnostics
+#+ patho_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 patho_rich_covar$diagnostics
 distribution_prob(patho_rich_lm)
 #' residuals distribution normal or close, response showing group divisions
@@ -1508,6 +1513,7 @@ patho_shan_covar$compare
 patho_shan_lm <- lm(shannon ~ depth_clg + field_type, 
                     data = patho_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
+#+ patho_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 patho_shan_covar$diagnostics # variance similar in groups 
 distribution_prob(patho_shan_lm)
 #' residuals distribution most likely cauchy/normal; symmetric but long tails
@@ -1746,7 +1752,7 @@ patho_resto <- its_guild %>%
   select(-sapro_abund)
 #' Inspect simple linear relationship.
 pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
-#+ cm9,warning=FALSE,fig.width=7,fig.height=8
+#+ cm9,warning=FALSE,fig.width=7,fig.height=9
 check_model(pama_rest_m)
 summary(pama_rest_m)
 #' GF index and biomass weighted relative abundance of pathogens aren't strongly 
@@ -1772,7 +1778,7 @@ ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
 parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
 distribution_prob(parest_m_rel)
 shapiro.test(parest_m_rel$residuals)
-#+ cm10,warning=FALSE,fig.width=7,fig.height=8
+#+ cm10,warning=FALSE,fig.width=7,fig.height=9
 check_model(parest_m_rel)
 summary(parest_m_rel)
 
@@ -1928,6 +1934,7 @@ sapro_rich_covar$compare
 sapro_rich_lm <- lm(richness ~ depth_clg + field_type,
                     data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
+#+ sapro_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 sapro_rich_covar$diagnostics # heavy residual structure, poor qq alignment
 distribution_prob(sapro_rich_lm)
 #' residuals distribution normal or close, response showing group divisions and count 
@@ -1994,6 +2001,7 @@ sapro_shan_covar$compare
 sapro_shan_lm <- lm(shannon ~ depth_clg + field_type,
                     data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
 #' Diagnostics
+#+ sapro_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 sapro_shan_covar$diagnostics # variance similar in groups 
 distribution_prob(sapro_shan_lm)
 #' residuals distribution most likely normal, qq fit good, no evidence of mean/variance increase
