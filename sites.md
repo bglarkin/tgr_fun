@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 04 December, 2025
+Last updated: 05 December, 2025
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -297,6 +297,9 @@ area_cities_crop <- st_crop(area_cities, area_box)
 
 ``` r
 counties_crop <- st_crop(st_transform(counties, 4326), area_box)
+```
+
+``` r
 # area_roads <- get_osm_roads(area_box, density = 2) # leave commented unless missing from env
 ```
 

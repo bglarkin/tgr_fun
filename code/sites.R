@@ -162,6 +162,7 @@ area_crop <- st_crop(cont, area_box)
 area_cities_crop <- st_crop(area_cities, area_box)
 #+ counties_crop,message=FALSE,warning=FALSE
 counties_crop <- st_crop(st_transform(counties, 4326), area_box)
+#+ area_roads,message=FALSE,warning=FALSE
 # area_roads <- get_osm_roads(area_box, density = 2) # leave commented unless missing from env
 #' 
 #' ### Site map data
