@@ -797,6 +797,7 @@ fungi_resto <- its_div %>%
   select(field_name, fungi_ab = depth, fungi_mass, gf_index)
 
 fuma_rest_m <- lm(fungi_mass ~ gf_index, data = fungi_resto)
+#+ cm1,warning=FALSE,fig.width=7,fig.height=8
 check_model(fuma_rest_m)
 summary(fuma_rest_m)
 #' PFG doesn't strongly predict fungal biomass at sites. How are mass and sequence 
@@ -808,6 +809,7 @@ furest_m_both <- lm(log(fungi_ab) ~ log(fungi_mass) + gf_index, data = fungi_res
 #' 
 compare_performance(furest_m_raw, furest_m_logy, furest_m_logx, furest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+#+ cm2,warning=FALSE,fig.width=7,fig.height=8
 check_model(furest_m_logy)
 summary(furest_m_logy)
 ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
@@ -1175,6 +1177,7 @@ glom_glm <- glm(Glmrc_mass ~ field_type, family = Gamma(link = "log"), data = am
 #' Diagnostics
 glom_glm_diag <- glm.diag(glom_glm)
 glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
+#+ cm3,warning=FALSE,fig.width=7,fig.height=8
 check_model(glom_glm) # corroborates
 performance::check_overdispersion(glom_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1196,6 +1199,7 @@ clar_glm <- glm(Clrdg_mass ~ field_type, family = Gamma(link = "log"), data = am
 #' Diagnostics
 clar_glm_diag <- glm.diag(clar_glm)
 glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
+#+ cm4,warning=FALSE,fig.width=7,fig.height=8
 check_model(clar_glm) # corroborates
 performance::check_overdispersion(clar_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1217,6 +1221,7 @@ para_glm <- glm(Prglm_mass ~ field_type, family = Gamma(link = "log"), data = am
 #' Diagnostics
 para_glm_diag <- glm.diag(para_glm)
 glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
+#+ cm5,warning=FALSE,fig.width=7,fig.height=8
 check_model(para_glm) # corroborates
 performance::check_overdispersion(para_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1231,6 +1236,7 @@ diver_glm <- glm(Dvrss_mass ~ field_type, family = Gamma(link = "log"), data = a
 #' Diagnostics
 diver_glm_diag <- glm.diag(diver_glm)
 glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
+#+ cm6,warning=FALSE,fig.width=7,fig.height=8
 check_model(diver_glm) # corroborates
 performance::check_overdispersion(diver_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
@@ -1409,6 +1415,7 @@ amf_resto <- amf_fam %>%
   filter(field_type == "restored", region != "FL") %>% 
   left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name))
 amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
+#+ cm7,warning=FALSE,fig.width=7,fig.height=8
 check_model(amma_rest_m)
 summary(amma_rest_m)
 #' No simple linear relationship. Check contributions of biomass and sequence abundance.
@@ -1418,6 +1425,7 @@ amrest_m_logx <- lm(amf_ab ~ log(amf_mass) + gf_index, data = amf_resto)
 amrest_m_both <- lm(log(amf_ab) ~ log(amf_mass) + gf_index, data = amf_resto)
 compare_performance(amrest_m_raw, amrest_m_logy, amrest_m_logx, amrest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+#+ cm8,warning=FALSE,fig.width=7,fig.height=8
 check_model(amrest_m_logx)
 summary(amrest_m_logx)
 ggplot(amf_resto, aes(x = gf_index, y = amf_mass)) +
@@ -1736,6 +1744,7 @@ patho_resto <- its_guild %>%
   select(-sapro_abund)
 #' Inspect simple linear relationship.
 pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
+#+ cm9,warning=FALSE,fig.width=7,fig.height=8
 check_model(pama_rest_m)
 summary(pama_rest_m)
 #' GF index and biomass weighted relative abundance of pathogens aren't strongly 
@@ -1760,6 +1769,7 @@ ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
 parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
 distribution_prob(parest_m_rel)
 shapiro.test(parest_m_rel$residuals)
+#+ cm10,warning=FALSE,fig.width=7,fig.height=8
 check_model(parest_m_rel)
 summary(parest_m_rel)
 
