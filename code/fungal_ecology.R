@@ -684,8 +684,8 @@ env_vars <- sites %>%
   left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
   left_join(soil_macro, by = join_by(field_name)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% # 92% on axis 1
-  left_join(prich, by = join_by(field_name)) %>%
-  select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1 removed based on initial VIF check
+  left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name)) %>% # plant richness
+  select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1, K removed based on initial VIF check
   column_to_rownames(var = "field_name") %>% 
   as.data.frame()
 env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
