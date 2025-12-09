@@ -160,7 +160,7 @@ soil_ord_ftypes <-
 #+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
 figS4 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
   plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
-  plot_annotation(tag_levels = 'a')
+  plot_annotation(tag_levels = 'A')
 figS4
 ggsave(root_path("figs", "figS4.png"),
        plot = figS4,

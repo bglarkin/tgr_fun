@@ -246,7 +246,7 @@ yrs_fig <-
 #+ pfg_fig_patchwork,warning=FALSE
 pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig) +
   plot_layout(heights = c(1,0.01,1,0.01,0.5))  +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save,warning=FALSE,echo=FALSE
@@ -555,7 +555,7 @@ fig2_ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig2 <- (fig2_ls | plot_spacer() | its_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
 fig2
 #' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
@@ -625,7 +625,7 @@ its_ord <-
 #+ its_shan_ord_sup_patchwork,warning=FALSE
 its_shan_ord_sup <- (its_shan_fig | plot_spacer() | its_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ its_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 its_shan_ord_sup
 #+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
@@ -1055,7 +1055,7 @@ fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
 fig3
 #' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
@@ -1120,7 +1120,7 @@ amf_ord <-
 #+ amf_shan_ord_sup_patchwork,warning=FALSE
 amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ amf_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 amf_shan_ord_sup
 #+ amf_shan_ord_sup_save,warning=FALSE,echo=FALSE
@@ -1394,7 +1394,7 @@ fig6b <-
 #+ fig6_patchwork,warning=FALSE
 fig6 <- (fig6a | plot_spacer() | fig6b) +
   plot_layout(widths = c(0.50, 0.01, 0.50)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ fig6,warning=FALSE,fig.height=4,fig.width=6.5
 fig6
 #' Results of constrained analysis on **a** whole-soil fungi and **b** arbuscular mycorrhizal fungi.
@@ -1638,7 +1638,7 @@ fig4_ls <- (patho_rich_fig / plot_spacer() / patho_ma_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig4 <- (fig4_ls | plot_spacer() | patho_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ fig4,warning=FALSE,fig.height=4,fig.width=6.5
 fig4
 #' **Fig 4.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
@@ -1705,7 +1705,7 @@ patho_ord <-
 #+ patho_shan_ord_sup_patchwork,warning=FALSE
 patho_shan_ord_sup <- (patho_shan_fig | plot_spacer() | patho_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ patho_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 patho_shan_ord_sup
 #+ patho_shan_ord_sup_save,warning=FALSE,echo=FALSE
@@ -2114,7 +2114,7 @@ fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ma_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig5 <- (fig5_ls | plot_spacer() | sapro_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ fig5,warning=FALSE,fig.height=4,fig.width=6.5
 fig5
 #' **Fig 5.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
@@ -2181,7 +2181,7 @@ sapro_ord <-
 #+ sapro_shan_ord_sup_patchwork,warning=FALSE
 sapro_shan_ord_sup <- (sapro_shan_fig | plot_spacer() | sapro_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 #+ sapro_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 sapro_shan_ord_sup
 #+ sapro_shan_ord_sup_save,warning=FALSE,echo=FALSE
