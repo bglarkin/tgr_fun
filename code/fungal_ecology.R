@@ -223,7 +223,8 @@ pfg_pct <-
   left_join(gf_index, by = join_by(field_name)) %>% 
   filter(field_type == "restored", region != "FL") %>% 
   select(field_name, yr_since, gf_index, pfg, pct_cvr)  %>% 
-  mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb"))))
+  mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb")),
+                      labels = c("forb", "grass (C4)")))
 gf_pct_fig <- 
   ggplot(pfg_pct, aes(x = fct_reorder(field_name, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
@@ -238,14 +239,31 @@ yrs_fig <-
   geom_step() +
   geom_point() +
   labs(x = NULL, y = "Yrs. since resto.") +
-  theme_cor+
+  theme_cor +
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1.1))
+
+loc_space <- (max(gfi_yrs$gf_index) - min(gfi_yrs$gf_index)) * 0.1
+loc_hspace <- 0.5 * loc_space
+gfi_lab_loc <- c(loc_hspace, rep(loc_space, 8), loc_hspace)
+# Add gfi_lab_loc to the min of gf index
+# Need to rbind this to gfi_yrs with complete data from gfi_yrs to make this a separate factor level called Site
+  
+
+
+
+gfi_loc_fig <- 
+  ggplot(gfi_yrs, aes(x = -gf_index, y = rep("Value", 10))) + 
+  geom_point() +
+  labs(y = NULL, x = "Grass-forb index") +
+  theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1))
 #' 
 #' #### Unified figure
 #+ pfg_fig_patchwork,warning=FALSE
-pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig) +
-  plot_layout(heights = c(1,0.01,1,0.01,0.5))  +
+pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig / plot_spacer() / gfi_loc_fig) +
+  plot_layout(heights = c(1,0.01,1,0.01,0.5,0.01,0.3))  +
   plot_annotation(tag_levels = 'A') 
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
