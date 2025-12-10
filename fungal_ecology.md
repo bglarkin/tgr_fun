@@ -974,7 +974,7 @@ plfa_fig <-
     al. 2019](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
 3.  Contrast the two with procrustes
 
-### ITS, biomass-weighted relative abundance
+### Biomass-weighted relative abundance
 
 ``` r
 d_its_ma <- its_avg_ma %>% 
@@ -1100,7 +1100,7 @@ Cornfields cluster apart from restored or remnant prairies. Numbers in
 black circles give years since restoration. Axis labels show the percent
 variation explained.
 
-### ITS, sequence-based relative abundance
+### Sequence-based relative abundance
 
 Comparison figure and stats for supplemental
 
@@ -2127,7 +2127,7 @@ nlfa_fig <-
     display phylogenetically aware information.
 3.  Contrast the two with procrustes.
 
-### AMF, biomass-weighted relative abundance
+### Biomass-weighted relative abundance
 
 ``` r
 d_amf_ma <- amf_avg_ma %>% 
@@ -2253,7 +2253,7 @@ centroids ±95 % CI. Numbers in points give years since restoration. Axes
 show % variance. Corn clusters apart from both prairie types. Shading:
 corn grey, restored black, remnant white.
 
-### AMF, sequence-based relative abundance, unifrac distance
+### Sequence-based relative abundance, unifrac distance
 
 ``` r
 d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
@@ -3928,28 +3928,31 @@ ordinations are highly correlated. $R^{2}=$ 0.78, p\<0.001.
 
 Use as a tool to find species for discussion. Unbalanced design and bias
 to agricultural soil research may make the indicator stats less
-appropriate for other use.
+appropriate for other use. Using biomass-weighted relative abundance for
+this differential analysis.
 
 ``` r
-patho_ind <- inspan(its_avg, its_meta, "plant_pathogen", sites)
+patho_ind <- inspan(its_avg_ma, its_meta, "plant_pathogen", sites)
 patho_ind %>% 
   select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
   filter(species != "unidentified") %>% 
   arrange(field_type, p_val_adj) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
+  mutate(across(A:p_val_adj, ~ round(.x, 3)),
+         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 ```
 
 | A | B | stat | p_val_adj | field_type | species | corn_avg | corn_ci | restored_avg | restored_ci | remnant_avg | remnant_ci |
 |---:|---:|---:|---:|:---|:---|---:|---:|---:|---:|---:|---:|
-| 0.98 | 1.0 | 0.99 | 0.02 | corn | Corynespora_cassiicola | 30.40 | 24.99 | 0.58 | 0.67 | 0.00 | 0.00 |
-| 0.90 | 1.0 | 0.95 | 0.03 | corn | Setophoma_terrestris | 214.94 | 101.10 | 19.55 | 16.66 | 3.70 | 5.63 |
-| 1.00 | 0.6 | 0.77 | 0.10 | corn | Pseudocoleophoma_polygonicola | 6.40 | 11.20 | 0.00 | 0.00 | 0.00 | 0.00 |
-| 0.74 | 1.0 | 0.86 | 0.13 | corn | Plectosphaerella_cucumerina | 160.74 | 103.89 | 37.80 | 21.34 | 19.52 | 25.03 |
-| 0.55 | 1.0 | 0.74 | 0.43 | corn | Nectria_ramulariae | 119.80 | 54.84 | 55.75 | 24.14 | 44.10 | 72.52 |
-| 0.90 | 0.5 | 0.67 | 0.36 | remnant | Monosporascus_eutypoides | 0.00 | 0.00 | 0.04 | 0.07 | 0.32 | 0.42 |
+| 0.975 | 1.00 | 0.987 | 0.037 | corn | Corynespora_cassiicola | 1.28e-2 | 1.13e-2 | 3.28e-4 | 4.00e-4 | 0 | 0 |
+| 0.866 | 1.00 | 0.930 | 0.037 | corn | Setophoma_terrestris | 7.14e-2 | 3.77e-2 | 8.47e-3 | 6.09e-3 | 2.62e-3 | 3.95e-3 |
+| 1.000 | 0.60 | 0.775 | 0.103 | corn | Pseudocoleophoma_polygonicola | 2.61e-3 | 4.41e-3 | 0 | 0 | 0 | 0 |
+| 0.635 | 1.00 | 0.797 | 0.410 | corn | Plectosphaerella_cucumerina | 6.45e-2 | 4.86e-2 | 2.31e-2 | 1.32e-2 | 1.40e-2 | 1.86e-2 |
+| 0.749 | 0.75 | 0.749 | 0.318 | remnant | Ustilago_nunavutica | 1.11e-5 | 2.17e-5 | 1.19e-3 | 1.65e-3 | 3.59e-3 | 4.32e-3 |
+| 0.912 | 0.50 | 0.675 | 0.318 | remnant | Monosporascus_eutypoides | 0 | 0 | 2.30e-5 | 4.51e-5 | 2.38e-4 | 3.08e-4 |
 
-Indicator species analysis results with abundances
+Indicator species analysis results with biomass-aware relative
+abundances in field types
 
 ## Pathogen—pfg correlations
 
@@ -5239,38 +5242,36 @@ ordinations are highly correlated. $R^{2}=$ 0.86, p\<0.001.
 ## Saprotroph Indicator Species
 
 ``` r
-sapro_ind <- inspan(its_avg, its_meta, "saprotroph", sites)
+sapro_ind <- inspan(its_avg_ma, its_meta, "saprotroph", sites)
 sapro_ind %>% 
   select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
   filter(species != "unidentified") %>% 
   arrange(field_type, p_val_adj) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
+  mutate(across(A:p_val_adj, ~ round(.x, 3)),
+         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 ```
 
 | A | B | stat | p_val_adj | field_type | species | corn_avg | corn_ci | restored_avg | restored_ci | remnant_avg | remnant_ci |
 |---:|---:|---:|---:|:---|:---|---:|---:|---:|---:|---:|---:|
-| 1.00 | 1.00 | 1.00 | 0.18 | corn | Conocybe_apala | 21.40 | 35.83 | 0.00 | 0.00 | 0.00 | 0.00 |
-| 1.00 | 1.00 | 1.00 | 0.18 | corn | Bolbitius_titubans | 102.56 | 120.06 | 0.22 | 0.28 | 0.00 | 0.00 |
-| 0.97 | 1.00 | 0.99 | 0.31 | corn | Tausonia_pullulans | 377.32 | 496.98 | 6.57 | 9.60 | 4.65 | 3.57 |
-| 0.78 | 1.00 | 0.88 | 0.36 | corn | Humicola_grisea | 215.16 | 140.33 | 48.90 | 39.98 | 10.85 | 9.92 |
-| 0.95 | 0.80 | 0.87 | 0.36 | corn | Stachybotrys_limonispora | 5.90 | 3.83 | 0.30 | 0.30 | 0.00 | 0.00 |
-| 1.00 | 0.60 | 0.77 | 0.39 | corn | Murispora_galii | 12.98 | 15.25 | 0.00 | 0.00 | 0.00 | 0.00 |
-| 0.67 | 1.00 | 0.82 | 0.43 | corn | Mortierella_minutissima | 81.74 | 30.18 | 12.76 | 4.58 | 26.80 | 27.47 |
-| 0.99 | 0.60 | 0.77 | 0.61 | corn | Cyphellophora_suttonii | 13.42 | 18.96 | 0.20 | 0.31 | 0.00 | 0.00 |
-| 0.96 | 0.60 | 0.76 | 0.61 | corn | Cheilymenia_stercorea | 3.28 | 3.37 | 0.15 | 0.21 | 0.00 | 0.00 |
-| 0.97 | 0.80 | 0.88 | 0.62 | corn | Phallus_rugulosus | 90.86 | 173.88 | 2.43 | 2.94 | 0.50 | 0.46 |
-| 0.87 | 0.60 | 0.72 | 0.62 | corn | Kernia_columnaris | 1.96 | 2.65 | 0.13 | 0.20 | 0.15 | 0.29 |
-| 0.87 | 0.60 | 0.72 | 0.62 | corn | Eleutherascus_lectardii | 1.04 | 1.41 | 0.16 | 0.20 | 0.00 | 0.00 |
-| 0.85 | 0.60 | 0.71 | 0.62 | corn | Preussia_terricola | 8.92 | 10.97 | 1.56 | 3.05 | 0.00 | 0.00 |
-| 0.79 | 0.60 | 0.69 | 0.62 | corn | Schizothecium_inaequale | 1.50 | 2.02 | 0.40 | 0.78 | 0.00 | 0.00 |
-| 0.88 | 0.75 | 0.81 | 0.62 | remnant | Coniochaeta_decumbens | 0.04 | 0.08 | 0.90 | 0.91 | 7.03 | 7.56 |
-| 0.61 | 1.00 | 0.78 | 0.62 | remnant | Gliomastix_roseogrisea | 0.00 | 0.00 | 3.26 | 2.20 | 5.15 | 4.04 |
-| 1.00 | 0.50 | 0.71 | 0.62 | remnant | Coprinellus_xanthothrix | 0.00 | 0.00 | 0.00 | 0.00 | 129.70 | 252.32 |
-| 1.00 | 0.50 | 0.71 | 0.62 | remnant | Savoryella_paucispora | 0.00 | 0.00 | 0.00 | 0.00 | 0.42 | 0.71 |
-| 0.87 | 0.50 | 0.66 | 0.62 | remnant | Minimelanolocus_asiaticus | 0.00 | 0.00 | 0.34 | 0.51 | 2.20 | 3.35 |
+| 1.000 | 1.00 | 1.000 | 0.180 | corn | Conocybe_apala | 1.22e-2 | 2.24e-2 | 0 | 0 | 0 | 0 |
+| 0.995 | 1.00 | 0.998 | 0.240 | corn | Bolbitius_titubans | 2.91e-2 | 3.36e-2 | 1.36e-4 | 1.66e-4 | 0 | 0 |
+| 0.930 | 0.80 | 0.863 | 0.450 | corn | Stachybotrys_limonispora | 2.31e-3 | 1.68e-3 | 1.73e-4 | 1.82e-4 | 0 | 0 |
+| 0.707 | 1.00 | 0.841 | 0.450 | corn | Humicola_grisea | 6.37e-2 | 3.46e-2 | 2.04e-2 | 1.25e-2 | 5.96e-3 | 4.55e-3 |
+| 1.000 | 0.60 | 0.775 | 0.450 | corn | Murispora_galii | 5.38e-3 | 7.81e-3 | 0 | 0 | 0 | 0 |
+| 0.957 | 1.00 | 0.978 | 0.498 | corn | Tausonia_pullulans | 1.30e-1 | 1.99e-1 | 2.43e-3 | 3.18e-3 | 3.36e-3 | 2.59e-3 |
+| 0.983 | 0.60 | 0.768 | 0.650 | corn | Cyphellophora_suttonii | 7.68e-3 | 1.18e-2 | 1.34e-4 | 2.03e-4 | 0 | 0 |
+| 0.932 | 0.60 | 0.748 | 0.650 | corn | Cheilymenia_stercorea | 1.21e-3 | 1.52e-3 | 8.80e-5 | 1.42e-4 | 0 | 0 |
+| 0.801 | 0.60 | 0.693 | 0.650 | corn | Preussia_terricola | 3.85e-3 | 5.24e-3 | 9.56e-4 | 1.87e-3 | 0 | 0 |
+| 0.770 | 0.60 | 0.680 | 0.650 | corn | Schizothecium_inaequale | 4.28e-4 | 4.23e-4 | 1.28e-4 | 2.50e-4 | 0 | 0 |
+| 0.903 | 0.75 | 0.823 | 0.650 | remnant | Coniochaeta_decumbens | 2.46e-5 | 4.82e-5 | 5.01e-4 | 3.97e-4 | 4.88e-3 | 5.44e-3 |
+| 0.628 | 1.00 | 0.793 | 0.650 | remnant | Gliomastix_roseogrisea | 0 | 0 | 2.11e-3 | 1.54e-3 | 3.56e-3 | 3.10e-3 |
+| 1.000 | 0.50 | 0.707 | 0.650 | remnant | Coprinellus_xanthothrix | 0 | 0 | 0 | 0 | 9.52e-2 | 1.86e-1 |
+| 1.000 | 0.50 | 0.707 | 0.650 | remnant | Savoryella_paucispora | 0 | 0 | 0 | 0 | 3.00e-4 | 4.98e-4 |
+| 0.851 | 0.50 | 0.652 | 0.650 | remnant | Minimelanolocus_asiaticus | 0 | 0 | 2.71e-4 | 4.08e-4 | 1.55e-3 | 2.35e-3 |
 
-Indicator species analysis results with abundances
+Indicator species analysis results with biomass-aware relative
+abundances in field types
 
 ## Saprotroph correlations with pfg
 
