@@ -38,14 +38,12 @@ Last updated: 10 December, 2025
   - [Diversity Indices](#diversity-indices-2)
   - [Abundance](#abundance)
   - [Beta Diversity](#beta-diversity-2)
-  - [Unified figure](#unified-figure-4)
   - [Pathogen Indicator Species](#pathogen-indicator-species)
   - [Pathogen—pfg correlations](#pathogenpfg-correlations)
 - [Putative saprotrophs](#putative-saprotrophs)
   - [Diversity Indices](#diversity-indices-3)
   - [Abundance](#abundance-1)
   - [Beta Diversity](#beta-diversity-3)
-  - [Unified figure](#unified-figure-5)
   - [Saprotroph Indicator Species](#saprotroph-indicator-species)
   - [Saprotroph correlations with
     pfg](#saprotroph-correlations-with-pfg)
@@ -1026,14 +1024,15 @@ mva_its_ma$permanova
 
 ``` r
 mva_its_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   2.662 | 0.268 |      0.0030 |
-| 3   | remnant | restored |   0.980 | 0.050 |      0.4530 |
-| 2   | corn    | restored |   3.809 | 0.160 |      0.0015 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   3.809 | 0.160 |      0.0015 |
+| corn    | remnant  |   2.662 | 0.268 |      0.0030 |
+| remnant | restored |   0.980 | 0.050 |      0.4530 |
 
 Pairwise permanova contrasts
 
@@ -1156,14 +1155,15 @@ mva_its$permanova
 
 ``` r
 mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-    kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+  arrange(group1, desc(group2)) %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   2.858 | 0.281 |      0.0030 |
-| 3   | remnant | restored |   1.062 | 0.054 |      0.3285 |
-| 2   | corn    | restored |   3.913 | 0.164 |      0.0015 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   3.913 | 0.164 |      0.0015 |
+| corn    | remnant  |   2.858 | 0.281 |      0.0030 |
+| remnant | restored |   1.062 | 0.054 |      0.3285 |
 
 Pairwise permanova contrasts
 
@@ -2177,14 +2177,15 @@ mva_amf_ma$permanova
 
 ``` r
 mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   6.251 | 0.464 |      0.0015 |
-| 3   | remnant | restored |   0.430 | 0.023 |      0.9405 |
-| 2   | corn    | restored |   9.902 | 0.334 |      0.0015 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   9.902 | 0.334 |      0.0015 |
+| corn    | remnant  |   6.251 | 0.464 |      0.0015 |
+| remnant | restored |   0.430 | 0.023 |      0.9405 |
 
 Pairwise permanova contrasts
 
@@ -2300,14 +2301,15 @@ mva_amf$permanova
 
 ``` r
 mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   4.655 | 0.355 |      0.0008 |
-| 3   | remnant | restored |   0.442 | 0.023 |      0.8705 |
-| 2   | corn    | restored |   6.478 | 0.250 |      0.0008 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   6.478 | 0.250 |      0.0008 |
+| corn    | remnant  |   4.655 | 0.355 |      0.0008 |
+| remnant | restored |   0.442 | 0.023 |      0.8705 |
 
 Pairwise permanova contrasts
 
@@ -3354,9 +3356,30 @@ patho_rich_covar$anova_t2
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Sequence depth is highly significant (also after p value adjustment);
-richness doesn’t vary in groups. Calculate confidence intervals for
-figure. Arithmetic means calculated in this case.
+Sequence depth is highly significant; richness doesn’t vary in groups.
+patho_depth_ft
+
+``` r
+patho_div %>% 
+  group_by(field_type) %>% 
+  summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
+  kable(format = "pandoc", caption = "Average sequence depth and pathogen richness in field types")
+```
+
+| field_type | depth | richness |
+|:-----------|------:|---------:|
+| corn       |  1295 |       39 |
+| restored   |  1324 |       42 |
+| remnant    |   979 |       37 |
+
+Average sequence depth and pathogen richness in field types
+
+Depth is correlated with richness in field types. Differences in
+richness are small and with depth variance removed first, this explains
+why richness isn’t significantly different.
+
+Calculate confidence intervals for figure. Arithmetic means calculated
+in this case.
 
 ``` r
 patho_rich_em <- emmeans(patho_rich_lm, ~ field_type, type = "response")
@@ -3538,7 +3561,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-115-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-116-1.png)<!-- -->
 
 no serious violations observed
 
@@ -3625,8 +3648,9 @@ patho_ma_fig <-
 
 ## Beta Diversity
 
-Community distances handled similarly to previous \### Biomass-weighted
-relative abundance
+Community distances handled similarly to previous
+
+### Biomass-weighted relative abundance
 
 ``` r
 patho_ma <- guildseq(its_avg_ma, its_meta, "plant_pathogen")
@@ -3680,14 +3704,15 @@ mva_patho_ma$permanova
 
 ``` r
 mva_patho_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   3.772 | 0.360 |      0.0060 |
-| 3   | remnant | restored |   0.581 | 0.030 |      0.8100 |
-| 2   | corn    | restored |   5.335 | 0.205 |      0.0015 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   5.335 | 0.205 |      0.0015 |
+| corn    | remnant  |   3.772 | 0.360 |      0.0060 |
+| remnant | restored |   0.581 | 0.030 |      0.8100 |
 
 Pairwise permanova contrasts
 
@@ -3729,7 +3754,7 @@ patho_ma_ord <-
         plot.tag.position = c(0, 1))
 ```
 
-## Unified figure
+#### Unified figure
 
 ``` r
 fig4_ls <- (patho_rich_fig / plot_spacer() / patho_ma_fig) +
@@ -3807,14 +3832,15 @@ mva_patho$permanova
 
 ``` r
 mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   5.690 | 0.453 |      0.0098 |
-| 3   | remnant | restored |   0.768 | 0.040 |      0.6310 |
-| 2   | corn    | restored |   6.418 | 0.246 |      0.0015 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   6.418 | 0.246 |      0.0015 |
+| corn    | remnant  |   5.690 | 0.453 |      0.0098 |
+| remnant | restored |   0.768 | 0.040 |      0.6310 |
 
 Pairwise permanova contrasts
 
@@ -4244,7 +4270,7 @@ par(mfrow = c(1,1))
 crPlots(parest_m_biom, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-129-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-130-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_biom)
@@ -4325,7 +4351,7 @@ par(mfrow = c(2,2))
 plot(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-130-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-1.png)<!-- -->
 
 Sturcture, leverage point detected
 
@@ -4333,13 +4359,13 @@ Sturcture, leverage point detected
 crPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
 
 ``` r
 avPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-2.png)<!-- -->
 
 Relationships appear monotonic (in log-log space).
 
@@ -4371,7 +4397,7 @@ par(mfrow = c(1,1))
 crPlots(parest_m_abs, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_abs)
@@ -4610,7 +4636,7 @@ sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-141-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
 
 Slight improvement to qq plot shape, slightly reduced hatvalue (not
 shown)
@@ -4631,7 +4657,7 @@ sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point
 
@@ -4682,17 +4708,17 @@ trend:
 ``` r
 sapro_div %>% 
   group_by(field_type) %>% 
-  summarize(avg_richness = mean(richness),
-            avg_depth = mean(depth), .groups = "drop") %>% 
+  summarize(avg_depth = mean(depth), 
+            avg_richness = mean(richness), .groups = "drop") %>% 
   mutate(across(starts_with("avg"), ~ round(.x, 1))) %>% 
   kable(format = "pandoc")
 ```
 
-| field_type | avg_richness | avg_depth |
-|:-----------|-------------:|----------:|
-| corn       |        111.8 |    2915.9 |
-| restored   |        119.3 |    2054.2 |
-| remnant    |        119.5 |    1624.2 |
+| field_type | avg_depth | avg_richness |
+|:-----------|----------:|-------------:|
+| corn       |    2915.9 |        111.8 |
+| restored   |    2054.2 |        119.3 |
+| remnant    |    1624.2 |        119.5 |
 
 Inverse relationship between depth and field_type. There was a mildly
 significant interaction, but how to work out what that would even mean?
@@ -4856,7 +4882,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-151-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-152-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -4936,8 +4962,9 @@ sapro_ma_fig <-
 
 ## Beta Diversity
 
-Community distance handled similarly to previous \### Biomass-weighted
-relative abundance
+Community distance handled similarly to previous
+
+### Biomass-weighted relative abundance
 
 ``` r
 sapro_ma <- guildseq(its_avg_ma, its_meta, "saprotroph")
@@ -4991,14 +5018,15 @@ mva_sapro_ma$permanova
 
 ``` r
 mva_sapro_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   1.766 | 0.195 |      0.0030 |
-| 3   | remnant | restored |   1.178 | 0.059 |      0.2135 |
-| 2   | corn    | restored |   3.042 | 0.131 |      0.0015 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   3.042 | 0.131 |      0.0015 |
+| corn    | remnant  |   1.766 | 0.195 |      0.0030 |
+| remnant | restored |   1.178 | 0.059 |      0.2135 |
 
 Pairwise permanova contrasts
 
@@ -5039,7 +5067,7 @@ sapro_ma_ord <-
         plot.tag.position = c(0, 1))
 ```
 
-## Unified figure
+#### Unified figure
 
 ``` r
 fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ma_fig) +
@@ -5116,14 +5144,15 @@ mva_sapro$permanova
 
 ``` r
 mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-|     | group1  | group2   | F_value |    R2 | p_value_adj |
-|-----|:--------|:---------|--------:|------:|------------:|
-| 1   | corn    | remnant  |   1.947 | 0.208 |      0.0037 |
-| 3   | remnant | restored |   1.231 | 0.061 |      0.1845 |
-| 2   | corn    | restored |   3.196 | 0.136 |      0.0015 |
+| group1  | group2   | F_value |    R2 | p_value_adj |
+|:--------|:---------|--------:|------:|------------:|
+| corn    | restored |   3.196 | 0.136 |      0.0015 |
+| corn    | remnant  |   1.947 | 0.208 |      0.0037 |
+| remnant | restored |   1.231 | 0.061 |      0.1845 |
 
 Pairwise permanova contrasts
 
@@ -5278,7 +5307,7 @@ par(mfrow = c(2,2))
 plot(sarest_m_raw)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-159-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-160-1.png)<!-- -->
 
 ``` r
 summary(sarest_m_raw)
