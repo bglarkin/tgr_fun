@@ -193,7 +193,8 @@ with(gfi_yrs, cor.test(yr_since, gf_index))
 #' are still reflected in plant composition. Years since restoration is highly related to 
 #' plant community change. 
 #' 
-# Visualize grass forb gradient...
+#' Visualize grass forb gradient compared with plant composition, grass and forb cover,
+#' and years since restoration. 
 pfg_comp <- 
   pfg %>% 
   select(field_name, C3_grass:shrubTree) %>% 
@@ -242,18 +243,34 @@ yrs_fig <-
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1))
-
-loc_space <- (max(gfi_yrs$gf_index) - min(gfi_yrs$gf_index)) * 0.1
-loc_hspace <- 0.5 * loc_space
-gfi_lab_loc <- c(loc_hspace, rep(loc_space, 8), loc_hspace)
-# Add gfi_lab_loc to the min of gf index
-# Need to rbind this to gfi_yrs with complete data from gfi_yrs to make this a separate factor level called Site
-  
-
-
-
+# Wrangle gf_index and label positions to align panel D with previous x axes
+loc_space <- (max(gfi_yrs$gf_index) - min(gfi_yrs$gf_index)) / length(gfi_yrs$gf_index)
+gfi_loc_data <- 
+  bind_rows(
+    gfi_yrs %>% mutate(grp = "Value"),
+    gfi_yrs %>% 
+      mutate(temp = c(max(gfi_yrs$gf_index) - (loc_space * 0.15), # Alignment not exact, may need post-production work
+                      max(gfi_yrs$gf_index) - (loc_space * (c(1:9) * 1.15))),
+             grp = "Site") %>% 
+      select(-gf_index, field_name, gf_index = temp, yr_since)
+  ) %>% 
+  mutate(grp = factor(grp, levels = c("Value", "Site")))
+gfi_seg_data <- 
+  gfi_yrs %>% 
+  mutate(y0 = 1) %>% 
+  select(field_name, x0 = gf_index, y0) %>% 
+  left_join(
+    gfi_loc_data %>% 
+      filter(grp == "Site") %>% 
+      mutate(y1 = 2) %>% 
+      select(field_name, x1 = gf_index, y1),
+    by = join_by(field_name)
+    ) %>% 
+  arrange(x0)
 gfi_loc_fig <- 
-  ggplot(gfi_yrs, aes(x = -gf_index, y = rep("Value", 10))) + 
+  ggplot(gfi_loc_data, aes(x = -gf_index, y = grp)) + 
+  geom_point(shape = NA) +
+  geom_segment(data = gfi_seg_data, aes(x = -x0, y = y0, xend = -x1, yend = y1)) +
   geom_point() +
   labs(y = NULL, x = "Grass-forb index") +
   theme_cor +
