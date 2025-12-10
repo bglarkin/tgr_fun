@@ -515,7 +515,7 @@ plfa_fig <-
 #' 1. Using sequence-based relative abundance [McKnight et al. 2019](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
 #' 1. Contrast the two with procrustes
 #' 
-#' ### ITS, biomass-weighted relative abundance
+#' ### Biomass-weighted relative abundance
 #+ its_ord_ma
 d_its_ma <- its_avg_ma %>% 
   data.frame(row.names = 1) %>% 
@@ -586,7 +586,7 @@ ggsave(root_path("figs", "fig2.png"),
        units = "in",
        dpi = 600)
 #' 
-#' ### ITS, sequence-based relative abundance
+#' ### Sequence-based relative abundance
 #' Comparison figure and stats for supplemental
 #+ its_ord
 d_its <- its_avg %>% 
@@ -1016,7 +1016,7 @@ nlfa_fig <-
 #' 1. Using sequence-based relative abundance and unifrac distance to display phylogenetically aware information.
 #' 1. Contrast the two with procrustes.
 #' 
-#' ### AMF, biomass-weighted relative abundance
+#' ### Biomass-weighted relative abundance
 #+ amf_ord_ma
 d_amf_ma <- amf_avg_ma %>% 
   data.frame(row.names = 1) %>% 
@@ -1085,7 +1085,7 @@ ggsave(root_path("figs", "fig3.png"),
        units = "in",
        dpi = 600)
 #' 
-#' ### AMF, sequence-based relative abundance, unifrac distance
+#' ### Sequence-based relative abundance, unifrac distance
 #' 
 #+ amf_ord
 d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
@@ -1756,14 +1756,16 @@ patho_protest
 #' 
 #' ## Pathogen Indicator Species
 #' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
-#' research may make the indicator stats less appropriate for other use.
-patho_ind <- inspan(its_avg, its_meta, "plant_pathogen", sites)
+#' research may make the indicator stats less appropriate for other use. Using biomass-weighted relative
+#' abundance for this differential analysis. 
+patho_ind <- inspan(its_avg_ma, its_meta, "plant_pathogen", sites)
 patho_ind %>% 
   select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
   filter(species != "unidentified") %>% 
   arrange(field_type, p_val_adj) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
+  mutate(across(A:p_val_adj, ~ round(.x, 3)),
+         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 #' 
 #' ## Pathogen—pfg correlations
 #' Pathogen abundance correlated with grass and forbs. 
@@ -2234,13 +2236,14 @@ sapro_protest
 #' $R^{2}=$ `r round(sapro_protest$scale^2, 2)`, p<0.001. 
 #' 
 #' ## Saprotroph Indicator Species
-sapro_ind <- inspan(its_avg, its_meta, "saprotroph", sites)
+sapro_ind <- inspan(its_avg_ma, its_meta, "saprotroph", sites)
 sapro_ind %>% 
   select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
   filter(species != "unidentified") %>% 
   arrange(field_type, p_val_adj) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with abundances")
+  mutate(across(A:p_val_adj, ~ round(.x, 3)),
+         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 #' 
 #' ## Saprotroph correlations with pfg
 sapro_resto <- its_guild %>% 
