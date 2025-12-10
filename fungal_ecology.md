@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 05 December, 2025
+Last updated: 09 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -362,8 +362,10 @@ The relatively strong correlation suggests that different restoration
 methods over time are still reflected in plant composition. Years since
 restoration is highly related to plant community change.
 
+Visualize grass forb gradient compared with plant composition, grass and
+forb cover, and years since restoration.
+
 ``` r
-# Visualize grass forb gradient...
 pfg_comp <- 
   pfg %>% 
   select(field_name, C3_grass:shrubTree) %>% 
@@ -393,7 +395,8 @@ pfg_pct <-
   left_join(gf_index, by = join_by(field_name)) %>% 
   filter(field_type == "restored", region != "FL") %>% 
   select(field_name, yr_since, gf_index, pfg, pct_cvr)  %>% 
-  mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb"))))
+  mutate(pfg = factor(pfg, levels = rev(c("C4_grass", "forb")),
+                      labels = c("forb", "grass (C4)")))
 gf_pct_fig <- 
   ggplot(pfg_pct, aes(x = fct_reorder(field_name, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
@@ -408,7 +411,40 @@ yrs_fig <-
   geom_step() +
   geom_point() +
   labs(x = NULL, y = "Yrs. since resto.") +
-  theme_cor+
+  theme_cor +
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1.1))
+# Wrangle gf_index and label positions to align panel D with previous x axes
+loc_space <- (max(gfi_yrs$gf_index) - min(gfi_yrs$gf_index)) / length(gfi_yrs$gf_index)
+gfi_loc_data <- 
+  bind_rows(
+    gfi_yrs %>% mutate(grp = "Value"),
+    gfi_yrs %>% 
+      mutate(temp = c(max(gfi_yrs$gf_index) - (loc_space * 0.15), # Alignment not exact, may need post-production work
+                      max(gfi_yrs$gf_index) - (loc_space * (c(1:9) * 1.15))),
+             grp = "Site") %>% 
+      select(-gf_index, field_name, gf_index = temp, yr_since)
+  ) %>% 
+  mutate(grp = factor(grp, levels = c("Value", "Site")))
+gfi_seg_data <- 
+  gfi_yrs %>% 
+  mutate(y0 = 1) %>% 
+  select(field_name, x0 = gf_index, y0) %>% 
+  left_join(
+    gfi_loc_data %>% 
+      filter(grp == "Site") %>% 
+      mutate(y1 = 2) %>% 
+      select(field_name, x1 = gf_index, y1),
+    by = join_by(field_name)
+    ) %>% 
+  arrange(x0)
+gfi_loc_fig <- 
+  ggplot(gfi_loc_data, aes(x = -gf_index, y = grp)) + 
+  geom_point(shape = NA) +
+  geom_segment(data = gfi_seg_data, aes(x = -x0, y = y0, xend = -x1, yend = y1)) +
+  geom_point() +
+  labs(y = NULL, x = "Grass-forb index") +
+  theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1))
 ```
@@ -416,9 +452,9 @@ yrs_fig <-
 #### Unified figure
 
 ``` r
-pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig) +
-  plot_layout(heights = c(1,0.01,1,0.01,0.5))  +
-  plot_annotation(tag_levels = 'a') 
+pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig / plot_spacer() / gfi_loc_fig) +
+  plot_layout(heights = c(1,0.01,1,0.01,0.5,0.01,0.3))  +
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -1070,7 +1106,7 @@ fig2_ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig2 <- (fig2_ls | plot_spacer() | its_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -1198,7 +1234,7 @@ its_ord <-
 ``` r
 its_shan_ord_sup <- (its_shan_fig | plot_spacer() | its_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -1344,7 +1380,8 @@ mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance = "bray")
+    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance =
+    ## "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          2.3383     1.0000     
@@ -2223,7 +2260,7 @@ fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -2344,7 +2381,7 @@ amf_ord <-
 ``` r
 amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -2949,7 +2986,8 @@ amf_mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_amf_wi_resto ~ Condition(env_cov) + gf_index + OM, data = env_expl, distance = "bray")
+    ## Call: dbrda(formula = spe_amf_wi_resto ~ Condition(env_cov) + gf_index + OM, data = env_expl, distance =
+    ## "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          1.7516     1.0000     
@@ -3101,7 +3139,7 @@ Display results of constrained analysis for ITS and AMF
 ``` r
 fig6 <- (fig6a | plot_spacer() | fig6b) +
   plot_layout(widths = c(0.50, 0.01, 0.50)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -3724,7 +3762,7 @@ fig4_ls <- (patho_rich_fig / plot_spacer() / patho_ma_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig4 <- (fig4_ls | plot_spacer() | patho_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -3848,7 +3886,7 @@ patho_ord <-
 ``` r
 patho_shan_ord_sup <- (patho_shan_fig | plot_spacer() | patho_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -5034,7 +5072,7 @@ fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ma_fig) +
   plot_layout(heights = c(1,0.01,1)) 
 fig5 <- (fig5_ls | plot_spacer() | sapro_ma_ord) +
   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
@@ -5157,7 +5195,7 @@ sapro_ord <-
 ``` r
 sapro_shan_ord_sup <- (sapro_shan_fig | plot_spacer() | sapro_ord) +
   plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'a') 
+  plot_annotation(tag_levels = 'A') 
 ```
 
 ``` r
