@@ -525,6 +525,7 @@ mva_its_ma <- mva(d = d_its_ma, env = sites)
 mva_its_ma$dispersion_test
 mva_its_ma$permanova
 mva_its_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
@@ -597,7 +598,8 @@ mva_its <- mva(d = d_its, env = sites)
 mva_its$dispersion_test
 mva_its$permanova
 mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-    kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+  arrange(group1, desc(group2)) %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
@@ -1024,6 +1026,7 @@ mva_amf_ma <- mva(d = d_amf_ma, env = sites, corr = "lingoes")
 mva_amf_ma$dispersion_test
 mva_amf_ma$permanova
 mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes correction was applied to negative eignevalues. Three relative eigenvalues exceeded broken stick model. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
@@ -1091,6 +1094,7 @@ mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
 mva_amf$dispersion_test
 mva_amf$permanova
 mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes eigenvalue correction was used. The first three relative eigenvalues exceeded broken stick model. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
@@ -1485,8 +1489,16 @@ leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() 
 #' 
 #' Model results, group means, and post-hoc
 patho_rich_covar$anova_t2
-#' Sequence depth is highly significant (also after p value adjustment); 
-#' richness doesn't vary in groups. 
+#' Sequence depth is highly significant; richness doesn't vary in groups. 
+#' patho_depth_ft
+patho_div %>% 
+  group_by(field_type) %>% 
+  summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
+  kable(format = "pandoc", caption = "Average sequence depth and pathogen richness in field types")
+#' Depth is correlated with richness in field types. Differences in richness are small
+#' and with depth variance removed first, this explains why richness isn't significantly 
+#' different. 
+#' 
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case.
 patho_rich_em <- emmeans(patho_rich_lm, ~ field_type, type = "response")
@@ -1597,6 +1609,7 @@ patho_ma_fig <-
 #' 
 #' ## Beta Diversity
 #' Community distances handled similarly to previous
+#' 
 #' ### Biomass-weighted relative abundance
 patho_ma <- guildseq(its_avg_ma, its_meta, "plant_pathogen")
 #+ patho_ma_ord
@@ -1608,6 +1621,7 @@ mva_patho_ma <- mva(d = d_patho_ma, env = sites, corr = "lingoes")
 mva_patho_ma$dispersion_test
 mva_patho_ma$permanova
 mva_patho_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes correction was needed. Three axes were significant based on broken stick test. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
@@ -1642,7 +1656,7 @@ patho_ma_ord <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
 #' 
-#' ## Unified figure
+#' #### Unified figure
 #+ fig4_patchwork,warning=FALSE
 fig4_ls <- (patho_rich_fig / plot_spacer() / patho_ma_fig) +
   plot_layout(heights = c(1,0.01,1)) 
@@ -1677,6 +1691,7 @@ mva_patho <- mva(d = d_patho, env = sites, corr = "lingoes")
 mva_patho$dispersion_test
 mva_patho$permanova
 mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' 
 #' Lingoes correction was needed. Three axes were significant based on a broken stick test. 
@@ -1971,8 +1986,8 @@ Anova(sapro_rich_glm, type = 2)
 #' Sequence depth is significant; richness doesn't vary in groups. View trend:
 sapro_div %>% 
   group_by(field_type) %>% 
-  summarize(avg_richness = mean(richness),
-            avg_depth = mean(depth), .groups = "drop") %>% 
+  summarize(avg_depth = mean(depth), 
+            avg_richness = mean(richness), .groups = "drop") %>% 
   mutate(across(starts_with("avg"), ~ round(.x, 1))) %>% 
   kable(format = "pandoc")
 #' Inverse relationship between depth and field_type. There was a mildly significant
@@ -2074,6 +2089,7 @@ sapro_ma_fig <-
 #' 
 #' ## Beta Diversity
 #' Community distance handled similarly to previous
+#' 
 #' ### Biomass-weighted relative abundance
 sapro_ma <- guildseq(its_avg_ma, its_meta, "saprotroph")
 #+ sapro_ma_ord
@@ -2085,6 +2101,7 @@ mva_sapro_ma <- mva(d = d_sapro_ma, env = sites)
 mva_sapro_ma$dispersion_test
 mva_sapro_ma$permanova
 mva_sapro_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
@@ -2118,7 +2135,7 @@ sapro_ma_ord <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
 #' 
-#' ## Unified figure
+#' #### Unified figure
 #+ fig5_patchwork,warning=FALSE
 fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ma_fig) +
   plot_layout(heights = c(1,0.01,1)) 
@@ -2154,6 +2171,7 @@ mva_sapro <- mva(d = d_sapro, env = sites)
 mva_sapro$dispersion_test
 mva_sapro$permanova
 mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
+  arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of
