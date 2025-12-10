@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 09 December, 2025
+Last updated: 10 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -400,7 +400,7 @@ pfg_pct <-
 gf_pct_fig <- 
   ggplot(pfg_pct, aes(x = fct_reorder(field_name, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
-  geom_point(aes(color = pfg)) +
+  geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   scale_color_manual(name = "Functional group", values = gfi_cols) +
   labs(x = NULL, y = "Percent cover") +
   theme_cor+
@@ -409,51 +409,27 @@ gf_pct_fig <-
 yrs_fig <- 
   ggplot(gfi_yrs %>% mutate(grp = "a"), aes(x = fct_reorder(field_name, -gf_index), y = yr_since, group = grp)) +
   geom_step() +
-  geom_point() +
+  geom_point(shape = 21, size = 1.8, fill = "white", color = "black", stroke = 0.9) +
   labs(x = NULL, y = "Yrs. since resto.") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1.1))
-# Wrangle gf_index and label positions to align panel D with previous x axes
-loc_space <- (max(gfi_yrs$gf_index) - min(gfi_yrs$gf_index)) / length(gfi_yrs$gf_index)
-gfi_loc_data <- 
-  bind_rows(
-    gfi_yrs %>% mutate(grp = "Value"),
-    gfi_yrs %>% 
-      mutate(temp = c(max(gfi_yrs$gf_index) - (loc_space * 0.15), # Alignment not exact, may need post-production work
-                      max(gfi_yrs$gf_index) - (loc_space * (c(1:9) * 1.15))),
-             grp = "Site") %>% 
-      select(-gf_index, field_name, gf_index = temp, yr_since)
-  ) %>% 
-  mutate(grp = factor(grp, levels = c("Value", "Site")))
-gfi_seg_data <- 
-  gfi_yrs %>% 
-  mutate(y0 = 1) %>% 
-  select(field_name, x0 = gf_index, y0) %>% 
-  left_join(
-    gfi_loc_data %>% 
-      filter(grp == "Site") %>% 
-      mutate(y1 = 2) %>% 
-      select(field_name, x1 = gf_index, y1),
-    by = join_by(field_name)
-    ) %>% 
-  arrange(x0)
+        plot.tag.position = c(0, 1.15))
 gfi_loc_fig <- 
-  ggplot(gfi_loc_data, aes(x = -gf_index, y = grp)) + 
-  geom_point(shape = NA) +
-  geom_segment(data = gfi_seg_data, aes(x = -x0, y = y0, xend = -x1, yend = y1)) +
-  geom_point() +
+  ggplot(gfi_yrs, aes(x = -gf_index, y = rep("PCA\nAxis 1", 10))) + 
+  geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
+  geom_point(shape = 21, size = 1.8, fill = "white", color = "black", stroke = 0.9) +
   labs(y = NULL, x = "Grass-forb index") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1.1))
+        plot.tag.position = c(0, 1.1),
+        axis.text.y = element_text(hjust = 0))
 ```
 
 #### Unified figure
 
 ``` r
 pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / yrs_fig / plot_spacer() / gfi_loc_fig) +
-  plot_layout(heights = c(1,0.01,1,0.01,0.5,0.01,0.3))  +
+  plot_layout(heights = c(1,0.01,1,0.01,0.5,0.01,0.2))  +
   plot_annotation(tag_levels = 'A') 
 ```
 
@@ -1380,8 +1356,7 @@ mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance =
-    ## "bray")
+    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH, data = env_expl, distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          2.3383     1.0000     
@@ -1507,8 +1482,8 @@ mod_scor_bp <- bind_rows(
 ``` r
 fig6a <- 
   ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
@@ -1520,8 +1495,8 @@ fig6a <-
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Constr. Axis 1 (", mod_pars_eig[1], "%)"),
-    y = paste0("Constr. Axis 2 (", mod_pars_eig[2], "%)")) +
+    x = paste0("Axis 1 (", mod_pars_eig[1], "%)"),
+    y = paste0("Axis 2 (", mod_pars_eig[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -2986,8 +2961,7 @@ amf_mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_amf_wi_resto ~ Condition(env_cov) + gf_index + OM, data = env_expl, distance =
-    ## "bray")
+    ## Call: dbrda(formula = spe_amf_wi_resto ~ Condition(env_cov) + gf_index + OM, data = env_expl, distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          1.7516     1.0000     
@@ -3110,8 +3084,8 @@ amf_mod_scor_bp <- bind_rows(
 ``` r
 fig6b <-
   ggplot(amf_mod_scor_site, aes(x = (dbRDA1 * -1), y = dbRDA2)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
+  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_segment(data = amf_mod_scor_bp,
                aes(x = origin, xend = (dbRDA1 * -1), y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
@@ -3123,8 +3097,8 @@ fig6b <-
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Constr. Axis 1 (", amf_mod_pars_eig[1], "%)"),
-    y = paste0("Constr. Axis 2 (", amf_mod_pars_eig[2], "%)")) +
+    x = paste0("Axis 1 (", amf_mod_pars_eig[1], "%)"),
+    y = paste0("Axis 2 (", amf_mod_pars_eig[2], "%)")) +
   lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
   theme_ord +
   theme(legend.position = "none",
