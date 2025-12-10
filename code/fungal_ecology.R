@@ -268,9 +268,10 @@ gfi_seg_data <-
     ) %>% 
   arrange(x0)
 gfi_loc_fig <- 
-  ggplot(gfi_loc_data, aes(x = -gf_index, y = grp)) + 
-  geom_point(shape = NA) +
-  geom_segment(data = gfi_seg_data, aes(x = -x0, y = y0, xend = -x1, yend = y1)) +
+  # ggplot(gfi_loc_data, aes(x = -gf_index, y = grp)) + 
+  # geom_point(shape = NA) +
+  # geom_segment(data = gfi_seg_data, aes(x = -x0, y = y0, xend = -x1, yend = y1)) +
+  ggplot(gfi_loc_data %>% filter(grp == "Value"), aes(x = -gf_index, y = grp)) + 
   geom_point() +
   labs(y = NULL, x = "Grass-forb index") +
   theme_cor +
