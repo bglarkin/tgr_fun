@@ -726,9 +726,10 @@ mod_step <- ordistep(mod_null,
 #' 
 #' ### Constrained Analysis Results
 mod_step
+(mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
 (mod_glax <- anova(mod_step, permutations = 1999))
 (mod_inax <- anova(mod_step, by = "axis", permutations = 1999))
-(mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
+(mod_axpct <- round(100 * mod_step$CCA$eig / sum(mod_step$CCA$eig), 1))
 anova(mod_step, by = "margin", permutations = 1999) %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
@@ -793,8 +794,8 @@ fig6a <-
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Axis 1 (", mod_pars_eig[1], "%)"),
-    y = paste0("Axis 2 (", mod_pars_eig[2], "%)")) +
+    x = paste0("Axis 1 (", mod_axpct[1], "%)"),
+    y = paste0("Axis 2 (", mod_axpct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -1329,9 +1330,10 @@ amf_mod_step <- ordistep(amf_mod_null,
 #' 
 #' ### Constrained Analysis Results
 amf_mod_step
+(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
 (amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
 (amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999))
-(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
+(amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1))
 amf_mod_step$anova %>% kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, 
 #' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
@@ -1395,8 +1397,8 @@ fig6b <-
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Axis 1 (", amf_mod_pars_eig[1], "%)"),
-    y = paste0("Axis 2 (", amf_mod_pars_eig[2], "%)")) +
+    x = paste0("Axis 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("Axis 2 (", amf_mod_axpct[2], "%)")) +
   lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
   theme_ord +
   theme(legend.position = "none",
