@@ -456,7 +456,7 @@ maps_fig <- ggarrange(
   heights = c(1, 0.06),
   widths = c(1, 0.8)
 )
-#+ tgr_map,message=FALSE,fig.height=4.9,fig.width=6.5
+#+ tgr_map,message=FALSE,fig.height=6.8,fig.width=7
 maps_fig
 #' 
 ggsave(

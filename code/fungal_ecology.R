@@ -1817,7 +1817,10 @@ slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
 summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
 
 coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
-coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
+rbind(
+  coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3")),
+  exp_gf_index = exp(coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))[2, ])
+)
 par(mfrow = c(1,1))
 crPlots(parest_m_rel, terms = ~ gf_index)
 ncvTest(parest_m_rel)
