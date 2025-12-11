@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 10 December, 2025
+Last updated: 11 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -1375,6 +1375,16 @@ mod_step
     ## 0.30476 0.26807 0.19064 0.15564 0.12774 0.10396
 
 ``` r
+(mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
+```
+
+    ## $r.squared
+    ## [1] 0.353165
+    ## 
+    ## $adj.r.squared
+    ## [1] 0.2127488
+
+``` r
 (mod_glax <- anova(mod_step, permutations = 1999))
 ```
 
@@ -1407,14 +1417,11 @@ mod_step
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
-(mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
+(mod_axpct <- round(100 * mod_step$CCA$eig / sum(mod_step$CCA$eig), 1))
 ```
 
-    ## $r.squared
-    ## [1] 0.353165
-    ## 
-    ## $adj.r.squared
-    ## [1] 0.2127488
+    ## dbRDA1 dbRDA2 
+    ##   59.6   40.4
 
 ``` r
 anova(mod_step, by = "margin", permutations = 1999) %>% 
@@ -1495,8 +1502,8 @@ fig6a <-
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Axis 1 (", mod_pars_eig[1], "%)"),
-    y = paste0("Axis 2 (", mod_pars_eig[2], "%)")) +
+    x = paste0("Axis 1 (", mod_axpct[1], "%)"),
+    y = paste0("Axis 2 (", mod_axpct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -2982,6 +2989,16 @@ amf_mod_step
     ## 0.24673 0.21114 0.12395 0.08233 0.06363 0.03600
 
 ``` r
+(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
+```
+
+    ## $r.squared
+    ## [1] 0.4569478
+    ## 
+    ## $adj.r.squared
+    ## [1] 0.3505445
+
+``` r
 (amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
 ```
 
@@ -3014,14 +3031,11 @@ amf_mod_step
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
-(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
+(amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1))
 ```
 
-    ## $r.squared
-    ## [1] 0.4569478
-    ## 
-    ## $adj.r.squared
-    ## [1] 0.3505445
+    ## dbRDA1 dbRDA2 
+    ##   68.3   31.7
 
 ``` r
 amf_mod_step$anova %>% kable(, format = "pandoc")
@@ -3099,8 +3113,8 @@ fig6b <-
   geom_point(fill = ft_pal[2], size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Axis 1 (", amf_mod_pars_eig[1], "%)"),
-    y = paste0("Axis 2 (", amf_mod_pars_eig[2], "%)")) +
+    x = paste0("Axis 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("Axis 2 (", amf_mod_axpct[2], "%)")) +
   lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
   theme_ord +
   theme(legend.position = "none",
@@ -3944,12 +3958,12 @@ patho_ind %>%
 
 | A | B | stat | p_val_adj | field_type | species | corn_avg | corn_ci | restored_avg | restored_ci | remnant_avg | remnant_ci |
 |---:|---:|---:|---:|:---|:---|---:|---:|---:|---:|---:|---:|
-| 0.975 | 1.00 | 0.987 | 0.037 | corn | Corynespora_cassiicola | 1.28e-2 | 1.13e-2 | 3.28e-4 | 4.00e-4 | 0 | 0 |
-| 0.866 | 1.00 | 0.930 | 0.037 | corn | Setophoma_terrestris | 7.14e-2 | 3.77e-2 | 8.47e-3 | 6.09e-3 | 2.62e-3 | 3.95e-3 |
-| 1.000 | 0.60 | 0.775 | 0.103 | corn | Pseudocoleophoma_polygonicola | 2.61e-3 | 4.41e-3 | 0 | 0 | 0 | 0 |
-| 0.635 | 1.00 | 0.797 | 0.410 | corn | Plectosphaerella_cucumerina | 6.45e-2 | 4.86e-2 | 2.31e-2 | 1.32e-2 | 1.40e-2 | 1.86e-2 |
-| 0.749 | 0.75 | 0.749 | 0.318 | remnant | Ustilago_nunavutica | 1.11e-5 | 2.17e-5 | 1.19e-3 | 1.65e-3 | 3.59e-3 | 4.32e-3 |
-| 0.912 | 0.50 | 0.675 | 0.318 | remnant | Monosporascus_eutypoides | 0 | 0 | 2.30e-5 | 4.51e-5 | 2.38e-4 | 3.08e-4 |
+| 0.975 | 1.00 | 0.987 | 0.037 | corn | Corynespora_cassiicola | 1.28\[38;5;246me\[39m\[31m-2\[39m | 1.13\[38;5;246me\[39m\[31m-2\[39m | 3.28\[38;5;246me\[39m\[31m-4\[39m | 4.00\[38;5;246me\[39m\[31m-4\[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m |
+| 0.866 | 1.00 | 0.930 | 0.037 | corn | Setophoma_terrestris | 7.14\[38;5;246me\[39m\[31m-2\[39m | 3.77\[38;5;246me\[39m\[31m-2\[39m | 8.47\[38;5;246me\[39m\[31m-3\[39m | 6.09\[38;5;246me\[39m\[31m-3\[39m | 2.62\[38;5;246me\[39m\[31m-3\[39m | 3.95\[38;5;246me\[39m\[31m-3\[39m |
+| 1.000 | 0.60 | 0.775 | 0.103 | corn | Pseudocoleophoma_polygonicola | 2.61\[38;5;246me\[39m\[31m-3\[39m | 4.41\[38;5;246me\[39m\[31m-3\[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m |
+| 0.635 | 1.00 | 0.797 | 0.410 | corn | Plectosphaerella_cucumerina | 6.45\[38;5;246me\[39m\[31m-2\[39m | 4.86\[38;5;246me\[39m\[31m-2\[39m | 2.31\[38;5;246me\[39m\[31m-2\[39m | 1.32\[38;5;246me\[39m\[31m-2\[39m | 1.40\[38;5;246me\[39m\[31m-2\[39m | 1.86\[38;5;246me\[39m\[31m-2\[39m |
+| 0.749 | 0.75 | 0.749 | 0.318 | remnant | Ustilago_nunavutica | 1.11\[38;5;246me\[39m\[31m-5\[39m | 2.17\[38;5;246me\[39m\[31m-5\[39m | 1.19\[38;5;246me\[39m\[31m-3\[39m | 1.65\[38;5;246me\[39m\[31m-3\[39m | 3.59\[38;5;246me\[39m\[31m-3\[39m | 4.32\[38;5;246me\[39m\[31m-3\[39m |
+| 0.912 | 0.50 | 0.675 | 0.318 | remnant | Monosporascus_eutypoides | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 2.30\[38;5;246me\[39m\[31m-5\[39m | 4.51\[38;5;246me\[39m\[31m-5\[39m | 2.38\[38;5;246me\[39m\[31m-4\[39m | 3.08\[38;5;246me\[39m\[31m-4\[39m |
 
 Indicator species analysis results with biomass-aware relative
 abundances in field types
