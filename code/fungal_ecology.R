@@ -1756,6 +1756,7 @@ patho_protest
 #' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(patho_protest$scale^2, 2)`, p<0.001. 
 #' 
+#' 
 #' ## Pathogen Indicator Species
 #' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
 #' research may make the indicator stats less appropriate for other use. Using biomass-weighted relative
@@ -1769,115 +1770,69 @@ patho_ind %>%
          across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 #' 
-#' ## Pathogen—pfg correlations
-#' Pathogen abundance correlated with grass and forbs. 
+#' 
+#' ## Pathogen correlation with plant functional groups
+#' How does grass-forb index relate to pathogen biomass? Data:
 patho_resto <- its_guild %>% 
   filter(field_type == "restored", region != "FL") %>% 
   left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
   mutate(
     patho_prop = patho_abund / fungi_abund, # no zeroes present...
-    patho_logit = qlogis(patho_prop)
+    patho_logit = qlogis(patho_prop),
+    fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
   select(-sapro_abund)
-#' Inspect simple linear relationship.
+#' Inspect simple linear relationship. Naïve model.
 pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
 check_model(pama_rest_m)
 summary(pama_rest_m)
-#' GF index and biomass weighted relative abundance of pathogens aren't strongly 
-#' related. We need to find out how total fungal biomass relates to gf_index in defining the 
-#' relationship with pathogen absolute sequence abundance. Essentially, using total biomass
-#' as a covariate removes the compositional element of total sequence abundance. 
-#' Since sequence abundance * biomass, the composite variable, is a product, the diagnostic
-#' model should probably be log-log. Check to make sure:
+#' The naïve model shows a positive relationship that isn't significant. Since
+#' pathogen mass = pathogen sequence relative proportion * site biomass, site 
+#' biomass should also be accounted for in the model if it's variation is high or 
+#' if it trends in opposition to proportion of pathogens. Since pathogen mass is 
+#' a product, the relationship should be multiplicative and best modeled in log-log
+#' space. Check to make sure:
 parest_m_raw  <- lm(patho_abund ~ fungi_mass + gf_index, data = patho_resto)
 parest_m_logy <- lm(log(patho_abund) ~ fungi_mass + gf_index, data = patho_resto)
 parest_m_logx <- lm(patho_abund ~ log(fungi_mass) + gf_index, data = patho_resto)
 parest_m_both <- lm(log(patho_abund) ~ log(fungi_mass) + gf_index, data = patho_resto)
 compare_performance(parest_m_raw, parest_m_logy, parest_m_logx, parest_m_both, 
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-#' Log-log is best. For further investigation, Compute a pathogen proportion (row proportions 
-#' of guilds).
-#' 
-#' ### Does plant composition shift the relative pathogen proportion?
-#+ patho_logit_gfi_fig,warning=FALSE,fig.width=5,fig.height=5
-ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
-  geom_text(label = rownames(patho_resto))
-
-parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
-distribution_prob(parest_m_rel)
-shapiro.test(parest_m_rel$residuals)
-#+ cm10,warning=FALSE,fig.width=7,fig.height=9
-check_model(parest_m_rel)
-summary(parest_m_rel)
-
-slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
-  coef(lm(patho_logit ~ gf_index, data = patho_resto[-i, ]))["gf_index"]
+#' Log-log explains the relationship most completely. Continue with model specification,
+#' diagnostics, and results.
+parest_m_abs <- lm(log(patho_mass) ~ fungi_mass_lc + gf_index, data = patho_resto) # centered log of fungi_mass
+augment(parest_m_abs, data = patho_resto %>% select(field_name)) 
+#' Max cooks of 0.65 is MHRP2, 2 year old field. Lower pathogens than expected. 
+#' Check leave-one-out slopes.
+slopes_pma <- map_dbl(seq_len(nrow(patho_resto)), function(i){
+  coef(lm(log(patho_mass) ~ fungi_mass_lc + gf_index, data = patho_resto[-i, ]))["gf_index"]
 })
-summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
-
-coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
-rbind(
-  coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3")),
-  exp_gf_index = exp(coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))[2, ])
-)
-par(mfrow = c(1,1))
-crPlots(parest_m_rel, terms = ~ gf_index)
-ncvTest(parest_m_rel)
-#' A linear model indicated a positive association between grass–forb index 
-#' and the logit share of pathogen sequences (β = 0.67, 95% CI = 0.26-1.08, R2adj = 0.63, n = 10).
-#' Results were robust to HC3 standard errors and to robust regression (bisquare), 
-#' with similar slope estimates in a leave-one-out test. Model residuals did not deviate from normal 
-#' based on a shapiro test. 
-#' 
-#' ### Does plant composition affect total fungal biomass?
-#+ patho_resto_gfi_fig,warning=FALSE,fig.width=5,fig.height=5
-ggplot(patho_resto, aes(x = gf_index, y = log(fungi_mass))) +
-  geom_text(label = rownames(patho_resto))
-parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
-distribution_prob(parest_m_biom)
-shapiro.test(parest_m_biom$residuals) # residuals distribution non-normal
-par(mfrow = c(2,2))
-plot(parest_m_biom)
-summary(parest_m_biom)
-
-coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slope and SEs also NS
-coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
-#' Non-normal residuals distribution suggests the need for corroboration. Try a nonparametric test.
-with(patho_resto, cor.test(gf_index, log(fungi_mass), method = "spearman", exact = FALSE)) # nonparametric correlation NS
-#' OLS and robust estimates agree on direction/magnitude; effect not significant
-par(mfrow = c(1,1))
-crPlots(parest_m_biom, terms = ~ gf_index)
-ncvTest(parest_m_biom)
-#' The model likely works well enough to show that there's not a strong relationship between GF index
-#' and total fungal biomass, which agrees with what we found before with biomass as an untransformed
-#' response variable. 
-#' 
-#' ### Does gf_index still matter for absolute pathogens once biomass is in the model?
-#+ patho_resto_massmass_fig,warning=FALSE,fig.width=5,fig.height=5
-ggplot(patho_resto, aes(x = log(fungi_mass), y = log(patho_mass))) +
-  geom_text(label = rownames(patho_resto))
-parest_m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = patho_resto)
-
-augment(parest_m_abs)
+summary(slopes_pma); slopes_pma[which.min(slopes_pma)]; slopes_pma[which.max(slopes_pma)]
+#' Slopes distribution doesn't suggest that inference would change
 distribution_prob(parest_m_abs)
 shapiro.test(parest_m_abs$residuals)
 #' Residuals distribution difference from normal rejected by shapiro test and machine learning approach
 par(mfrow = c(2,2))
 plot(parest_m_abs)
-#' Sturcture, leverage point detected
 crPlots(parest_m_abs)
+#' Leverage point affects prediction from gf_index more than biomass
 avPlots(parest_m_abs)
-#' Relationships appear monotonic (in log-log space). 
-coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
-coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
-par(mfrow = c(1,1))
-crPlots(parest_m_abs, terms = ~ gf_index)
+#' Relationships appear monotonic and both appear clean (in log-log space). 
 ncvTest(parest_m_abs)
 #' Diagnostics (Shapiro p=0.64; NCV p=0.54; HC3 and LOOCV stable) support the additive log–log model.
+#' Did adding total biomass indeed improve inference of the relationship? Check RMSE
+#' between naïve and log-log models, using Duan's smearing and back-transformation to 
+#' compare models on the same scale, using custom function `rsme()`.
+pred_log_raw <- exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))) # smearing factor
+rmse_naive <- rmse(patho_resto$patho_mass, fitted(pama_rest_m))
+rmse_log   <- rmse(patho_resto$patho_mass, pred_log_raw)
+c(rmse_naive = rmse(patho_resto$patho_mass, fitted(pama_rest_m)), rmse_log = rmse(patho_resto$patho_mass, pred_log_raw))
+#' Incorporating total biomass in the model drops RMSE by 46%. 
 #' 
 #' Results:
-Anova(parest_m_abs, type = 2)
+coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
+coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
 #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
 rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
 #' Elasticity of pathogen mass to fungal biomass: a 1% increase in biomass ≈ 1.54% increase in pathogen mass.
@@ -1926,6 +1881,55 @@ ggsave(
   units = "in",
   dpi = 600
 )
+#' ### Additional support
+#' #### Plant functional groups and relative pathogen proportion
+#' Does the relative proportion of pathogens increase with gf_index?
+parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
+distribution_prob(parest_m_rel)
+shapiro.test(parest_m_rel$residuals)
+#+ cm10,warning=FALSE,fig.width=7,fig.height=9
+check_model(parest_m_rel)
+augment(parest_m_rel, data = patho_resto %>% select(field_name))
+#' Minor leverage point KORP1. Check leave-one-out slopes to view effect
+slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
+  coef(lm(patho_logit ~ gf_index, data = patho_resto[-i, ]))["gf_index"]
+})
+summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
+#' Slopes distribution doesn't suggest that inference would change
+coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
+rbind(
+  coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3")),
+  exp_gf_index = exp(coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))[2, ])
+)
+par(mfrow = c(1,1))
+crPlots(parest_m_rel, terms = ~ gf_index)
+ncvTest(parest_m_rel)
+#' A linear model indicated a positive association between grass–forb index 
+#' and the logit share of pathogen sequences (β = 0.67, 95% CI = 0.26-1.08, R2adj = 0.63, n = 10).
+#' Results were robust to HC3 standard errors and to robust regression (bisquare), 
+#' with similar slope estimates in a leave-one-out test. Model residuals did not deviate from normal 
+#' based on a shapiro test. 
+#' 
+#' #### Does plant composition affect total fungal biomass?
+parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
+distribution_prob(parest_m_biom) # residuals distribution normal
+shapiro.test(parest_m_biom$residuals) # residuals distribution non-normal
+#' Ambiguity about normality of residuals distribution suggests the need for corroboration. 
+#' Try a nonparametric test.
+with(patho_resto, cor.test(gf_index, log(fungi_mass), method = "spearman", exact = FALSE)) # nonparametric correlation NS
+par(mfrow = c(2,2))
+plot(parest_m_biom)
+par(mfrow = c(1,1))
+crPlots(parest_m_biom, terms = ~ gf_index)
+ncvTest(parest_m_biom) # Ok
+#' The model likely works well enough to show whatever relationship exists between GF index
+#' and total fungal biomass
+#' Results
+coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slope and SEs also NS
+coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
+#' Agrees with what we found before with biomass as an untransformed
+#' response variable. 
+#' 
 #' ### Alternative explanations
 #' Is plant richness related to pathogens?
 #+ patho_resto_prich_fig,warning=FALSE,fig.width=5,fig.height=5
