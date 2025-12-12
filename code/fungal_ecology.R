@@ -1841,12 +1841,12 @@ rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
 #' 
 #' View results:
 #' Median fungal biomass on the original scale and model prediction for figure.
-med_fungi <- median(patho_resto$fungi_mass, na.rm = TRUE)
+med_fungi <- median(patho_resto$fungi_mass_lc, na.rm = TRUE)
 newdat <- tibble(
   gf_index   = seq(min(patho_resto$gf_index, na.rm = TRUE),
                    max(patho_resto$gf_index, na.rm = TRUE),
                    length.out = 200),
-  fungi_mass = med_fungi
+  fungi_mass_lc = med_fungi
 )
 # Predict on the log scale, then back-transform to the original scale
 pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%

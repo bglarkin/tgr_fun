@@ -2,13 +2,14 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 11 December, 2025
+Last updated: 12 December, 2025
 
 - [Description](#description)
   - [Sequence data processing
     functions](#sequence-data-processing-functions)
   - [Confidence interval helper](#confidence-interval-helper)
   - [Alpha diversity calculations](#alpha-diversity-calculations)
+  - [RMSE](#rmse)
   - [Confidence intervals](#confidence-intervals)
   - [Multivariate analysis](#multivariate-analysis)
   - [Permanova on soil data](#permanova-on-soil-data)
@@ -137,6 +138,14 @@ calc_div <- function(spe, site_dat) {
   return(div_data)
   
 }
+```
+
+## RMSE
+
+Compare model results
+
+``` r
+rmse <- function(obs, pred) sqrt(mean((obs - pred)^2, na.rm = TRUE))
 ```
 
 ## Confidence intervals
