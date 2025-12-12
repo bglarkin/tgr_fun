@@ -110,13 +110,16 @@ calc_div <- function(spe, site_dat) {
   return(div_data)
   
 }
-
+#' 
+#' ## RMSE
+#' Compare model results
+rmse <- function(obs, pred) sqrt(mean((obs - pred)^2, na.rm = TRUE))
+#' 
 #' ## Confidence intervals
 #' Calculate upper and lower confidence intervals with alpha=0.05
 #+ ci_function
 ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
 ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
-
 #' 
 #' ## Multivariate analysis
 #' Ordination → dispersion check → global & pairwise PERMANOVA → envfit.
@@ -236,7 +239,7 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
     pairwise_contrasts = contrasts
   )
 }
-
+#' 
 #' ## Permanova on soil data
 #' Simplified version of `mva()` for use with the soil properties data
 soilperm <- function(ord_scores, clust_var, nperm = 1999, seed = 20251103) {
@@ -303,7 +306,7 @@ soilperm <- function(ord_scores, clust_var, nperm = 1999, seed = 20251103) {
     contrasts   = soil_contrasts
   )
 }
-
+#' 
 #' ## Model distribution probabilities
 #' Probable distributions of response and residuals. Package performance prints
 #' javascript which doesn't render on github documents.
@@ -324,7 +327,7 @@ distribution_prob <- function(df) {
       slice_head(n = 3) %>% 
       kable(format = "pandoc"))
 }
-
+#' 
 #' ## Filter spe to a guild
 #' Create samp-spe matrix of sequence abundance in a guild
 #+ guildseq_function
@@ -338,7 +341,7 @@ guildseq <- function(spe, meta, guild) {
     pivot_wider(names_from = otu_num, values_from = abund)
   return(guab)
 }
-
+#' 
 #' ## Perform Indicator Species Analysis
 #' Function `inspan()` takes a combined species and sites data frame and 
 #' filters OTUs for indicators of field types. 
@@ -412,7 +415,7 @@ inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
   return(out)
   
 }
-
+#' 
 #' ## Calculate pairwise distances among sites and present summary statistics
 #' Function `reg_dist_stats()` requires a haversine distance matrix, site metadata, 
 #' and is filtered by regions to produce the desired output. 
@@ -444,7 +447,7 @@ reg_dist_stats <- function(dist_mat,
       .groups = "drop"
     )
 }
-
+#' 
 #' ## Test raw and transformed covariates in linear models
 #' Function `covar_shape_test()` compares a series of linear models with raw, 
 #' square root, or log transforms of the covariate. It selects the best model
@@ -498,7 +501,7 @@ covar_shape_test <- function(data, y, covar, group = field_type) {
     diagnostics = chmd
   )
 }
-
+#' 
 #' ## Site mapping functions
 #' Functions facilitate the creation of mapping objects
 #' 
