@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 11 December, 2025
+Last updated: 12 December, 2025
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -38,23 +38,6 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
-
-    ## Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
-
-    ## Loading required package: ggpp
-
-    ## 
-    ## Attaching package: 'ggpp'
-
-    ## The following objects are masked from 'package:ggpubr':
-    ## 
-    ##     as_npc, as_npcx, as_npcy
-
-    ## The following object is masked from 'package:ggplot2':
-    ## 
-    ##     annotate
-
-    ## Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
 
 ## Root path function
 
@@ -267,8 +250,6 @@ cont_box <- st_bbox(c(
 sf_use_s2(FALSE)
 ```
 
-    ## Spherical geometry (s2) switched off
-
 ``` r
 cont_crop <- st_crop(cont, cont_box)
 ```
@@ -342,12 +323,11 @@ Retrieve roads data
 
 ``` r
 # Don't execute if roads data are in the local env to save time
-# site_roads <- list(
-#   rd_BM = get_osm_roads(bb_BM, density=4),
-#   rd_FG = get_osm_roads(bb_FG, density=8),
-#   rd_FL = get_osm_roads(bb_FL, density=8),
-#   rd_LP = get_osm_roads(bb_LP, density=8)
-# )
+# rd_BM = get_osm_roads(bb_BM, density=4)
+# rd_FG = get_osm_roads(bb_FG, density=8)
+# rd_FL = get_osm_roads(bb_FL, density=8)
+# rd_LP = get_osm_roads(bb_LP, density=8)
+# site_roads <- list(rd_BM, rd_FG, rd_FL, rd_LP)
 ```
 
 ### Map styles

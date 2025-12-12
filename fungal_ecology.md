@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 11 December, 2025
+Last updated: 12 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -39,7 +39,8 @@ Last updated: 11 December, 2025
   - [Abundance](#abundance)
   - [Beta Diversity](#beta-diversity-2)
   - [Pathogen Indicator Species](#pathogen-indicator-species)
-  - [Pathogen—pfg correlations](#pathogenpfg-correlations)
+  - [Pathogen correlation with plant functional
+    groups](#pathogen-correlation-with-plant-functional-groups)
 - [Putative saprotrophs](#putative-saprotrophs)
   - [Diversity Indices](#diversity-indices-3)
   - [Abundance](#abundance-1)
@@ -3958,19 +3959,19 @@ patho_ind %>%
 
 | A | B | stat | p_val_adj | field_type | species | corn_avg | corn_ci | restored_avg | restored_ci | remnant_avg | remnant_ci |
 |---:|---:|---:|---:|:---|:---|---:|---:|---:|---:|---:|---:|
-| 0.975 | 1.00 | 0.987 | 0.037 | corn | Corynespora_cassiicola | 1.28\[38;5;246me\[39m\[31m-2\[39m | 1.13\[38;5;246me\[39m\[31m-2\[39m | 3.28\[38;5;246me\[39m\[31m-4\[39m | 4.00\[38;5;246me\[39m\[31m-4\[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m |
-| 0.866 | 1.00 | 0.930 | 0.037 | corn | Setophoma_terrestris | 7.14\[38;5;246me\[39m\[31m-2\[39m | 3.77\[38;5;246me\[39m\[31m-2\[39m | 8.47\[38;5;246me\[39m\[31m-3\[39m | 6.09\[38;5;246me\[39m\[31m-3\[39m | 2.62\[38;5;246me\[39m\[31m-3\[39m | 3.95\[38;5;246me\[39m\[31m-3\[39m |
-| 1.000 | 0.60 | 0.775 | 0.103 | corn | Pseudocoleophoma_polygonicola | 2.61\[38;5;246me\[39m\[31m-3\[39m | 4.41\[38;5;246me\[39m\[31m-3\[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m |
-| 0.635 | 1.00 | 0.797 | 0.410 | corn | Plectosphaerella_cucumerina | 6.45\[38;5;246me\[39m\[31m-2\[39m | 4.86\[38;5;246me\[39m\[31m-2\[39m | 2.31\[38;5;246me\[39m\[31m-2\[39m | 1.32\[38;5;246me\[39m\[31m-2\[39m | 1.40\[38;5;246me\[39m\[31m-2\[39m | 1.86\[38;5;246me\[39m\[31m-2\[39m |
-| 0.749 | 0.75 | 0.749 | 0.318 | remnant | Ustilago_nunavutica | 1.11\[38;5;246me\[39m\[31m-5\[39m | 2.17\[38;5;246me\[39m\[31m-5\[39m | 1.19\[38;5;246me\[39m\[31m-3\[39m | 1.65\[38;5;246me\[39m\[31m-3\[39m | 3.59\[38;5;246me\[39m\[31m-3\[39m | 4.32\[38;5;246me\[39m\[31m-3\[39m |
-| 0.912 | 0.50 | 0.675 | 0.318 | remnant | Monosporascus_eutypoides | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 2.30\[38;5;246me\[39m\[31m-5\[39m | 4.51\[38;5;246me\[39m\[31m-5\[39m | 2.38\[38;5;246me\[39m\[31m-4\[39m | 3.08\[38;5;246me\[39m\[31m-4\[39m |
+| 0.975 | 1.00 | 0.987 | 0.037 | corn | Corynespora_cassiicola | 1.28e-2 | 1.13e-2 | 3.28e-4 | 4.00e-4 | 0 | 0 |
+| 0.866 | 1.00 | 0.930 | 0.037 | corn | Setophoma_terrestris | 7.14e-2 | 3.77e-2 | 8.47e-3 | 6.09e-3 | 2.62e-3 | 3.95e-3 |
+| 1.000 | 0.60 | 0.775 | 0.103 | corn | Pseudocoleophoma_polygonicola | 2.61e-3 | 4.41e-3 | 0 | 0 | 0 | 0 |
+| 0.635 | 1.00 | 0.797 | 0.410 | corn | Plectosphaerella_cucumerina | 6.45e-2 | 4.86e-2 | 2.31e-2 | 1.32e-2 | 1.40e-2 | 1.86e-2 |
+| 0.749 | 0.75 | 0.749 | 0.318 | remnant | Ustilago_nunavutica | 1.11e-5 | 2.17e-5 | 1.19e-3 | 1.65e-3 | 3.59e-3 | 4.32e-3 |
+| 0.912 | 0.50 | 0.675 | 0.318 | remnant | Monosporascus_eutypoides | 0 | 0 | 2.30e-5 | 4.51e-5 | 2.38e-4 | 3.08e-4 |
 
 Indicator species analysis results with biomass-aware relative
 abundances in field types
 
-## Pathogen—pfg correlations
+## Pathogen correlation with plant functional groups
 
-Pathogen abundance correlated with grass and forbs.
+How does grass-forb index relate to pathogen biomass? Data:
 
 ``` r
 patho_resto <- its_guild %>% 
@@ -3978,12 +3979,13 @@ patho_resto <- its_guild %>%
   left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
   mutate(
     patho_prop = patho_abund / fungi_abund, # no zeroes present...
-    patho_logit = qlogis(patho_prop)
+    patho_logit = qlogis(patho_prop),
+    fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
   select(-sapro_abund)
 ```
 
-Inspect simple linear relationship.
+Inspect simple linear relationship. Naïve model.
 
 ``` r
 pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
@@ -4018,13 +4020,12 @@ summary(pama_rest_m)
     ## Multiple R-squared:  0.1861, Adjusted R-squared:  0.08432 
     ## F-statistic: 1.829 on 1 and 8 DF,  p-value: 0.2133
 
-GF index and biomass weighted relative abundance of pathogens aren’t
-strongly related. We need to find out how total fungal biomass relates
-to gf_index in defining the relationship with pathogen absolute sequence
-abundance. Essentially, using total biomass as a covariate removes the
-compositional element of total sequence abundance. Since sequence
-abundance \* biomass, the composite variable, is a product, the
-diagnostic model should probably be log-log. Check to make sure:
+The naïve model shows a positive relationship that isn’t significant.
+Since pathogen mass = pathogen sequence relative proportion \* site
+biomass, site biomass should also be accounted for in the model if it’s
+variation is high or if it trends in opposition to proportion of
+pathogens. Since pathogen mass is a product, the relationship should be
+multiplicative and best modeled in log-log space. Check to make sure:
 
 ``` r
 parest_m_raw  <- lm(patho_abund ~ fungi_mass + gf_index, data = patho_resto)
@@ -4044,292 +4045,46 @@ compare_performance(parest_m_raw, parest_m_logy, parest_m_logx, parest_m_both,
     ## parest_m_logx |    lm | 0.787 | 299.280 |       0.167 |             6.85%
     ## parest_m_raw  |    lm | 0.781 | 303.006 |       0.147 |             0.00%
 
-Log-log is best. For further investigation, Compute a pathogen
-proportion (row proportions of guilds).
-
-### Does plant composition shift the relative pathogen proportion?
+Log-log explains the relationship most completely. Continue with model
+specification, diagnostics, and results.
 
 ``` r
-ggplot(patho_resto, aes(x = gf_index, y = patho_logit)) +
-  geom_text(label = rownames(patho_resto))
+parest_m_abs <- lm(log(patho_mass) ~ fungi_mass_lc + gf_index, data = patho_resto) # centered log of fungi_mass
+augment(parest_m_abs, data = patho_resto %>% select(field_name)) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/patho_logit_gfi_fig-1.png)<!-- -->
+    ## # A tibble: 10 × 6
+    ##    field_name .fitted  .hat .sigma  .cooksd .std.resid
+    ##    <chr>        <dbl> <dbl>  <dbl>    <dbl>      <dbl>
+    ##  1 BBRP1       0.112  0.296  0.247 0.0908      -0.806 
+    ##  2 ERRP1       0.181  0.154  0.259 0.000437    -0.0848
+    ##  3 FGRP1      -0.143  0.103  0.248 0.0231       0.776 
+    ##  4 KORP1      -0.476  0.603  0.252 0.187        0.607 
+    ##  5 LPRP1      -0.643  0.349  0.200 0.505        1.68  
+    ##  6 LPRP2      -0.845  0.351  0.250 0.0881      -0.699 
+    ##  7 MBRP1      -0.971  0.352  0.210 0.437       -1.55  
+    ##  8 MHRP1       0.353  0.217  0.254 0.0242       0.512 
+    ##  9 MHRP2       0.556  0.450  0.211 0.648       -1.54  
+    ## 10 PHRP1       0.0465 0.125  0.246 0.0334       0.837
+
+Max cooks of 0.65 is MHRP2, 2 year old field. Lower pathogens than
+expected. Check leave-one-out slopes.
 
 ``` r
-parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
-distribution_prob(parest_m_rel)
-```
-
-    ## 
-    ## 
-    ## Distribution    p_Residuals
-    ## -------------  ------------
-    ## normal              0.46875
-    ## beta                0.18750
-    ## cauchy              0.18750
-    ## 
-    ## 
-    ## Distribution    p_Response
-    ## -------------  -----------
-    ## normal             0.56250
-    ## cauchy             0.15625
-    ## beta               0.09375
-
-``` r
-shapiro.test(parest_m_rel$residuals)
-```
-
-    ## 
-    ##  Shapiro-Wilk normality test
-    ## 
-    ## data:  parest_m_rel$residuals
-    ## W = 0.86648, p-value = 0.09093
-
-``` r
-check_model(parest_m_rel)
-```
-
-![](resources/fungal_ecology_files/figure-gfm/cm10-1.png)<!-- -->
-
-``` r
-summary(parest_m_rel)
-```
-
-    ## 
-    ## Call:
-    ## lm(formula = patho_logit ~ gf_index, data = patho_resto)
-    ## 
-    ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ## -0.6250 -0.1032  0.1136  0.2094  0.3299 
-    ## 
-    ## Coefficients:
-    ##             Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  -1.5139     0.1087  -13.93 6.83e-07 ***
-    ## gf_index      0.6708     0.1668    4.02  0.00384 ** 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Residual standard error: 0.3437 on 8 degrees of freedom
-    ## Multiple R-squared:  0.6689, Adjusted R-squared:  0.6275 
-    ## F-statistic: 16.16 on 1 and 8 DF,  p-value: 0.00384
-
-``` r
-slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
-  coef(lm(patho_logit ~ gf_index, data = patho_resto[-i, ]))["gf_index"]
+slopes_pma <- map_dbl(seq_len(nrow(patho_resto)), function(i){
+  coef(lm(log(patho_mass) ~ fungi_mass_lc + gf_index, data = patho_resto[-i, ]))["gf_index"]
 })
-summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
+summary(slopes_pma); slopes_pma[which.min(slopes_pma)]; slopes_pma[which.max(slopes_pma)]
 ```
 
     ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-    ##  0.6063  0.6504  0.6674  0.6801  0.6889  0.8224
+    ##  0.5963  0.6784  0.6902  0.7044  0.7001  0.8632
 
-    ## [1] 0.6062903
+    ## [1] 0.5962582
 
-    ## [1] 0.8223972
+    ## [1] 0.8631689
 
-``` r
-coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
-```
-
-    ## 
-    ## t test of coefficients:
-    ## 
-    ##             Estimate Std. Error  t value  Pr(>|t|)    
-    ## (Intercept) -1.51386    0.11846 -12.7800 1.325e-06 ***
-    ## gf_index     0.67075    0.17871   3.7532  0.005598 ** 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
-```
-
-    ##                  2.5 %    97.5 %
-    ## (Intercept) -1.7870200 -1.240703
-    ## gf_index     0.2586412  1.082867
-
-``` r
-par(mfrow = c(1,1))
-crPlots(parest_m_rel, terms = ~ gf_index)
-```
-
-![](resources/fungal_ecology_files/figure-gfm/cm10-2.png)<!-- -->
-
-``` r
-ncvTest(parest_m_rel)
-```
-
-    ## Non-constant Variance Score Test 
-    ## Variance formula: ~ fitted.values 
-    ## Chisquare = 0.06999224, Df = 1, p = 0.79135
-
-A linear model indicated a positive association between grass–forb index
-and the logit share of pathogen sequences (β = 0.67, 95% CI = 0.26-1.08,
-R2adj = 0.63, n = 10). Results were robust to HC3 standard errors and to
-robust regression (bisquare), with similar slope estimates in a
-leave-one-out test. Model residuals did not deviate from normal based on
-a shapiro test.
-
-### Does plant composition affect total fungal biomass?
-
-``` r
-ggplot(patho_resto, aes(x = gf_index, y = log(fungi_mass))) +
-  geom_text(label = rownames(patho_resto))
-```
-
-![](resources/fungal_ecology_files/figure-gfm/patho_resto_gfi_fig-1.png)<!-- -->
-
-``` r
-parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
-distribution_prob(parest_m_biom)
-```
-
-    ## 
-    ## 
-    ## Distribution    p_Residuals
-    ## -------------  ------------
-    ## normal              0.46875
-    ## beta                0.18750
-    ## cauchy              0.18750
-    ## 
-    ## 
-    ## Distribution    p_Response
-    ## -------------  -----------
-    ## uniform            0.28125
-    ## gamma              0.15625
-    ## normal             0.15625
-
-``` r
-shapiro.test(parest_m_biom$residuals) # residuals distribution non-normal
-```
-
-    ## 
-    ##  Shapiro-Wilk normality test
-    ## 
-    ## data:  parest_m_biom$residuals
-    ## W = 0.81441, p-value = 0.02169
-
-``` r
-par(mfrow = c(2,2))
-plot(parest_m_biom)
-```
-
-![](resources/fungal_ecology_files/figure-gfm/patho_resto_gfi_fig-2.png)<!-- -->
-
-``` r
-summary(parest_m_biom)
-```
-
-    ## 
-    ## Call:
-    ## lm(formula = log(fungi_mass) ~ gf_index, data = patho_resto)
-    ## 
-    ## Residuals:
-    ##      Min       1Q   Median       3Q      Max 
-    ## -0.46460 -0.29060  0.09537  0.25815  0.30848 
-    ## 
-    ## Coefficients:
-    ##             Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)   1.5500     0.1052  14.732 4.43e-07 ***
-    ## gf_index     -0.2626     0.1615  -1.626    0.143    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Residual standard error: 0.3327 on 8 degrees of freedom
-    ## Multiple R-squared:  0.2484, Adjusted R-squared:  0.1544 
-    ## F-statistic: 2.644 on 1 and 8 DF,  p-value: 0.1426
-
-``` r
-coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slope and SEs also NS
-```
-
-    ## 
-    ## t test of coefficients:
-    ## 
-    ##             Estimate Std. Error t value  Pr(>|t|)    
-    ## (Intercept)  1.55001    0.11467 13.5168 8.614e-07 ***
-    ## gf_index    -0.26262    0.16440 -1.5974    0.1488    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
-```
-
-    ##                  2.5 %    97.5 %
-    ## (Intercept)  1.2855697 1.8144420
-    ## gf_index    -0.6417366 0.1164929
-
-Non-normal residuals distribution suggests the need for corroboration.
-Try a nonparametric test.
-
-``` r
-with(patho_resto, cor.test(gf_index, log(fungi_mass), method = "spearman", exact = FALSE)) # nonparametric correlation NS
-```
-
-    ## 
-    ##  Spearman's rank correlation rho
-    ## 
-    ## data:  gf_index and log(fungi_mass)
-    ## S = 246, p-value = 0.1497
-    ## alternative hypothesis: true rho is not equal to 0
-    ## sample estimates:
-    ##        rho 
-    ## -0.4909091
-
-OLS and robust estimates agree on direction/magnitude; effect not
-significant
-
-``` r
-par(mfrow = c(1,1))
-crPlots(parest_m_biom, terms = ~ gf_index)
-```
-
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-130-1.png)<!-- -->
-
-``` r
-ncvTest(parest_m_biom)
-```
-
-    ## Non-constant Variance Score Test 
-    ## Variance formula: ~ fitted.values 
-    ## Chisquare = 0.1508795, Df = 1, p = 0.6977
-
-The model likely works well enough to show that there’s not a strong
-relationship between GF index and total fungal biomass, which agrees
-with what we found before with biomass as an untransformed response
-variable.
-
-### Does gf_index still matter for absolute pathogens once biomass is in the model?
-
-``` r
-ggplot(patho_resto, aes(x = log(fungi_mass), y = log(patho_mass))) +
-  geom_text(label = rownames(patho_resto))
-```
-
-![](resources/fungal_ecology_files/figure-gfm/patho_resto_massmass_fig-1.png)<!-- -->
-
-``` r
-parest_m_abs <- lm(log(patho_mass) ~ log(fungi_mass) + gf_index, data = patho_resto)
-
-augment(parest_m_abs)
-```
-
-    ## # A tibble: 10 × 9
-    ##    `log(patho_mass)` `log(fungi_mass)` gf_index .fitted  .resid  .hat .sigma  .cooksd .std.resid
-    ##                <dbl>             <dbl>    <dbl>   <dbl>   <dbl> <dbl>  <dbl>    <dbl>      <dbl>
-    ##  1           -0.0502              2.02  -0.611   0.112  -0.162  0.296  0.247 0.0908      -0.806 
-    ##  2            0.163               1.69   0.211   0.181  -0.0187 0.154  0.259 0.000437    -0.0848
-    ##  3            0.0335              1.61  -0.0752 -0.143   0.176  0.103  0.248 0.0231       0.776 
-    ##  4           -0.384               2.02  -1.45   -0.476   0.0918 0.603  0.252 0.187        0.607 
-    ##  5           -0.317               1.01   0.534  -0.643   0.326  0.349  0.200 0.505        1.68  
-    ##  6           -0.980               1.04   0.179  -0.845  -0.135  0.351  0.250 0.0881      -0.699 
-    ##  7           -1.27                1.21  -0.379  -0.971  -0.300  0.352  0.210 0.437       -1.55  
-    ##  8            0.461               1.76   0.302   0.353   0.109  0.217  0.254 0.0242       0.512 
-    ##  9            0.282               1.55   1.05    0.556  -0.274  0.450  0.211 0.648       -1.54  
-    ## 10            0.234               1.59   0.234   0.0465  0.188  0.125  0.246 0.0334       0.837
+Slopes distribution doesn’t suggest that inference would change
 
 ``` r
 distribution_prob(parest_m_abs)
@@ -4368,53 +4123,23 @@ par(mfrow = c(2,2))
 plot(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-131-1.png)<!-- -->
-
-Sturcture, leverage point detected
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
 
 ``` r
 crPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-2.png)<!-- -->
+
+Leverage point affects prediction from gf_index more than biomass
 
 ``` r
 avPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-2.png)<!-- -->
-
-Relationships appear monotonic (in log-log space).
-
-``` r
-coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
-```
-
-    ## 
-    ## t test of coefficients:
-    ## 
-    ##                 Estimate Std. Error t value Pr(>|t|)   
-    ## (Intercept)     -2.56753    0.64068 -4.0075 0.005141 **
-    ## log(fungi_mass)  1.53851    0.38789  3.9664 0.005417 **
-    ## gf_index         0.69799    0.21061  3.3141 0.012868 * 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
-```
-
-    ##                      2.5 %    97.5 %
-    ## (Intercept)     -4.0824932 -1.052561
-    ## log(fungi_mass)  0.6213022  2.455721
-    ## gf_index         0.1999755  1.196011
-
-``` r
-par(mfrow = c(1,1))
-crPlots(parest_m_abs, terms = ~ gf_index)
-```
-
 ![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
+
+Relationships appear monotonic and both appear clean (in log-log space).
 
 ``` r
 ncvTest(parest_m_abs)
@@ -4425,23 +4150,47 @@ ncvTest(parest_m_abs)
     ## Chisquare = 0.3789739, Df = 1, p = 0.53815
 
 Diagnostics (Shapiro p=0.64; NCV p=0.54; HC3 and LOOCV stable) support
-the additive log–log model.
+the additive log–log model. Did adding total biomass indeed improve
+inference of the relationship? Check RMSE between naïve and log-log
+models, using Duan’s smearing and back-transformation to compare models
+on the same scale, using custom function `rsme()`.
+
+``` r
+pred_log_raw <- exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))) # smearing factor
+rmse_naive <- rmse(patho_resto$patho_mass, fitted(pama_rest_m))
+rmse_log   <- rmse(patho_resto$patho_mass, pred_log_raw)
+c(rmse_naive = rmse(patho_resto$patho_mass, fitted(pama_rest_m)), rmse_log = rmse(patho_resto$patho_mass, pred_log_raw))
+```
+
+    ## rmse_naive   rmse_log 
+    ##  0.3610457  0.1941754
+
+Incorporating total biomass in the model drops RMSE by 46%.
 
 Results:
 
 ``` r
-Anova(parest_m_abs, type = 2)
+coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
 ```
 
-    ## Anova Table (Type II tests)
     ## 
-    ## Response: log(patho_mass)
-    ##                  Sum Sq Df F value    Pr(>F)    
-    ## log(fungi_mass) 2.09608  1  36.404 0.0005244 ***
-    ## gf_index        1.55362  1  26.983 0.0012607 ** 
-    ## Residuals       0.40305  7                      
+    ## t test of coefficients:
+    ## 
+    ##                Estimate Std. Error t value Pr(>|t|)   
+    ## (Intercept)   -0.182825   0.098382 -1.8583 0.105472   
+    ## fungi_mass_lc  1.538512   0.387888  3.9664 0.005417 **
+    ## gf_index       0.697993   0.210612  3.3141 0.012868 * 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
+```
+
+    ##                    2.5 %     97.5 %
+    ## (Intercept)   -0.4154624 0.04981187
+    ## fungi_mass_lc  0.6213022 2.45572104
+    ## gf_index       0.1999755 1.19601093
 
 ``` r
 rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
@@ -4459,12 +4208,12 @@ View results: Median fungal biomass on the original scale and model
 prediction for figure.
 
 ``` r
-med_fungi <- median(patho_resto$fungi_mass, na.rm = TRUE)
+med_fungi <- median(patho_resto$fungi_mass_lc, na.rm = TRUE)
 newdat <- tibble(
   gf_index   = seq(min(patho_resto$gf_index, na.rm = TRUE),
                    max(patho_resto$gf_index, na.rm = TRUE),
                    length.out = 200),
-  fungi_mass = med_fungi
+  fungi_mass_lc = med_fungi
 )
 # Predict on the log scale, then back-transform to the original scale
 pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%
@@ -4497,6 +4246,229 @@ fig7
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/fig7-1.png)<!-- -->
+
+### Additional support
+
+#### Plant functional groups and relative pathogen proportion
+
+Does the relative proportion of pathogens increase with gf_index?
+
+``` r
+parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
+distribution_prob(parest_m_rel)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.46875
+    ## beta                0.18750
+    ## cauchy              0.18750
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## normal             0.56250
+    ## cauchy             0.15625
+    ## beta               0.09375
+
+``` r
+shapiro.test(parest_m_rel$residuals)
+```
+
+    ## 
+    ##  Shapiro-Wilk normality test
+    ## 
+    ## data:  parest_m_rel$residuals
+    ## W = 0.86648, p-value = 0.09093
+
+``` r
+check_model(parest_m_rel)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/cm10-1.png)<!-- -->
+
+``` r
+augment(parest_m_rel, data = patho_resto %>% select(field_name))
+```
+
+    ## # A tibble: 10 × 6
+    ##    field_name .fitted  .hat .sigma  .cooksd .std.resid
+    ##    <chr>        <dbl> <dbl>  <dbl>    <dbl>      <dbl>
+    ##  1 BBRP1       -1.92  0.188  0.367 0.000131    -0.0336
+    ##  2 ERRP1       -1.37  0.111  0.366 0.00463      0.273 
+    ##  3 FGRP1       -1.56  0.101  0.357 0.0255       0.673 
+    ##  4 KORP1       -2.49  0.595  0.352 0.496        0.822 
+    ##  5 LPRP1       -1.16  0.167  0.363 0.0196       0.442 
+    ##  6 LPRP2       -1.39  0.108  0.313 0.133       -1.48  
+    ##  7 MBRP1       -1.77  0.134  0.266 0.295       -1.95  
+    ##  8 MHRP1       -1.31  0.121  0.342 0.0725       1.02  
+    ##  9 MHRP2       -0.807 0.362  0.362 0.0677      -0.489 
+    ## 10 PHRP1       -1.36  0.113  0.348 0.0530       0.913
+
+Minor leverage point KORP1. Check leave-one-out slopes to view effect
+
+``` r
+slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
+  coef(lm(patho_logit ~ gf_index, data = patho_resto[-i, ]))["gf_index"]
+})
+summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
+```
+
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ##  0.6063  0.6504  0.6674  0.6801  0.6889  0.8224
+
+    ## [1] 0.6062903
+
+    ## [1] 0.8223972
+
+Slopes distribution doesn’t suggest that inference would change
+
+``` r
+coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
+```
+
+    ## 
+    ## t test of coefficients:
+    ## 
+    ##             Estimate Std. Error  t value  Pr(>|t|)    
+    ## (Intercept) -1.51386    0.11846 -12.7800 1.325e-06 ***
+    ## gf_index     0.67075    0.17871   3.7532  0.005598 ** 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+rbind(
+  coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3")),
+  exp_gf_index = exp(coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))[2, ])
+)
+```
+
+    ##                   2.5 %    97.5 %
+    ## (Intercept)  -1.7870200 -1.240703
+    ## gf_index      0.2586412  1.082867
+    ## exp_gf_index  1.2951690  2.953134
+
+``` r
+par(mfrow = c(1,1))
+crPlots(parest_m_rel, terms = ~ gf_index)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-140-1.png)<!-- -->
+
+``` r
+ncvTest(parest_m_rel)
+```
+
+    ## Non-constant Variance Score Test 
+    ## Variance formula: ~ fitted.values 
+    ## Chisquare = 0.06999224, Df = 1, p = 0.79135
+
+A linear model indicated a positive association between grass–forb index
+and the logit share of pathogen sequences (β = 0.67, 95% CI = 0.26-1.08,
+R2adj = 0.63, n = 10). Results were robust to HC3 standard errors and to
+robust regression (bisquare), with similar slope estimates in a
+leave-one-out test. Model residuals did not deviate from normal based on
+a shapiro test.
+
+#### Does plant composition affect total fungal biomass?
+
+``` r
+parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
+distribution_prob(parest_m_biom) # residuals distribution normal
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## normal              0.46875
+    ## beta                0.18750
+    ## cauchy              0.18750
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## uniform            0.28125
+    ## gamma              0.15625
+    ## normal             0.15625
+
+``` r
+shapiro.test(parest_m_biom$residuals) # residuals distribution non-normal
+```
+
+    ## 
+    ##  Shapiro-Wilk normality test
+    ## 
+    ## data:  parest_m_biom$residuals
+    ## W = 0.81441, p-value = 0.02169
+
+Ambiguity about normality of residuals distribution suggests the need
+for corroboration. Try a nonparametric test.
+
+``` r
+with(patho_resto, cor.test(gf_index, log(fungi_mass), method = "spearman", exact = FALSE)) # nonparametric correlation NS
+```
+
+    ## 
+    ##  Spearman's rank correlation rho
+    ## 
+    ## data:  gf_index and log(fungi_mass)
+    ## S = 246, p-value = 0.1497
+    ## alternative hypothesis: true rho is not equal to 0
+    ## sample estimates:
+    ##        rho 
+    ## -0.4909091
+
+``` r
+par(mfrow = c(2,2))
+plot(parest_m_biom)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
+
+``` r
+par(mfrow = c(1,1))
+crPlots(parest_m_biom, terms = ~ gf_index)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-2.png)<!-- -->
+
+``` r
+ncvTest(parest_m_biom) # Ok
+```
+
+    ## Non-constant Variance Score Test 
+    ## Variance formula: ~ fitted.values 
+    ## Chisquare = 0.1508795, Df = 1, p = 0.6977
+
+The model likely works well enough to show whatever relationship exists
+between GF index and total fungal biomass Results
+
+``` r
+coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slope and SEs also NS
+```
+
+    ## 
+    ## t test of coefficients:
+    ## 
+    ##             Estimate Std. Error t value  Pr(>|t|)    
+    ## (Intercept)  1.55001    0.11467 13.5168 8.614e-07 ***
+    ## gf_index    -0.26262    0.16440 -1.5974    0.1488    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
+```
+
+    ##                  2.5 %    97.5 %
+    ## (Intercept)  1.2855697 1.8144420
+    ## gf_index    -0.6417366 0.1164929
+
+Agrees with what we found before with biomass as an untransformed
+response variable.
 
 ### Alternative explanations
 
@@ -4653,7 +4625,7 @@ sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-150-1.png)<!-- -->
 
 Slight improvement to qq plot shape, slightly reduced hatvalue (not
 shown)
@@ -4674,7 +4646,7 @@ sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-151-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point
 
@@ -4899,7 +4871,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-152-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-160-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -5322,7 +5294,7 @@ par(mfrow = c(2,2))
 plot(sarest_m_raw)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-160-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-168-1.png)<!-- -->
 
 ``` r
 summary(sarest_m_raw)

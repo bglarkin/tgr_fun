@@ -175,13 +175,12 @@ bb_FL <- bbox_buffer_km(sites_sf %>% filter(region == "FL"), buffer_km = 1)
 bb_LP <- bbox_buffer_km(sites_sf %>% filter(region == "LP"), buffer_km = 0.2)
 #' Retrieve roads data
 # Don't execute if roads data are in the local env to save time
-# site_roads <- list(
-#   rd_BM = get_osm_roads(bb_BM, density=4),
-#   rd_FG = get_osm_roads(bb_FG, density=8),
-#   rd_FL = get_osm_roads(bb_FL, density=8),
-#   rd_LP = get_osm_roads(bb_LP, density=8)
-# )
-
+# rd_BM = get_osm_roads(bb_BM, density=4)
+# rd_FG = get_osm_roads(bb_FG, density=8)
+# rd_FL = get_osm_roads(bb_FL, density=8)
+# rd_LP = get_osm_roads(bb_LP, density=8)
+# site_roads <- list(rd_BM, rd_FG, rd_FL, rd_LP)
+#' 
 #' 
 #' ### Map styles
 state_lab_size <- 2.4
