@@ -1831,6 +1831,7 @@ c(rmse_naive = rmse(patho_resto$patho_mass, fitted(pama_rest_m)), rmse_log = rms
 #' Incorporating total biomass in the model drops RMSE by 46%. 
 #' 
 #' Results:
+c(R2.adj = summary(parest_m_abs)$adj.r.squared)
 coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
 coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
 #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
