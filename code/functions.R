@@ -113,7 +113,9 @@ calc_div <- function(spe, site_dat) {
 #' 
 #' ## RMSE
 #' Compare model results
-rmse <- function(obs, pred) sqrt(mean((obs - pred)^2, na.rm = TRUE))
+rmse <- function(obs, pred) {
+  sqrt(mean((obs - pred)^2, na.rm = TRUE))
+}
 #' 
 #' ## Confidence intervals
 #' Calculate upper and lower confidence intervals with alpha=0.05

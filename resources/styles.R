@@ -8,7 +8,7 @@ ft_pal <- c("#EABB38", "#96DC51", "#038C98")
 # Plant functional groups
 qualitative_hcl(n = 5, h = c(255, -313), c = 52, l = 74, rev = FALSE, register = "pfg-col")
 qualitative_hcl(5, palette = "pfg_col")
-gfi_cols <- c("#A0B5EE", "#99C278")
+gfi_cols <- c("#40C9C5", "#DDAD7E")
 # Shapes and sizes
 lw <- 0.4
 sm_size <- 3.1
@@ -67,7 +67,8 @@ theme_cor <-
     ),
     axis.ticks.length.y = unit(-2, "mm"),
     axis.ticks.length.x = unit(0, "mm"),
-    legend.text = element_text(size = 10, face = 1),
+    legend.title = element_text(size = 10, face = 1),
+    legend.text = element_text(size = 8, face = 1),
     panel.grid = element_blank()
   )
 
