@@ -1955,6 +1955,11 @@ with(patho_resto %>% left_join(prich, by = join_by(field_name)),
      cor.test(patho_mass, pl_rich))
 #' Pathogen mass and plant richness aren't correlated, though the direction is negative. 
 #' Plant richness was not signficant in the full log-log model (not shown).
+#' 
+#' Is plant diversity related to pathogen mass?
+with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
+     cor.test(patho_mass, shannon))
+#' Pathogen mass and plant diversity aren't correlated, though the correlation is positive.  
 
 #' 
 #' # Putative saprotrophs
