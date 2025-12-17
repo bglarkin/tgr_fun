@@ -1337,7 +1337,7 @@ amf_mod_step
 (amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
 (amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999))
 (amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1))
-amf_mod_step$anova %>% kable(, format = "pandoc") %>% 
+amf_mod_step$anova %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
@@ -1391,7 +1391,7 @@ fig6b <-
                color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = amf_mod_scor_bp,
             aes(x = (labx), y = laby, label = envlabs),
-            nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
@@ -1407,12 +1407,13 @@ fig6b <-
 #' Will combine with similar figs in the saprotrophs section
 #' 
 #' ## AMF correlations with pfg
-amf_resto <- amf_fam %>% 
-  rowwise() %>% 
-  mutate(amf_ab = sum(c_across(Glmrc_ab:Ambsp_ab))) %>% 
-  select(-c(Glmrc_ab:Ambsp_ab)) %>% 
-  filter(field_type == "restored", region != "FL") %>% 
-  left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name))
+amf_resto <- amf_div %>% 
+  left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
+  left_join(sites, by = join_by(field_name, field_type)) %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(field_name, amf_ab = depth, amf_mass, gf_index) 
+
 amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
 #+ cm7,warning=FALSE,fig.width=7,fig.height=9
 check_model(amma_rest_m)
@@ -1425,9 +1426,9 @@ amrest_m_both <- lm(log(amf_ab) ~ log(amf_mass) + gf_index, data = amf_resto)
 compare_performance(amrest_m_raw, amrest_m_logy, amrest_m_logx, amrest_m_both,
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
 #+ cm8,warning=FALSE,fig.width=7,fig.height=9
-check_model(amrest_m_logx)
+check_model(amrest_m_both)
 summary(amrest_m_logx)
-#' No relationshp detected with gf_index. High leverage point is again KORP1.
+#' No relationshp detected with gf_index. 
 
 #' 
 #' # Putative plant pathogens
@@ -1765,7 +1766,6 @@ patho_mod_step
 (patho_mod_glax <- anova(patho_mod_step, permutations = 1999))
 (patho_mod_inax <- anova(patho_mod_step, by = "axis", permutations = 1999))
 (patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$eig), 1))
-patho_mod_step$anova %>% kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, 
 #' after accounting for inter-site pairwise distance as a covariate, the model shows 
 #' no significant correlation between pathogen community turnover and explanatory variables.
@@ -1781,7 +1781,7 @@ patho_resto <- its_guild %>%
     patho_logit = qlogis(patho_prop),
     fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
-  select(-sapro_abund)
+  select(-sapro_abund) 
 #' Inspect simple linear relationship. Naïve model.
 pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
@@ -1820,15 +1820,20 @@ crPlots(parest_m_abs)
 avPlots(parest_m_abs)
 #' Relationships appear monotonic and both appear clean (in log-log space). 
 ncvTest(parest_m_abs)
-#' Diagnostics (Shapiro p=0.64; NCV p=0.54; HC3 and LOOCV stable) support the additive log–log model.
+#' Diagnostics (Shapiro p=0.693; NCV p=0.801; HC3 and LOOCV stable) support the additive log–log model.
 #' Did adding total biomass indeed improve inference of the relationship? Check RMSE
 #' between naïve and log-log models, using Duan's smearing and back-transformation to 
 #' compare models on the same scale, using custom function `rmse()`.
-pred_log_raw <- exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))) # smearing factor
-rmse_naive <- rmse(patho_resto$patho_mass, fitted(pama_rest_m))
-rmse_log   <- rmse(patho_resto$patho_mass, pred_log_raw)
-c(rmse_naive = rmse(patho_resto$patho_mass, fitted(pama_rest_m)), rmse_log = rmse(patho_resto$patho_mass, pred_log_raw))
-#' Incorporating total biomass in the model drops RMSE by `r round((0.2205934-0.3635190) / 0.3635190 * 100, 1)`%. 
+parest_m_rmse <- list(
+  pred_log_raw <- exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))), # smearing factor
+  rmse_naive <- rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
+  rmse_log   <- rmse(patho_resto$patho_mass, pred_log_raw),
+  rmse_naive = rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
+  rmse_log = rmse(patho_resto$patho_mass, pred_log_raw)
+)
+parest_m_rmse[4:5]
+#' Incorporating total biomass in the model drops RMSE by 
+#' `r round((parest_m_rmse$rmse_log-parest_m_rmse$rmse_naive) / parest_m_rmse$rmse_naive * 100, 1)`%. 
 #' 
 #' Results:
 c(R2.adj = summary(parest_m_abs)$adj.r.squared)
@@ -1839,10 +1844,12 @@ rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
 #' Elasticity of pathogen mass to fungal biomass: a 1% increase in biomass = 1.61% increase in pathogen mass.
 #' Gf_index is multiplicative on the original scale. An increase in 0.1 along gf_index equals change in pathogen
 #' mass by a factor of (coef ± CI on multiplicative scale):
-gf_step <- 0.1
-gf_beta <- coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))["gf_index", "Estimate"]
-gf_ci   <- coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))["gf_index", ]
-exp(c(coef = gf_beta, gf_ci) * gf_step)
+parest_gf_pred <- list(
+  gf_step = 0.1,
+  gf_beta = coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))["gf_index", "Estimate"],
+  gf_ci   = coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))["gf_index", ]
+)
+exp(c(coef = parest_gf_pred$gf_beta, parest_gf_pred$gf_ci) * parest_gf_pred$gf_step)
 #' 
 #' View results:
 #' Median fungal biomass on the original scale and model prediction for figure.
@@ -1877,6 +1884,9 @@ fig7 <-
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_cor +
   theme(legend.position = "none")
+
+# CONSIDER adding avplot to fig7 as smaller panels...
+
 #+ fig7,warning=FALSE,fig.height=4,fig.width=4
 fig7
 #+ fig7_save,warning=FALSE,echo=FALSE
@@ -1894,6 +1904,7 @@ ggsave(
 parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
 distribution_prob(parest_m_rel)
 shapiro.test(parest_m_rel$residuals)
+#' Residuals diagnostics are split...
 #+ cm10,warning=FALSE,fig.width=7,fig.height=9
 check_model(parest_m_rel)
 augment(parest_m_rel, data = patho_resto %>% select(field_name))
@@ -1939,21 +1950,11 @@ coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
 #' response variable. 
 #' 
 #' ### Alternative explanations
-#' Is plant richness related to pathogens?
-with(patho_resto %>% left_join(prich, by = join_by(field_name)), cor.test(patho_mass, pl_rich))
-#+ patho_resto_prich_fig,warning=FALSE,fig.width=5,fig.height=5
-patho_resto %>% left_join(prich, by = join_by(field_name)) %>% 
-  ggplot(aes(x = pl_rich, y = patho_mass)) + 
-  geom_point()
-#' not at all...and it wasn't selected in whole soil fungi either
-with(gf_index %>% left_join(prich, by = join_by(field_name)), cor.test(gf_index, pl_rich))
-#+ patho_resto_gfi_prich_fig,warning=FALSE,fig.width=5,fig.height=5
-gf_index %>% left_join(prich, by = join_by(field_name)) %>% 
-  ggplot(aes(x = gf_index, y = pl_rich)) +
-  geom_point()
-#' Plant richness relationship with GF index is weak and driven by a single outlier site. 
-#' The relative proportion of grasses and forbs is related to pathogen abundance 
-#' irrespective of the number of plant species. 
+#' Is plant richness related to pathogen mass?
+with(patho_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(patho_mass, pl_rich))
+#' Pathogen mass and plant richness aren't correlated, though the direction is negative. 
+#' Plant richness was not signficant in the full log-log model (not shown).
 
 #' 
 #' # Putative saprotrophs
@@ -2291,7 +2292,8 @@ sapro_mod_step$anova %>%
 #' after accounting for inter-site pairwise distance as a covariate, the model shows 
 #' correlations between the site ordination on saprotroph communities
 #' and the selected explanatory variables (p<0.001). The first four constrained axes are
-#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=25.8% of the community
+#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=
+#' `r round(sapro_mod_r2$adj.r.squared * 100, 1)`% of the community
 #' variation. Selected explanatory variables are SOM, grass-forb index, plant richness,
 #' and nitrate; see table for individual p values and statistics.
 #' 
@@ -2311,7 +2313,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'OM'", "'>forb'", "atop('plant','rich')", 'NO[3]^"—"')),
+    mutate(envlabs = c("'OM'", "'>forb'", "atop('plant','rich')", 'NO[3]^"–"')),
   data.frame(
     envvar = "gf_index",
     dbRDA1 = -sapro_mod_scor$biplot["gf_index", 1],
@@ -2352,237 +2354,53 @@ fig6c <-
         plot.tag.position = c(0, 1))
 #' 
 #' #### Unified figure
-#' Display results of constrained analysis for ITS and AMF
+#' Display results of constrained analyses
 #+ fig6_patchwork,warning=FALSE
-# fig6 <- (fig6a | plot_spacer() | fig6b | plot_spacer() | fig6c) +
-#   plot_layout(widths = c(0.50, 0.01, 0.50, 0.01, 0.50)) +
-#   plot_annotation(tag_levels = 'A') 
+fig6 <- (fig6a | plot_spacer() | fig6b | plot_spacer() | fig6c) +
+  plot_layout(widths = c(0.50, 0.01, 0.50, 0.01, 0.50)) +
+  plot_annotation(tag_levels = 'A')
 #+ fig6,warning=FALSE,fig.height=4,fig.width=6.5
 # fig6
 #' Results of constrained analysis on **a** whole-soil fungi, **b** arbuscular mycorrhizal fungi, 
 #' and **c** saprotrophs.
 #' Percent variation explained by each constrained axis is shown with axis labels. Points show locations
-#' of restored fields in Wisconsin based on fungal community distance. Blue arrows show the grass-forb 
+#' of restored fields (green) and remnant fields (blue) in Wisconsin based on fungal 
+#' community distance. Blue arrows show the grass-forb 
 #' index with labels indicating the direction of relative increase in grasses or forbs, respectively,
-#' along the index. The black arrows show significant constraints from edaphic properties. 
+#' along the index. The black arrows show significant constraints from soil properties. 
 #+ fig6_save,warning=FALSE,echo=FALSE
-# ggsave(
-#   root_path("figs", "fig6.png"),
-#   plot = fig6,
-#   width = 6.5,
-#   height = 3.25,
-#   units = "in",
-#   dpi = 600
-# )
+ggsave(
+  root_path("figs", "fig6.png"),
+  plot = fig6,
+  width = 6.5,
+  height = 3.25,
+  units = "in",
+  dpi = 600
+)
 #' 
 #' ## Saprotroph correlations with plant community
 sapro_resto <- its_guild %>% 
   filter(field_type != "corn", region != "FL") %>% 
+  left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>% 
   mutate(
     sapro_prop = sapro_abund / fungi_abund, # no zeroes present...
     sapro_logit = qlogis(sapro_prop),
     fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
-  left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>% 
-  left_join(env_expl %>% rownames_to_column(var = "field_name") %>% select(field_name, OM, NO3),
-            by = join_by(field_name)) %>% 
-  left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name)) %>% 
-  mutate(pl_rich_c = as.numeric(scale(pl_rich, center = TRUE, scale = FALSE))) %>% 
-  select(field_name, field_type, yr_since, sapro_mass, sapro_abund, fungi_mass, fungi_mass_lc, OM, gf_index, pl_rich, pl_rich_c, NO3)
-#' Simple cor.test (not shown) revealed fungi_mass and plant richness as significant correlations
+  select(-patho_abund)
 #' Inspect simple linear relationship. Naïve model.
-sama_rest_m <- lm(sapro_mass ~ pl_rich_c, data = sapro_resto)
+sama_rest_m <- lm(sapro_mass ~ gf_index, data = sapro_resto)
 summary(sama_rest_m)
 #' Examine mass+richness models, similar to pathogen models
-sarest_m_raw  <- lm(sapro_mass ~ fungi_mass + pl_rich_c, data = sapro_resto)
-sarest_m_logy <- lm(log(sapro_mass) ~ fungi_mass + pl_rich_c, data = sapro_resto)
-sarest_m_logx <- lm(sapro_mass ~ log(fungi_mass) + pl_rich_c, data = sapro_resto)
-sarest_m_both <- lm(log(sapro_mass) ~ log(fungi_mass) + pl_rich_c, data = sapro_resto)
+sarest_m_raw  <- lm(sapro_mass ~ fungi_mass + gf_index, data = sapro_resto)
+sarest_m_logy <- lm(log(sapro_mass) ~ fungi_mass + gf_index, data = sapro_resto)
+sarest_m_logx <- lm(sapro_mass ~ log(fungi_mass) + gf_index, data = sapro_resto)
+sarest_m_both <- lm(log(sapro_mass) ~ log(fungi_mass) + gf_index, data = sapro_resto)
 
 compare_performance(sarest_m_raw, sarest_m_logy, sarest_m_logx, sarest_m_both, 
                     metrics = c("AIC", "RMSE","R2"), rank = TRUE)
 par(mfrow = c(2,2))
 plot(sarest_m_both)
-summary(sarest_m_both)
-#' Log-log model performs best. Diagnostics:
-sarest_m_abs <- lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich_c, data = sapro_resto) # centered log of fungi_mass
-augment(sarest_m_abs, data = sapro_resto %>% select(field_name)) 
-#' Max cooks of 0.40 is FGREM, 2 year old field. Lower pathogens than expected. 
-#' Low leverage not anticipated to affect inference
-slopes_sma <- map_dbl(seq_len(nrow(sapro_resto)), function(i){
-  coef(lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich, data = sapro_resto[-i, ]))["pl_rich"]
-})
-summary(slopes_sma); slopes_sma[which.min(slopes_sma)]; slopes_sma[which.max(slopes_sma)]; coef(sarest_m_both)[3]
-#' LOOCV range is small and robust to inference
-#' Slopes distribution doesn't suggest that inference would change
-distribution_prob(sarest_m_abs)
-shapiro.test(sarest_m_abs$residuals)
-#' Residuals distribution long-tailed, fails Shapiro
-par(mfrow = c(2,2))
-plot(sarest_m_abs)
-crPlots(sarest_m_abs)
-#' Leverage point affects prediction from both vars
-avPlots(sarest_m_abs)
-#' Relationships appear monotonic and both appear clean (in log-log space). 
-ncvTest(sarest_m_abs)
-#' Diagnostics (Shapiro p=0.008; NCV p=0.71; HC3 and LOOCV stable) support the additive log–log model.
-#' Outlier that affects residuals distribution isn't affecting inference. 
-#' Did adding total biomass indeed improve inference of the relationship? Check RMSE
-#' between naïve and log-log models, using Duan's smearing and back-transformation to 
-#' compare models on the same scale, using custom function `rmse()`.
-sa_pred_log_raw <- exp(fitted(sarest_m_abs)) * mean(exp(residuals(sarest_m_abs))) # smearing factor
-sa_rmse_naive <- rmse(sapro_resto$sapro_mass, fitted(sama_rest_m))
-sa_rmse_log   <- rmse(sapro_resto$sapro_mass, sa_pred_log_raw)
-c(sa_rmse_naive = rmse(sapro_resto$sapro_mass, fitted(sama_rest_m)), sa_rmse_log = rmse(sapro_resto$sapro_mass, sa_pred_log_raw))
-#' Incorporating total biomass in the model drops RMSE by a trivial amount (2.4% lower). 
-#' 
-#' Results:
-c(R2.adj = summary(sarest_m_abs)$adj.r.squared)
-coeftest(sarest_m_abs, vcov. = vcovHC(sarest_m_abs, type = "HC3")) # Robust Wald t test
-coefci(sarest_m_abs, vcov. = vcovHC(sarest_m_abs, type = "HC3"))
-#+ parest_m_abs_rsq,warning=FALSE,message=FALSE
-rsq.partial(sarest_m_abs, adj=TRUE)$partial.rsq
-
-
-
-
-#' Across restored and remnant sites (excluding Florida and cornfields), saprotroph mass 
-#' declined with increasing plant richness after accounting for total fungal biomass. 
-#' In the additive log–log model, log(saprotroph mass) increased with log(total fungal biomass) 
-#' (slope = 0.79 ± SE_HC3 0.15; 95% CI: 0.45 to 1.13; P = 0.00039) and decreased with 
-#' plant richness (slope = −0.013 ± SE_HC3 0.0048; 95% CI: −0.0238 to −0.0022; P = 0.023), 
-#' with adjusted R² = 0.79. Interpreted as an elasticity with respect to biomass, a 
-#' 1% increase in total fungal biomass corresponded to a 0.79% increase in saprotroph mass. 
-#' On the multiplicative scale, each additional plant species corresponded to an expected 
-#' change of exp(−0.013) ≈ 0.987 (CI 0.976-0.998), or about a 1.3% decrease in saprotroph mass, 
-#' holding total fungal biomass constant (≈12% lower per +10 species). Plant richness explained 
-#' a smaller share of variation than total fungal biomass (partial adj. R² = 0.33 vs. 0.62), 
-#' but the negative association was robust to HC3 inference and leave-one-out checks.
-#' 
-#' View results:
-#' Median fungal biomass on the original scale and model prediction for figure.
-
-
-
-sa_med_fungi_lc <- median(sapro_resto$fungi_mass_lc, na.rm = TRUE)
-
-# Prediction grid: original scale for plotting, centered for model
-sa_newdat <- tibble(
-  pl_rich   = seq(min(sapro_resto$pl_rich, na.rm = TRUE),
-                  max(sapro_resto$pl_rich, na.rm = TRUE),
-                  length.out = 200)
-) %>%
-  mutate(
-    pl_rich_c     = pl_rich - mean(sapro_resto$pl_rich, na.rm = TRUE),
-    fungi_mass_lc = sa_med_fungi_lc
-  )
-
-# Predict on log scale, then back-transform
-sa_pred <- augment(sarest_m_abs, newdata = sa_newdat, se_fit = TRUE) %>%
-  mutate(
-    fit_med = exp(.fitted),
-    lwr_med = exp(.fitted - 1.96 * .se.fit),
-    upr_med = exp(.fitted + 1.96 * .se.fit)
-  )
-
-
-
-#+ sarich_fig_data,warning=FALSE
-# fig8 <- 
-ggplot(sa_pred, aes(x = pl_rich, y = fit_med)) +
-  geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-  geom_line(color = "black", linewidth = lw) +
-  geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_mass, fill = field_type),
-             size = sm_size, stroke = lw, shape = 21) +
-  geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_mass, label = yr_since), 
-            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = "Plant richness",
-    y = "Saprotroph mass",
-    caption = paste0("Curve shown at median fungal biomass")
-  ) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_cor +
-  theme(legend.position = "none")
-#+ fig7,warning=FALSE,fig.height=4,fig.width=4
-# fig7
-#+ fig7_save,warning=FALSE,echo=FALSE
-# ggsave(
-#   root_path("figs", "fig7.png"),
-#   plot = fig7,
-#   width = 4,
-#   height = 4,
-#   units = "in",
-#   dpi = 600
-# )
-
-
-#' ### Additional support
-#' #### Plant functional groups and relative pathogen proportion
-#' Does the relative proportion of pathogens increase with gf_index?
-parest_m_rel <- lm(patho_logit ~ gf_index, data = patho_resto)
-distribution_prob(parest_m_rel)
-shapiro.test(parest_m_rel$residuals)
-#+ cm10,warning=FALSE,fig.width=7,fig.height=9
-check_model(parest_m_rel)
-augment(parest_m_rel, data = patho_resto %>% select(field_name))
-#' Minor leverage point KORP1. Check leave-one-out slopes to view effect
-slopes <- map_dbl(seq_len(nrow(patho_resto)), function(i){
-  coef(lm(patho_logit ~ gf_index, data = patho_resto[-i, ]))["gf_index"]
-})
-summary(slopes); slopes[which.min(slopes)]; slopes[which.max(slopes)]
-#' Slopes distribution doesn't suggest that inference would change
-coeftest(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))
-rbind(
-  coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3")),
-  exp_gf_index = exp(coefci(parest_m_rel, vcov. = vcovHC(parest_m_rel, type = "HC3"))[2, ])
-)
-par(mfrow = c(1,1))
-crPlots(parest_m_rel, terms = ~ gf_index)
-ncvTest(parest_m_rel)
-#' A linear model indicated a positive association between grass–forb index 
-#' and the logit share of pathogen sequences (β = 0.67, 95% CI = 0.26-1.08, R2adj = 0.63, n = 10).
-#' Results were robust to HC3 standard errors and to robust regression (bisquare), 
-#' with similar slope estimates in a leave-one-out test. Model residuals did not deviate from normal 
-#' based on a shapiro test. 
-#' 
-#' #### Does plant composition affect total fungal biomass?
-parest_m_biom <- lm(log(fungi_mass) ~ gf_index, data = patho_resto)
-distribution_prob(parest_m_biom) # residuals distribution normal
-shapiro.test(parest_m_biom$residuals) # residuals distribution non-normal
-#' Ambiguity about normality of residuals distribution suggests the need for corroboration. 
-#' Try a nonparametric test.
-with(patho_resto, cor.test(gf_index, log(fungi_mass), method = "spearman", exact = FALSE)) # nonparametric correlation NS
-par(mfrow = c(2,2))
-plot(parest_m_biom)
-par(mfrow = c(1,1))
-crPlots(parest_m_biom, terms = ~ gf_index)
-ncvTest(parest_m_biom) # Ok
-#' The model likely works well enough to show whatever relationship exists between GF index
-#' and total fungal biomass
-#' Results
-coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slope and SEs also NS
-coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
-#' Agrees with what we found before with biomass as an untransformed
-#' response variable. 
-#' 
-#' ### Alternative explanations
-#' Is plant richness related to pathogens?
-with(patho_resto %>% left_join(prich, by = join_by(field_name)), cor.test(patho_mass, pl_rich))
-#+ patho_resto_prich_fig,warning=FALSE,fig.width=5,fig.height=5
-patho_resto %>% left_join(prich, by = join_by(field_name)) %>% 
-  ggplot(aes(x = pl_rich, y = patho_mass)) + 
-  geom_point()
-#' not at all...and it wasn't selected in whole soil fungi either
-with(gf_index %>% left_join(prich, by = join_by(field_name)), cor.test(gf_index, pl_rich))
-#+ patho_resto_gfi_prich_fig,warning=FALSE,fig.width=5,fig.height=5
-gf_index %>% left_join(prich, by = join_by(field_name)) %>% 
-  ggplot(aes(x = gf_index, y = pl_rich)) +
-  geom_point()
-#' Plant richness relationship with GF index is weak and driven by a single outlier site. 
-#' The relative proportion of grasses and forbs is related to pathogen abundance 
-#' irrespective of the number of plant species. 
-
-
-
+summary(sarest_m_logy)
+#' Logy model selected, but gf_index isn't convincingly related to saprotroph mass
 
