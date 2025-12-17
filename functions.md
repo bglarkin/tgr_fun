@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 12 December, 2025
+Last updated: 16 December, 2025
 
 - [Description](#description)
   - [Sequence data processing
@@ -145,7 +145,9 @@ calc_div <- function(spe, site_dat) {
 Compare model results
 
 ``` r
-rmse <- function(obs, pred) sqrt(mean((obs - pred)^2, na.rm = TRUE))
+rmse <- function(obs, pred) {
+  sqrt(mean((obs - pred)^2, na.rm = TRUE))
+}
 ```
 
 ## Confidence intervals
