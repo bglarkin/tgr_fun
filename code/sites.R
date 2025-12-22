@@ -179,7 +179,7 @@ bb_LP <- bbox_buffer_km(sites_sf %>% filter(region == "LP"), buffer_km = 0.2)
 # rd_FG = get_osm_roads(bb_FG, density=8)
 # rd_FL = get_osm_roads(bb_FL, density=8)
 # rd_LP = get_osm_roads(bb_LP, density=8)
-# site_roads <- list(rd_BM, rd_FG, rd_FL, rd_LP)
+# site_roads <- list(rd_BM = rd_BM, rd_FG = rd_FG, rd_FL= rd_FL, rd_LP = rd_LP)
 #' 
 #' 
 #' ### Map styles
@@ -458,14 +458,8 @@ maps_fig <- ggarrange(
 #+ tgr_map,message=FALSE,fig.height=6.8,fig.width=7
 maps_fig
 #' 
-ggsave(
-    root_path("figs/fig1.png"),
-    plot = maps_fig,
-    width = 6.5,
-    height = (6.5 * fhs[3] / fhs[1]) + 1.2, 
-    units = "in",
-    dpi = 600, 
-    bg = "white"
-)
+ggsave(root_path("figs/fig1.svg"), plot = maps_fig, device = "svg",
+    width = 6.5, height = (6.5 * fhs[3] / fhs[1]) + 1.2, units = "in",
+    dpi = 600)
 
 

@@ -1,5 +1,8 @@
 # Graphics styles for TGR repository
 
+library("tidyverse")
+library("colorspace")
+
 # Color palettes
 # hcl_wizard()
 # hcl_color_picker()
@@ -14,6 +17,7 @@ lw <- 0.4
 sm_size <- 3.1
 lg_size <- 4.6
 yrtx_size <- 2.1
+dadd_adj <- 0.08
 
 # Ordination style
 theme_ord <-

@@ -162,10 +162,6 @@ figS4 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
   plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
   plot_annotation(tag_levels = 'A')
 figS4
-ggsave(root_path("figs", "figS4.png"),
-       plot = figS4,
-       width = 7.5,
-       height = 4.25,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "figS4.svg"), plot = figS4, device = "svg",
+       width = 7.5, height = 4.25, units = "in")
 

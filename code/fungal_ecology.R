@@ -268,12 +268,9 @@ pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / gfi_
   plot_annotation(tag_levels = 'A') 
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
-#+ pfg_fig_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS8.png"), plot = pfg_pct_fig,
-       width = 7.5, height = 6, units = "in", dpi = 600)
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "svg", "FigS8.svg"), plot = pfg_pct_fig, device = svg,
-       width = 7.5, height = 6, units = "in", bg = "transparent")
+ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = "svg",
+       width = 7.5, height = 6, units = "in")
 #' 
 #' ## Whole soil fungi
 #' Wrangle data to produce proportional biomass in guilds for its and families for amf
@@ -334,13 +331,13 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
+
 #' 
 #' # Functions
 #' Executed from a separate script to save lines here; to view the function navigate to 
 #' `functions.R` in the code folder, accessible from the root dir of the repo.
 # Functions ———————— ####
 source(root_path("code", "functions.R"))
-
 
 #' 
 #' # Whole Soil Fungi
@@ -510,7 +507,8 @@ plfa_fig <-
   ggplot(summary(plfa_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  labs(x = NULL, y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -578,21 +576,17 @@ fig2 <- (fig2_ls | plot_spacer() | its_ma_ord) +
 #+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
 fig2
 #' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** fungal biomass (PLFA) are shown as columns with 95 % CIs; lowercase
+#' **a** OTU richness and **b** fungal biomass (`r expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))`) 
+#' are shown as columns with 95 % CIs; lowercase
 #' letters mark significant pairwise differences.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
 #' distances: small points = sites, large circles = field-type centroids (error bars =
 #' 95 % CI). Cornfields cluster apart from restored or remnant prairies.
-#' Numbers in black circles give years since restoration. Axis labels show the
+#' Numbers in circles give years since restoration. Axis labels show the
 #' percent variation explained. 
-
 #+ fig2_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig2.png"),
-       plot = fig2,
-       width = 6.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "fig2.svg"), plot = fig2, device = "svg",
+       width = 6.5, height = 4, units = "in")
 #' 
 #' ### Sequence-based relative abundance
 #' Comparison figure and stats for supplemental
@@ -649,12 +643,8 @@ its_shan_ord_sup <- (its_shan_fig | plot_spacer() | its_ord) +
 #+ its_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 its_shan_ord_sup
 #+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS3.png"),
-       plot = its_shan_ord_sup,
-       width = 7.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "figS3.svg"), plot = its_shan_ord_sup, device = "svg",
+       width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
 #' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
@@ -749,7 +739,9 @@ anova(mod_step, by = "margin", permutations = 1999) %>%
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
 #' individual p values and statistics. 
 #' 
-#' Create the figure, combine with pathogen-plant correlation figure in patchwork later:
+#' Create the figure objects. Figure 6 will be produced with panels from other groups, see code
+#' in the saprotrophs section. 
+#+ fig6_objects
 mod_step_eig <- round(mod_step$CCA$eig * 100, 1)
 mod_scor <- scores(
   mod_step,
@@ -765,7 +757,7 @@ mod_scor_bp <- bind_rows(
   mod_scor$biplot %>% 
     data.frame() %>% 
     rownames_to_column(var = "envvar") %>% 
-    mutate(envlabs = c(">forb", "pH", "plant\nrich")),
+    mutate(envlabs = c(">forb", "pH", "plant spp.")),
   data.frame(
     envvar = "gf_index",
     dbRDA1 = -mod_scor$biplot["gf_index", 1],
@@ -777,33 +769,9 @@ mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1, 
     d = sqrt(dbRDA1^2 + dbRDA2^2), 
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.05,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-#+ fig6a,warning=FALSE,fig.height=4,fig.width=4
-fig6a <- 
-  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  geom_segment(data = mod_scor_bp, 
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20", "gray20")) +
-  geom_text(data = mod_scor_bp, 
-            aes(x = labx, y = laby, label = envlabs), 
-            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
-            size = 3, color = "black") +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("Axis 1 (", mod_axpct[1], "%)"),
-    y = paste0("Axis 2 (", mod_axpct[2], "%)")) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' Will combine with 6b (AMF)
 #' 
 #' ## Fungi‒pfg correlations
 fungi_resto <- its_div %>% 
@@ -1005,7 +973,8 @@ nlfa_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
+  # labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
+  labs(x = NULL, y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   lims(y = c(0, 75)) +
   theme_cor +
@@ -1076,18 +1045,14 @@ fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
 #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
 fig3
 #' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
-#' NLFA biomass **b** (95 % CI, letters = Tukey groups). PCoA of BC distances on proportion of biomass abundance data
+#' biomass **b** (`r Biomass~(nmol[NLFA]%*%g[soil]^-1)`, 95 % CI, letters = Tukey groups). 
+#' PCoA of BC distances on proportion of biomass abundance data
 #' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
 #' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
-#' prairie types. Shading: corn grey, restored black, remnant white.
-
+#' prairie types. 
 #+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig3.png"),
-       plot = fig3,
-       width = 6.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = "svg",
+       width = 6.5, height = 4, units = "in")
 #' 
 #' ### Sequence-based relative abundance, unifrac distance
 #' 
@@ -1142,12 +1107,8 @@ amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
 #+ amf_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 amf_shan_ord_sup
 #+ amf_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS5.png"),
-       plot = amf_shan_ord_sup,
-       width = 7.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "figS5.svg"), plot = amf_shan_ord_sup, device = "svg",
+       width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
 #' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
@@ -1349,7 +1310,9 @@ amf_mod_step$anova %>%
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for
 #' individual p values and statistics.
 #' 
-#' ### AMF constrained figure
+#' #### AMF constrained figure
+#' Produce figure objects. Code for multipanel fig 6 is shown in the saprotroph section.
+#+ amf_fig6_objects
 amf_mod_step_eig <- round(amf_mod_step$CCA$eig * 100, 1)
 amf_mod_scor <- scores(
   amf_mod_step,
@@ -1377,34 +1340,9 @@ amf_mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1,
     d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-#+ fig6b,warning=FALSE,fig.height=4,fig.width=4
-fig6b <-
-  ggplot(amf_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
-  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
-  geom_text(data = amf_mod_scor_bp,
-            aes(x = (labx), y = laby, label = envlabs),
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20") +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("Axis 1 (", amf_mod_axpct[1], "%)"),
-    y = paste0("Axis 2 (", amf_mod_axpct[2], "%)")) +
-  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' Will combine with similar figs in the saprotrophs section
 #' 
 #' ## AMF correlations with pfg
 amf_resto <- amf_div %>% 
@@ -1578,7 +1516,8 @@ patho_ma_fig <-
   ggplot(summary(patho_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  labs(x = NULL, y = "Biomass (Abun. Scl.)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -1644,7 +1583,8 @@ fig4 <- (fig4_ls | plot_spacer() | patho_ma_ord) +
 #+ fig4,warning=FALSE,fig.height=4,fig.width=6.5
 fig4
 #' **Fig 4.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** sequence abundance are shown as columns with 95 % CIs.
+#' **a** OTU richness and **b** biomass (`r expression(Biomass~(nmol[PLFA]%*%g[soil]^-1)%*%(prop.~seq.~abund.))`) 
+#' are shown as columns with 95 % CIs.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
 #' distances: small points = sites, large circles = field-type centroids (error bars =
 #' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
@@ -1652,12 +1592,8 @@ fig4
 #' percent variation explained. 
 #' 
 #+ fig4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig4.png"),
-       plot = fig4,
-       width = 6.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = "svg",
+       width = 6.5, height = 4, units = "in")
 #' 
 #' ### Sequence-based relative abundance
 d_patho <- patho %>% 
@@ -1712,12 +1648,8 @@ patho_shan_ord_sup <- (patho_shan_fig | plot_spacer() | patho_ord) +
 #+ patho_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 patho_shan_ord_sup
 #+ patho_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS6.png"),
-       plot = patho_shan_ord_sup,
-       width = 7.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "figS6.svg"), plot = patho_shan_ord_sup, device = "svg",
+       width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
 #' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
@@ -1731,7 +1663,6 @@ patho_protest <- protest(
 patho_protest
 #' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(patho_protest$scale^2, 2)`, p<0.001. 
-#' 
 #' 
 #' ## Pathogen Indicator Species
 #' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
@@ -1769,6 +1700,22 @@ patho_mod_step
 #' Based on permutation tests with n=1999 permutations, 
 #' after accounting for inter-site pairwise distance as a covariate, the model shows 
 #' no significant correlation between pathogen community turnover and explanatory variables.
+#' 
+#' #### Pathogen (un)constrained figure
+#' Produce figure objects. In this case the panel will show a PCoA ordination of sites based on 
+#' pathogen communities. Code for multipanel fig 6 is shown in the saprotroph section.
+#+ patho_fig6_objects
+patho_mod_eig <- round(patho_mod_step$CA$eig / sum(patho_mod_step$CA$eig) * 100, 1)[1:2]
+patho_mod_scor <- scores(
+  patho_mod_step,
+  choices = c(1, 2),
+  display = c("sites"),
+  tidy = FALSE
+)
+patho_mod_scor_site <- patho_mod_scor %>%
+  data.frame() %>%
+  rownames_to_column(var = "field_name") %>%
+  left_join(sites, by = join_by(field_name))
 #' 
 #' 
 #' ## Pathogen correlation with plant functional groups
@@ -1878,8 +1825,7 @@ fig7 <-
             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = "Grass–forb index",
-    y = "Pathogen mass",
-    caption = paste0("Curve shown at median fungal biomass")
+    y = "Pathogen mass"
   ) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_cor +
@@ -1890,14 +1836,9 @@ fig7 <-
 #+ fig7,warning=FALSE,fig.height=4,fig.width=4
 fig7
 #+ fig7_save,warning=FALSE,echo=FALSE
-ggsave(
-  root_path("figs", "fig7.png"),
-  plot = fig7,
-  width = 4,
-  height = 4,
-  units = "in",
-  dpi = 600
-)
+ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = "svg",
+       width = 4, height = 4, units = "in")
+#' 
 #' ### Additional support
 #' #### Plant functional groups and relative pathogen proportion
 #' Does the relative proportion of pathogens increase with gf_index?
@@ -2106,7 +2047,8 @@ sapro_ma_fig <-
   ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  labs(x = NULL, y = "Biomass (Abun. Scl.)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -2171,7 +2113,8 @@ fig5 <- (fig5_ls | plot_spacer() | sapro_ma_ord) +
 #+ fig5,warning=FALSE,fig.height=4,fig.width=6.5
 fig5
 #' **Fig 5.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** sequence abundance are shown as columns with 95 % CIs.
+#' **a** OTU richness and **b** biomass (`r expression(Biomass~(nmol[PLFA]%*%g[soil]^-1)%*%(prop.~seq.~abund.))`) 
+#' are shown as columns with 95 % CIs.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
 #' distances: small points = sites, large circles = field-type centroids (error bars =
 #' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
@@ -2179,12 +2122,8 @@ fig5
 #' percent variation explained. Colours/shading: corn = grey, restored = black,
 #' remnant = white.
 #+ fig5_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig5.png"),
-       plot = fig5,
-       width = 6.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "fig5.svg"), plot = fig5, device = "svg",
+       width = 6.5, height = 4, units = "in")
 #' 
 #' ### Sequence-based relative abundance
 #+ sapro_ord
@@ -2239,12 +2178,8 @@ sapro_shan_ord_sup <- (sapro_shan_fig | plot_spacer() | sapro_ord) +
 #+ sapro_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 sapro_shan_ord_sup
 #+ sapro_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS7.png"),
-       plot = sapro_shan_ord_sup,
-       width = 7.5,
-       height = 4,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "figS7.svg"), plot = sapro_shan_ord_sup, device = "svg",
+       width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
 #' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
@@ -2302,7 +2237,7 @@ sapro_mod_step$anova %>%
 #' variation. Selected explanatory variables are SOM, grass-forb index, plant richness,
 #' and nitrate; see table for individual p values and statistics.
 #' 
-#' ### Saprotroph constrained figure
+#' #### Saprotroph constrained figure
 sapro_mod_step_eig <- round(sapro_mod_step$CCA$eig * 100, 1)
 sapro_mod_scor <- scores(
   sapro_mod_step,
@@ -2318,7 +2253,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'OM'", "'>forb'", "atop('plant','rich')", 'NO[3]^"–"')),
+    mutate(envlabs = c("'OM'", "'>forb'", "plant~spp.", 'NO[3]^"–"')),
   data.frame(
     envvar = "gf_index",
     dbRDA1 = -sapro_mod_scor$biplot["gf_index", 1],
@@ -2330,28 +2265,92 @@ sapro_mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1,
     d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-#+ fig6c,warning=FALSE,fig.height=4,fig.width=4
+#' 
+#' #### All groups constrained figure
+#' All soil fungi
+#+ fig6a
+fig6a <- 
+  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_segment(data = mod_scor_bp, 
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20", "gray20")) +
+  geom_text(data = mod_scor_bp, 
+            aes(x = labx, y = laby, label = envlabs), 
+            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
+            size = 3, color = "black", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA Axis 1 (", mod_axpct[1], "%)"),
+    y = paste0("db-RDA Axis 2 (", mod_axpct[2], "%)")) +
+  lims(x = c(-0.95,1.6)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' AMF
+#+ fig6b
+fig6b <-
+  ggplot(amf_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
+  geom_segment(data = amf_mod_scor_bp,
+               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20")) +
+  geom_text(data = amf_mod_scor_bp,
+            aes(x = (labx), y = laby, label = envlabs),
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA Axis 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("db-RDA Axis 2 (", amf_mod_axpct[2], "%)")) +
+  lims(x = c(-1.2,1.2)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' Pathogens, PCoA fig
+#+ fig6c
 fig6c <-
+  ggplot(patho_mod_scor_site, aes(x = (MDS1), y = MDS2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("PCoA Axis 1 (", patho_mod_eig[1], "%)"),
+    y = paste0("PCoA Axis 2 (", patho_mod_eig[2], "%)")) +
+  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' Saprotrophs
+#+ fig6d
+fig6d <-
   ggplot(sapro_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
-  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("gray20", "gray20", "darkblue", "darkblue", "gray20")) +
   geom_text(data = sapro_mod_scor_bp,
-            aes(x = (labx), y = laby, label = envlabs), parse = TRUE,
+            aes(x = (labx), y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Axis 1 (", sapro_mod_axpct[1], "%)"),
-    y = paste0("Axis 2 (", sapro_mod_axpct[2], "%)")) +
-  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+    x = paste0("db-RDA Axis 1 (", sapro_mod_axpct[1], "%)"),
+    y = paste0("db-RDA Axis 2 (", sapro_mod_axpct[2], "%)")) +
+  lims(x = c(-0.9,1.7)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -2361,27 +2360,25 @@ fig6c <-
 #' #### Unified figure
 #' Display results of constrained analyses
 #+ fig6_patchwork,warning=FALSE
-fig6 <- (fig6a | plot_spacer() | fig6b | plot_spacer() | fig6c) +
-  plot_layout(widths = c(0.50, 0.01, 0.50, 0.01, 0.50)) +
+fig6up <- (fig6a | plot_spacer() | fig6b) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6dn <- (fig6c | plot_spacer() | fig6d) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6 <- (fig6up / fig6dn) +
+  plot_layout(widths = c(0.50, 0.50)) +
   plot_annotation(tag_levels = 'A')
 #+ fig6,warning=FALSE,fig.height=4,fig.width=6.5
-# fig6
-#' Results of constrained analysis on **a** whole-soil fungi, **b** arbuscular mycorrhizal fungi, 
-#' and **c** saprotrophs.
-#' Percent variation explained by each constrained axis is shown with axis labels. Points show locations
-#' of restored fields (green) and remnant fields (blue) in Wisconsin based on fungal 
-#' community distance. Blue arrows show the grass-forb 
-#' index with labels indicating the direction of relative increase in grasses or forbs, respectively,
-#' along the index. The black arrows show significant constraints from soil properties. 
+fig6
+#' Fungal community ordinations which are constrained or unconstrained by explanatory variables. 
+#' Panels show results for all soil fungi **a**, amf **b**, pathogens **c**, and saprotrophs **d**.
+#' Percent of constrained (db-RDA) and unconstrained (PCoA) variation explained is shown with axis labels.
+#' For explanatory variables with significant community correlations, blue arrows show the grass-forb index 
+#' with labels indicating the direction of relative increase in 
+#' C4 grasses or forbs, respectively, along the index. The black arrows show other significant constraining
+#' variables. Points show locations of restored fields (green) and remnant fields (blue) in Wisconsin. 
 #+ fig6_save,warning=FALSE,echo=FALSE
-ggsave(
-  root_path("figs", "fig6.png"),
-  plot = fig6,
-  width = 6.5,
-  height = 3.25,
-  units = "in",
-  dpi = 600
-)
+ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = "svg",
+       width = 6.5, height = 6.5, units = "in")
 #' 
 #' ## Saprotroph correlations with plant community
 sapro_resto <- its_guild %>% 

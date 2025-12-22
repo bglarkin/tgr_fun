@@ -237,14 +237,8 @@ rare_fig <- rare_fig + plot_annotation(
 #+ rarefaction_fig,fig.width=7,fig.height=4
 rare_fig
 #+ rarefaction_fig_save
-ggsave(
-  root_path("figs", "figS1.png"),
-  plot = rare_fig,
-  height = 4.24,
-  width = 7.5,
-  units = "in",
-  dpi = 600
-)
+ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = "svg",
+       height = 4.24,width = 7.5, units = "in")
 
 #+ species_accumulation_fig,fig.width=7,fig.height=4
 accum_fig <- 
@@ -259,16 +253,5 @@ accum_fig <-
     theme(legend.position = "none", 
           plot.margin = unit(c(0,2,4,2), "mm"))
 #+ accum_fig_save
-ggsave(
-  root_path("figs", "figS2.png"),
-  plot = accum_fig,
-  height = 4.25,
-  width = 7.5,
-  units = "in",
-  dpi = 600
-)
-
-
-
-
-
+ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = "svg",
+       height = 4.25, width = 7.5, units = "in")
