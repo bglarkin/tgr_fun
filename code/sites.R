@@ -403,7 +403,7 @@ legend_plot <-
   ) +
   scale_fill_manual(
     values = ft_pal,
-    name = "Field type",
+    name = "Field Type",
     breaks = levels(sites_plot$field_type)
   ) +
   guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
@@ -418,7 +418,6 @@ legend_plot <-
     plot.margin          = margin(0, 0, 0, 0)
   )
 legend_grob <- cowplot::get_legend(legend_plot)
-
 credits_grob <- textGrob(
   "Roads: © OpenStreetMap contributors via {osmextract}\nBoundaries & Names: Natural Earth via {rnaturalearth}",
   x = unit(1, "npc") - unit(3, "mm"),
@@ -427,7 +426,6 @@ credits_grob <- textGrob(
   vjust = 0.5,
   gp = gpar(cex = 0.5, col = "grey20")
 )
-
 footer_row <- arrangeGrob(
   grobs   = list(legend_grob, credits_grob),
   ncol    = 2,

@@ -55,7 +55,7 @@ theme_cor <-
     plot.margin = margin(t = 0, r = 0, b = 1, l = 1, unit = "mm"),
     axis.title.x = element_text(
       size = 10, face = 1,
-      margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
+      margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
       size = 10, face = 1,

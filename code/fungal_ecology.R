@@ -223,8 +223,8 @@ pfg_comp <-
 pfg_comp_fig <- 
   ggplot(pfg_comp, aes(x = fct_reorder(xlab, -gf_index), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
-  labs(x = NULL, y = "Percent composition") +
-  scale_fill_discrete_qualitative(name = "Functional\ngroup", palette = "pfg-col", rev = FALSE) +
+  labs(x = NULL, y = "Percent Composition") +
+  scale_fill_discrete_qualitative(name = "Functional\nGroup", palette = "pfg-col", rev = FALSE) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -243,8 +243,8 @@ gf_pct_fig <-
   ggplot(pfg_pct, aes(x = fct_reorder(xlab, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  scale_color_manual(name = "Functional\ngroup", values = gfi_cols) +
-  labs(x = NULL, y = "Percent cover") +
+  scale_color_manual(name = "Functional\nGroup", values = gfi_cols) +
+  labs(x = NULL, y = "Percent Cover") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -254,8 +254,8 @@ gfi_loc_fig <-
   ggplot(aes(x = -gf_index, y = rep("PCA\nAxis 1", nrow(gfi_yrs)))) + 
   geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
   geom_point(aes(color = field_type), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  labs(y = NULL, x = "Grass-forb index") +
-  scale_color_manual(name = "Field type", values = ft_pal[2:3]) +
+  labs(y = NULL, x = "Grass-Forb index") +
+  scale_color_manual(name = "Field Type", values = ft_pal[2:3]) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1),
@@ -472,7 +472,7 @@ its_shan_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   lims(y = c(0, 160)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -508,7 +508,7 @@ plfa_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  labs(x = NULL, y = "Biomass") +
+  labs(x = "Field Type", y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -917,7 +917,7 @@ amf_shan_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   lims(y = c(0, 32)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -974,7 +974,7 @@ nlfa_fig <-
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
   # labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
-  labs(x = NULL, y = "Biomass") +
+  labs(x = "Field Type", y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   lims(y = c(0, 75)) +
   theme_cor +
@@ -1480,7 +1480,7 @@ patho_shan_fig <-
   ggplot(summary(patho_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   # lims(y = c(0, 160)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -1517,7 +1517,7 @@ patho_ma_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  labs(x = NULL, y = "Biomass (Abun. Scl.)") +
+  labs(x = "Field Type", y = "Biomass (scaled)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -1764,7 +1764,7 @@ plot(parest_m_abs)
 crPlots(parest_m_abs)
 #' Slight leverage at the left tail of fungi mass; no serious leverage 
 #' visible with gf_index. 
-avPlots(parest_m_abs)
+(parest_m_abs_av <- avPlots(parest_m_abs))
 #' Relationships appear monotonic and both appear clean (in log-log space). 
 ncvTest(parest_m_abs)
 #' Diagnostics (Shapiro p=0.693; NCV p=0.801; HC3 and LOOCV stable) support the additive log–log model.
@@ -1814,30 +1814,72 @@ pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%
     lwr_med = exp(.fitted - 1.96 * .se.fit),
     upr_med = exp(.fitted + 1.96 * .se.fit)
   )
-#+ fig7_data,warning=FALSE
-fig7 <- 
+#+ fig7a,warning=FALSE
+fig7a <- 
   ggplot(pred, aes(x = gf_index, y = fit_med)) +
-  geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+  # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
   geom_line(color = "black", linewidth = lw) +
   geom_point(data = patho_resto, aes(x = gf_index, y = patho_mass, fill = field_type),
              size = sm_size, stroke = lw, shape = 21) +
   geom_text(data = patho_resto, aes(x = gf_index, y = patho_mass, label = yr_since), 
             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = "Grass–forb index",
-    y = "Pathogen mass"
+    x = "Grass–Forb Index",
+    y = "Pathogen Biomass (scaled)",
+    tag = "A"
   ) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_cor +
-  theme(legend.position = "none")
-
-# CONSIDER adding avplot to fig7 as smaller panels...
-
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#+ fig7b,warning=FALSE
+fig7b <- 
+  cbind(parest_m_abs_av$fungi_mass_lc, patho_resto %>% select(field_name:region)) %>% 
+  ggplot(aes(x = fungi_mass_lc, y = `log(patho_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = "Residual Fungal Biomass", y = NULL, tag = "B") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+#+ fig7c,warning=FALSE
+fig7c <- 
+  cbind(parest_m_abs_av$gf_index, patho_resto %>% select(field_name:region)) %>% 
+  ggplot(aes(x = gf_index, y = `log(patho_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = "Residual Grass–Forb Index", y = NULL, tag = "C") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+fig7yax_grob <- textGrob(
+  "Residual Pathogen Biomass (scaled, log)",
+  x = 0.5,
+  y = 0.5,
+  hjust = 0.5,
+  vjust = 0.5,
+  rot = 90,
+  gp = gpar(cex = 10/12)
+)
+#+ fig7_patchwork
+fig7rh <- (fig7b / plot_spacer() / fig7c) +
+  plot_layout(heights = c(0.5, 0.01,0.5))
+fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
+  plot_layout(widths = c(0.60, 0.005, 0.01, 0.40))
 #+ fig7,warning=FALSE,fig.height=4,fig.width=4
 fig7
 #+ fig7_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = "svg",
-       width = 4, height = 4, units = "in")
+       width = 6.5, height = 4.5, units = "in")
 #' 
 #' ### Additional support
 #' #### Plant functional groups and relative pathogen proportion
@@ -2014,7 +2056,7 @@ sapro_shan_fig <-
   ggplot(summary(sapro_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -2048,7 +2090,7 @@ sapro_ma_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  labs(x = NULL, y = "Biomass (Abun. Scl.)") +
+  labs(x = "Field Type", y = "Biomass (scaled)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
