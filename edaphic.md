@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 16 December, 2025
+Last updated: 22 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -112,14 +112,10 @@ summary(soil_pca)
     ## Eigenvalues, and their contribution to the variance 
     ## 
     ## Importance of components:
-    ##                          PC1    PC2    PC3    PC4     PC5     PC6     PC7     PC8     PC9     PC10     PC11    PC12
-    ## Eigenvalue            4.4790 2.3301 1.7896 1.4132 1.16188 0.70120 0.38467 0.27747 0.20308 0.129286 0.069183 0.04186
-    ## Proportion Explained  0.3445 0.1792 0.1377 0.1087 0.08938 0.05394 0.02959 0.02134 0.01562 0.009945 0.005322 0.00322
-    ## Cumulative Proportion 0.3445 0.5238 0.6614 0.7701 0.85952 0.91346 0.94305 0.96440 0.98002 0.989963 0.995285 0.99851
-    ##                           PC13
-    ## Eigenvalue            0.019432
-    ## Proportion Explained  0.001495
-    ## Cumulative Proportion 1.000000
+    ##                          PC1    PC2    PC3    PC4     PC5     PC6     PC7     PC8     PC9     PC10     PC11    PC12     PC13
+    ## Eigenvalue            4.4790 2.3301 1.7896 1.4132 1.16188 0.70120 0.38467 0.27747 0.20308 0.129286 0.069183 0.04186 0.019432
+    ## Proportion Explained  0.3445 0.1792 0.1377 0.1087 0.08938 0.05394 0.02959 0.02134 0.01562 0.009945 0.005322 0.00322 0.001495
+    ## Cumulative Proportion 0.3445 0.5238 0.6614 0.7701 0.85952 0.91346 0.94305 0.96440 0.98002 0.989963 0.995285 0.99851 1.000000
 
 Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6
 account for 91%.
@@ -353,10 +349,6 @@ figS4
 ![](resources/edaphic_files/figure-gfm/figS4-1.png)<!-- -->
 
 ``` r
-ggsave(root_path("figs", "figS4.png"),
-       plot = figS4,
-       width = 7.5,
-       height = 4.25,
-       units = "in",
-       dpi = 600)
+ggsave(root_path("figs", "figS4.svg"), plot = figS4, device = "svg",
+       width = 7.5, height = 4.25, units = "in")
 ```

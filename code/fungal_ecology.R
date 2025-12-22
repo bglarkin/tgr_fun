@@ -28,7 +28,7 @@
 # Libraries ———————— ####
 #+ packages,message=FALSE
 packages_needed <- c(
-  "colorspace", "emmeans", "gridExtra", "knitr", "tidyverse", "vegan",
+  "colorspace", "emmeans", "grid", "gridExtra", "knitr", "tidyverse", "vegan",
   "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
   "ggpubr", "patchwork", "car", "performance", "boot", "indicspecies",
   "MASS", "DHARMa", "broom", "rlang", "rsq", "purrr", "sandwich", "lmtest"
@@ -576,7 +576,7 @@ fig2 <- (fig2_ls | plot_spacer() | its_ma_ord) +
 #+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
 fig2
 #' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** fungal biomass (`r expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))`) 
+#' **a** OTU richness and **b** fungal biomass (nmol PLFA g soil^-1)
 #' are shown as columns with 95 % CIs; lowercase
 #' letters mark significant pairwise differences.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
@@ -1045,7 +1045,7 @@ fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
 #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
 fig3
 #' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
-#' biomass **b** (`r Biomass~(nmol[NLFA]%*%g[soil]^-1)`, 95 % CI, letters = Tukey groups). 
+#' biomass **b** (nmol NLFA g soil^-1), 95 % CI, letters = Tukey groups). 
 #' PCoA of BC distances on proportion of biomass abundance data
 #' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
 #' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
@@ -1583,7 +1583,7 @@ fig4 <- (fig4_ls | plot_spacer() | patho_ma_ord) +
 #+ fig4,warning=FALSE,fig.height=4,fig.width=6.5
 fig4
 #' **Fig 4.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** biomass (`r expression(Biomass~(nmol[PLFA]%*%g[soil]^-1)%*%(prop.~seq.~abund.))`) 
+#' **a** OTU richness and **b** biomass (nmol PLFA g soil^-1 * (proportional sequence abundance)) 
 #' are shown as columns with 95 % CIs.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
 #' distances: small points = sites, large circles = field-type centroids (error bars =
@@ -2155,7 +2155,7 @@ fig5 <- (fig5_ls | plot_spacer() | sapro_ma_ord) +
 #+ fig5,warning=FALSE,fig.height=4,fig.width=6.5
 fig5
 #' **Fig 5.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** biomass (`r expression(Biomass~(nmol[PLFA]%*%g[soil]^-1)%*%(prop.~seq.~abund.))`) 
+#' **a** OTU richness and **b** biomass (nmol PLFA g soil^-1 * (proportional sequence abundance)) 
 #' are shown as columns with 95 % CIs.
 #' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
 #' distances: small points = sites, large circles = field-type centroids (error bars =

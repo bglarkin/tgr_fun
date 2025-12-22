@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 16 December, 2025
+Last updated: 22 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -79,7 +79,7 @@ Cartesian inter‑site distance enters models as a covariate per [Redondo
 
 ``` r
 packages_needed <- c(
-  "colorspace", "emmeans", "gridExtra", "knitr", "tidyverse", "vegan",
+  "colorspace", "emmeans", "grid", "gridExtra", "knitr", "tidyverse", "vegan",
   "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
   "ggpubr", "patchwork", "car", "performance", "boot", "indicspecies",
   "MASS", "DHARMa", "broom", "rlang", "rsq", "purrr", "sandwich", "lmtest"
@@ -392,8 +392,8 @@ pfg_comp <-
 pfg_comp_fig <- 
   ggplot(pfg_comp, aes(x = fct_reorder(xlab, -gf_index), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
-  labs(x = NULL, y = "Percent composition") +
-  scale_fill_discrete_qualitative(name = "Functional\ngroup", palette = "pfg-col", rev = FALSE) +
+  labs(x = NULL, y = "Percent Composition") +
+  scale_fill_discrete_qualitative(name = "Functional\nGroup", palette = "pfg-col", rev = FALSE) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -412,8 +412,8 @@ gf_pct_fig <-
   ggplot(pfg_pct, aes(x = fct_reorder(xlab, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  scale_color_manual(name = "Functional\ngroup", values = gfi_cols) +
-  labs(x = NULL, y = "Percent cover") +
+  scale_color_manual(name = "Functional\nGroup", values = gfi_cols) +
+  labs(x = NULL, y = "Percent Cover") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -423,8 +423,8 @@ gfi_loc_fig <-
   ggplot(aes(x = -gf_index, y = rep("PCA\nAxis 1", nrow(gfi_yrs)))) + 
   geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
   geom_point(aes(color = field_type), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  labs(y = NULL, x = "Grass-forb index") +
-  scale_color_manual(name = "Field type", values = ft_pal[2:3]) +
+  labs(y = NULL, x = "Grass-Forb index") +
+  scale_color_manual(name = "Field Type", values = ft_pal[2:3]) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1),
@@ -872,7 +872,7 @@ its_shan_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   lims(y = c(0, 160)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -966,7 +966,8 @@ plfa_fig <-
   ggplot(summary(plfa_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  labs(x = "Field Type", y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -1100,13 +1101,13 @@ fig2
 
 **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and
 **remnant** prairie fields. **a** OTU richness and **b** fungal biomass
-(PLFA) are shown as columns with 95 % CIs; lowercase letters mark
-significant pairwise differences. **c** Principal-coordinate (PCoA)
-ordination of ITS-based (97 % OTU) community distances: small points =
-sites, large circles = field-type centroids (error bars = 95 % CI).
-Cornfields cluster apart from restored or remnant prairies. Numbers in
-black circles give years since restoration. Axis labels show the percent
-variation explained.
+(nmol PLFA g soil^-1) are shown as columns with 95 % CIs; lowercase
+letters mark significant pairwise differences. **c**
+Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
+distances: small points = sites, large circles = field-type centroids
+(error bars = 95 % CI). Cornfields cluster apart from restored or
+remnant prairies. Numbers in circles give years since restoration. Axis
+labels show the percent variation explained.
 
 ### Sequence-based relative abundance
 
@@ -1364,8 +1365,7 @@ mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH + pl_rich, data = env_expl, distance
-    ## = "bray")
+    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH + pl_rich, data = env_expl, distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.3581     1.0000     
@@ -1455,8 +1455,8 @@ selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community
 variation. Selected explanatory variables are pH and the grass-forb
 index; see table for individual p values and statistics.
 
-Create the figure, combine with pathogen-plant correlation figure in
-patchwork later:
+Create the figure objects. Figure 6 will be produced with panels from
+other groups, see code in the saprotrophs section.
 
 ``` r
 mod_step_eig <- round(mod_step$CCA$eig * 100, 1)
@@ -1474,7 +1474,7 @@ mod_scor_bp <- bind_rows(
   mod_scor$biplot %>% 
     data.frame() %>% 
     rownames_to_column(var = "envvar") %>% 
-    mutate(envlabs = c(">forb", "pH", "plant\nrich")),
+    mutate(envlabs = c(">forb", "pH", "plant spp.")),
   data.frame(
     envvar = "gf_index",
     dbRDA1 = -mod_scor$biplot["gf_index", 1],
@@ -1486,37 +1486,10 @@ mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1, 
     d = sqrt(dbRDA1^2 + dbRDA2^2), 
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.05,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
-
-``` r
-fig6a <- 
-  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  geom_segment(data = mod_scor_bp, 
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20", "gray20")) +
-  geom_text(data = mod_scor_bp, 
-            aes(x = labx, y = laby, label = envlabs), 
-            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
-            size = 3, color = "black") +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("Axis 1 (", mod_axpct[1], "%)"),
-    y = paste0("Axis 2 (", mod_axpct[2], "%)")) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-```
-
-Will combine with 6b (AMF)
 
 ## Fungi‒pfg correlations
 
@@ -1929,7 +1902,7 @@ amf_shan_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   lims(y = c(0, 32)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -1951,7 +1924,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-68-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -2016,7 +1989,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-69-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -2032,7 +2005,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-69-2.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2121,7 +2094,8 @@ nlfa_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
   geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
+  # labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
+  labs(x = "Field Type", y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   lims(y = c(0, 75)) +
   theme_cor +
@@ -2259,12 +2233,12 @@ fig3
 ![](resources/fungal_ecology_files/figure-gfm/fig3-1.png)<!-- -->
 
 **Fig 3.** AMF communities in corn, restored, and remnant prairie
-fields. OTU richness **a**; NLFA biomass **b** (95 % CI, letters = Tukey
-groups). PCoA of BC distances on proportion of biomass abundance data
-(18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type
-centroids ±95 % CI. Numbers in points give years since restoration. Axes
-show % variance. Corn clusters apart from both prairie types. Shading:
-corn grey, restored black, remnant white.
+fields. OTU richness **a**; biomass **b** (nmol NLFA g soil^-1), 95 %
+CI, letters = Tukey groups). PCoA of BC distances on proportion of
+biomass abundance data (18S, 97 % OTUs) **c**: small points = sites,
+large rings = field‑type centroids ±95 % CI. Numbers in points give
+years since restoration. Axes show % variance. Corn clusters apart from
+both prairie types.
 
 ### Sequence-based relative abundance, unifrac distance
 
@@ -2435,7 +2409,7 @@ par(mfrow = c(2,2))
 plot(glom_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-73-1.png)<!-- -->
 
 ``` r
 distribution_prob(glom_lm)
@@ -2499,7 +2473,7 @@ par(mfrow = c(2,2))
 plot(glom_lm_log) # some improvement, leverage point still exists
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-77-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
 
 ``` r
 ncvTest(glom_lm_log) # p=0.29, null of constant variance not rejected, model fit is improved
@@ -2522,7 +2496,7 @@ glom_glm_diag <- glm.diag(glom_glm)
 glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
 
 ``` r
 check_model(glom_glm) # corroborates
@@ -2576,7 +2550,7 @@ par(mfrow = c(2,2))
 plot(clar_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-80-1.png)<!-- -->
 
 ``` r
 distribution_prob(clar_lm)
@@ -2622,7 +2596,7 @@ clar_glm_diag <- glm.diag(clar_glm)
 glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-84-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
 
 ``` r
 check_model(clar_glm) # corroborates
@@ -2676,7 +2650,7 @@ par(mfrow = c(2,2))
 plot(para_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-86-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-85-1.png)<!-- -->
 
 ``` r
 distribution_prob(para_lm)
@@ -2722,7 +2696,7 @@ para_glm_diag <- glm.diag(para_glm)
 glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-89-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-88-1.png)<!-- -->
 
 ``` r
 check_model(para_glm) # corroborates
@@ -2781,7 +2755,7 @@ diver_glm_diag <- glm.diag(diver_glm)
 glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-91-1.png)<!-- -->
 
 ``` r
 check_model(diver_glm) # corroborates
@@ -3064,7 +3038,10 @@ selected variables explain $R^{2}_{\text{Adj}}$=35.1% of the community
 variation. Selected explanatory variables are pH and the grass-forb
 index; see table for individual p values and statistics.
 
-### AMF constrained figure
+#### AMF constrained figure
+
+Produce figure objects. Code for multipanel fig 6 is shown in the
+saprotroph section.
 
 ``` r
 amf_mod_step_eig <- round(amf_mod_step$CCA$eig * 100, 1)
@@ -3094,38 +3071,10 @@ amf_mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1,
     d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
-
-``` r
-fig6b <-
-  ggplot(amf_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
-  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
-  geom_text(data = amf_mod_scor_bp,
-            aes(x = (labx), y = laby, label = envlabs),
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20") +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("Axis 1 (", amf_mod_axpct[1], "%)"),
-    y = paste0("Axis 2 (", amf_mod_axpct[2], "%)")) +
-  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-```
-
-Will combine with similar figs in the saprotrophs section
 
 ## AMF correlations with pfg
 
@@ -3532,7 +3481,7 @@ patho_shan_fig <-
   ggplot(summary(patho_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   # lims(y = c(0, 160)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -3549,7 +3498,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-116-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-114-1.png)<!-- -->
 
 no serious violations observed
 
@@ -3626,7 +3575,8 @@ patho_ma_fig <-
   ggplot(summary(patho_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  labs(x = "Field Type", y = "Biomass (scaled)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -3760,12 +3710,13 @@ fig4
 
 **Fig 4.** Putative plant pathogen communities in **corn**,
 **restored**, and **remnant** prairie fields. **a** OTU richness and
-**b** sequence abundance are shown as columns with 95 % CIs. **c**
-Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
-distances: small points = sites, large circles = field-type centroids
-(error bars = 95 % CI). Cornfields cluster apart from restored or
-remnant prairies (P \< 0.01). Numbers in black circles give years since
-restoration. Axis labels show the percent variation explained.
+**b** biomass (nmol PLFA g soil^-1 \* (proportional sequence abundance))
+are shown as columns with 95 % CIs. **c** Principal-coordinate (PCoA)
+ordination of ITS-based (97 % OTU) community distances: small points =
+sites, large circles = field-type centroids (error bars = 95 % CI).
+Cornfields cluster apart from restored or remnant prairies (P \< 0.01).
+Numbers in black circles give years since restoration. Axis labels show
+the percent variation explained.
 
 ### Sequence-based relative abundance
 
@@ -3932,12 +3883,12 @@ patho_ind %>%
 
 | A | B | stat | p_val_adj | field_type | species | corn_avg | corn_ci | restored_avg | restored_ci | remnant_avg | remnant_ci |
 |---:|---:|---:|---:|:---|:---|---:|---:|---:|---:|---:|---:|
-| 0.975 | 1.00 | 0.987 | 0.037 | corn | Corynespora_cassiicola | 1.28\[38;5;246me\[39m\[31m-2\[39m | 1.13\[38;5;246me\[39m\[31m-2\[39m | 3.28\[38;5;246me\[39m\[31m-4\[39m | 4.00\[38;5;246me\[39m\[31m-4\[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m |
-| 0.866 | 1.00 | 0.930 | 0.037 | corn | Setophoma_terrestris | 7.14\[38;5;246me\[39m\[31m-2\[39m | 3.77\[38;5;246me\[39m\[31m-2\[39m | 8.47\[38;5;246me\[39m\[31m-3\[39m | 6.09\[38;5;246me\[39m\[31m-3\[39m | 2.62\[38;5;246me\[39m\[31m-3\[39m | 3.95\[38;5;246me\[39m\[31m-3\[39m |
-| 1.000 | 0.60 | 0.775 | 0.103 | corn | Pseudocoleophoma_polygonicola | 2.61\[38;5;246me\[39m\[31m-3\[39m | 4.41\[38;5;246me\[39m\[31m-3\[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m |
-| 0.635 | 1.00 | 0.797 | 0.410 | corn | Plectosphaerella_cucumerina | 6.45\[38;5;246me\[39m\[31m-2\[39m | 4.86\[38;5;246me\[39m\[31m-2\[39m | 2.31\[38;5;246me\[39m\[31m-2\[39m | 1.32\[38;5;246me\[39m\[31m-2\[39m | 1.40\[38;5;246me\[39m\[31m-2\[39m | 1.86\[38;5;246me\[39m\[31m-2\[39m |
-| 0.749 | 0.75 | 0.749 | 0.318 | remnant | Ustilago_nunavutica | 1.11\[38;5;246me\[39m\[31m-5\[39m | 2.17\[38;5;246me\[39m\[31m-5\[39m | 1.19\[38;5;246me\[39m\[31m-3\[39m | 1.65\[38;5;246me\[39m\[31m-3\[39m | 3.59\[38;5;246me\[39m\[31m-3\[39m | 4.32\[38;5;246me\[39m\[31m-3\[39m |
-| 0.912 | 0.50 | 0.675 | 0.318 | remnant | Monosporascus_eutypoides | 0 \[38;5;246m \[39m | 0 \[38;5;246m \[39m | 2.30\[38;5;246me\[39m\[31m-5\[39m | 4.51\[38;5;246me\[39m\[31m-5\[39m | 2.38\[38;5;246me\[39m\[31m-4\[39m | 3.08\[38;5;246me\[39m\[31m-4\[39m |
+| 0.975 | 1.00 | 0.987 | 0.037 | corn | Corynespora_cassiicola | 1.28e-2 | 1.13e-2 | 3.28e-4 | 4.00e-4 | 0 | 0 |
+| 0.866 | 1.00 | 0.930 | 0.037 | corn | Setophoma_terrestris | 7.14e-2 | 3.77e-2 | 8.47e-3 | 6.09e-3 | 2.62e-3 | 3.95e-3 |
+| 1.000 | 0.60 | 0.775 | 0.103 | corn | Pseudocoleophoma_polygonicola | 2.61e-3 | 4.41e-3 | 0 | 0 | 0 | 0 |
+| 0.635 | 1.00 | 0.797 | 0.410 | corn | Plectosphaerella_cucumerina | 6.45e-2 | 4.86e-2 | 2.31e-2 | 1.32e-2 | 1.40e-2 | 1.86e-2 |
+| 0.749 | 0.75 | 0.749 | 0.318 | remnant | Ustilago_nunavutica | 1.11e-5 | 2.17e-5 | 1.19e-3 | 1.65e-3 | 3.59e-3 | 4.32e-3 |
+| 0.912 | 0.50 | 0.675 | 0.318 | remnant | Monosporascus_eutypoides | 0 | 0 | 2.30e-5 | 4.51e-5 | 2.38e-4 | 3.08e-4 |
 
 Indicator species analysis results with biomass-aware relative
 abundances in field types
@@ -4022,6 +3973,26 @@ Based on permutation tests with n=1999 permutations, after accounting
 for inter-site pairwise distance as a covariate, the model shows no
 significant correlation between pathogen community turnover and
 explanatory variables.
+
+#### Pathogen (un)constrained figure
+
+Produce figure objects. In this case the panel will show a PCoA
+ordination of sites based on pathogen communities. Code for multipanel
+fig 6 is shown in the saprotroph section.
+
+``` r
+patho_mod_eig <- round(patho_mod_step$CA$eig / sum(patho_mod_step$CA$eig) * 100, 1)[1:2]
+patho_mod_scor <- scores(
+  patho_mod_step,
+  choices = c(1, 2),
+  display = c("sites"),
+  tidy = FALSE
+)
+patho_mod_scor_site <- patho_mod_scor %>%
+  data.frame() %>%
+  rownames_to_column(var = "field_name") %>%
+  left_join(sites, by = join_by(field_name))
+```
 
 ## Pathogen correlation with plant functional groups
 
@@ -4179,22 +4150,54 @@ par(mfrow = c(2,2))
 plot(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
 
 ``` r
 crPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-134-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-2.png)<!-- -->
 
 Slight leverage at the left tail of fungi mass; no serious leverage
 visible with gf_index.
 
 ``` r
-avPlots(parest_m_abs)
+(parest_m_abs_av <- avPlots(parest_m_abs))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-135-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
+
+    ## $fungi_mass_lc
+    ##    fungi_mass_lc log(patho_mass)
+    ## 1     0.41495821      0.41053928
+    ## 2     0.18353079      0.33281645
+    ## 3     0.17065139     -0.19460225
+    ## 4     0.06084059      0.32936418
+    ## 5     0.25767616      0.54401404
+    ## 6     0.23919763      0.62537747
+    ## 7    -0.44258522     -0.31525302
+    ## 8    -0.46682047     -0.81661388
+    ## 9    -0.56733290     -1.11041095
+    ## 10   -0.38938434     -0.82394680
+    ## 11    0.27349213      0.57186618
+    ## 12    0.16721066      0.08201988
+    ## 13    0.09856538      0.36482942
+    ## 
+    ## $gf_index
+    ##        gf_index log(patho_mass)
+    ## 1  -0.043379836     -0.32847740
+    ## 2   0.146235186      0.28491237
+    ## 3   0.192188643     -0.14434710
+    ## 4   0.013497267      0.25449679
+    ## 5  -0.468755790     -0.65993944
+    ## 6  -0.149409844     -0.01040483
+    ## 7   0.144216034      0.63813757
+    ## 8   0.003805646     -0.06111096
+    ## 9  -0.450798517     -0.96022856
+    ## 10 -0.214649537     -0.56108748
+    ## 11  0.216449068      0.49800837
+    ## 12  0.450674459      0.57368608
+    ## 13  0.159927221      0.47635459
 
 Relationships appear monotonic and both appear clean (in log-log space).
 
@@ -4307,31 +4310,85 @@ pred <- augment(parest_m_abs, newdata = newdat, se_fit = TRUE) %>%
 ```
 
 ``` r
-fig7 <- 
+fig7a <- 
   ggplot(pred, aes(x = gf_index, y = fit_med)) +
-  geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+  # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
   geom_line(color = "black", linewidth = lw) +
   geom_point(data = patho_resto, aes(x = gf_index, y = patho_mass, fill = field_type),
              size = sm_size, stroke = lw, shape = 21) +
   geom_text(data = patho_resto, aes(x = gf_index, y = patho_mass, label = yr_since), 
             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = "Grass–forb index",
-    y = "Pathogen mass",
-    caption = paste0("Curve shown at median fungal biomass")
+    x = "Grass–Forb Index",
+    y = "Pathogen Biomass (scaled)",
+    tag = "A"
   ) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_cor +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+```
 
-# CONSIDER adding avplot to fig7 as smaller panels...
+``` r
+fig7b <- 
+  cbind(parest_m_abs_av$fungi_mass_lc, patho_resto %>% select(field_name:region)) %>% 
+  ggplot(aes(x = fungi_mass_lc, y = `log(patho_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = "Residual Fungal Biomass", y = NULL, tag = "B") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+```
+
+``` r
+fig7c <- 
+  cbind(parest_m_abs_av$gf_index, patho_resto %>% select(field_name:region)) %>% 
+  ggplot(aes(x = gf_index, y = `log(patho_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = "Residual Grass–Forb Index", y = NULL, tag = "C") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+fig7yax_grob <- textGrob(
+  "Residual Pathogen Biomass (scaled, log)",
+  x = 0.5,
+  y = 0.5,
+  hjust = 0.5,
+  vjust = 0.5,
+  rot = 90,
+  gp = gpar(cex = 10/12)
+)
+```
+
+``` r
+fig7rh <- (fig7b / plot_spacer() / fig7c) +
+  plot_layout(heights = c(0.5, 0.01,0.5))
+fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
+  plot_layout(widths = c(0.60, 0.005, 0.01, 0.40))
 ```
 
 ``` r
 fig7
 ```
 
+    ## `geom_smooth()` using formula = 'y ~ x'
+    ## `geom_smooth()` using formula = 'y ~ x'
+
 ![](resources/fungal_ecology_files/figure-gfm/fig7-1.png)<!-- -->
+
+    ## `geom_smooth()` using formula = 'y ~ x'
+    ## `geom_smooth()` using formula = 'y ~ x'
 
 ### Additional support
 
@@ -4469,7 +4526,7 @@ par(mfrow = c(1,1))
 crPlots(parest_m_rel, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-141-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_rel)
@@ -4540,14 +4597,14 @@ par(mfrow = c(2,2))
 plot(parest_m_biom)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-145-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
 
 ``` r
 par(mfrow = c(1,1))
 crPlots(parest_m_biom, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-145-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-2.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_biom) # Ok
@@ -4608,6 +4665,28 @@ with(patho_resto %>% left_join(prich, by = join_by(field_name)),
 Pathogen mass and plant richness aren’t correlated, though the direction
 is negative. Plant richness was not signficant in the full log-log model
 (not shown).
+
+Is plant diversity related to pathogen mass?
+
+``` r
+with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
+     cor.test(patho_mass, shannon))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  patho_mass and shannon
+    ## t = 1.2644, df = 11, p-value = 0.2322
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.2423266  0.7583608
+    ## sample estimates:
+    ##       cor 
+    ## 0.3562207
+
+Pathogen mass and plant diversity aren’t correlated, though the
+correlation is positive.
 
 # Putative saprotrophs
 
@@ -4722,7 +4801,7 @@ sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-152-1.png)<!-- -->
 
 Slight improvement to qq plot shape, slightly reduced hatvalue (not
 shown)
@@ -4743,7 +4822,7 @@ sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-154-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point
 
@@ -4950,7 +5029,7 @@ sapro_shan_fig <-
   ggplot(summary(sapro_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Shannon diversity") +
+  labs(x = "Field Type", y = "Shannon Diversity") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -4968,7 +5047,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-163-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-162-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -5038,7 +5117,8 @@ sapro_ma_fig <-
   ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
+  labs(x = "Field Type", y = "Biomass (scaled)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -5171,13 +5251,14 @@ fig5
 
 **Fig 5.** Putative plant pathogen communities in **corn**,
 **restored**, and **remnant** prairie fields. **a** OTU richness and
-**b** sequence abundance are shown as columns with 95 % CIs. **c**
-Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
-distances: small points = sites, large circles = field-type centroids
-(error bars = 95 % CI). Cornfields cluster apart from restored or
-remnant prairies (P \< 0.01). Numbers in black circles give years since
-restoration. Axis labels show the percent variation explained.
-Colours/shading: corn = grey, restored = black, remnant = white.
+**b** biomass (nmol PLFA g soil^-1 \* (proportional sequence abundance))
+are shown as columns with 95 % CIs. **c** Principal-coordinate (PCoA)
+ordination of ITS-based (97 % OTU) community distances: small points =
+sites, large circles = field-type centroids (error bars = 95 % CI).
+Cornfields cluster apart from restored or remnant prairies (P \< 0.01).
+Numbers in black circles give years since restoration. Axis labels show
+the percent variation explained. Colours/shading: corn = grey, restored
+= black, remnant = white.
 
 ### Sequence-based relative abundance
 
@@ -5381,8 +5462,8 @@ sapro_mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + OM + gf_index + pl_rich + NO3, data = env_expl,
-    ## distance = "bray")
+    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + OM + gf_index + pl_rich + NO3, data = env_expl, distance =
+    ## "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.6087     1.0000     
@@ -5474,7 +5555,7 @@ explain $R^{2}_{\text{Adj}}$= 26% of the community variation. Selected
 explanatory variables are SOM, grass-forb index, plant richness, and
 nitrate; see table for individual p values and statistics.
 
-### Saprotroph constrained figure
+#### Saprotroph constrained figure
 
 ``` r
 sapro_mod_step_eig <- round(sapro_mod_step$CCA$eig * 100, 1)
@@ -5492,7 +5573,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'OM'", "'>forb'", "atop('plant','rich')", 'NO[3]^"–"')),
+    mutate(envlabs = c("'OM'", "'>forb'", "plant~spp.", 'NO[3]^"–"')),
   data.frame(
     envvar = "gf_index",
     dbRDA1 = -sapro_mod_scor$biplot["gf_index", 1],
@@ -5504,30 +5585,104 @@ sapro_mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1,
     d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*0.1,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
 
+#### All groups constrained figure
+
+All soil fungi
+
+``` r
+fig6a <- 
+  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_segment(data = mod_scor_bp, 
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20", "gray20")) +
+  geom_text(data = mod_scor_bp, 
+            aes(x = labx, y = laby, label = envlabs), 
+            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
+            size = 3, color = "black", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA Axis 1 (", mod_axpct[1], "%)"),
+    y = paste0("db-RDA Axis 2 (", mod_axpct[2], "%)")) +
+  lims(x = c(-0.95,1.6)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+AMF
+
+``` r
+fig6b <-
+  ggplot(amf_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
+  geom_segment(data = amf_mod_scor_bp,
+               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20")) +
+  geom_text(data = amf_mod_scor_bp,
+            aes(x = (labx), y = laby, label = envlabs),
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA Axis 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("db-RDA Axis 2 (", amf_mod_axpct[2], "%)")) +
+  lims(x = c(-1.2,1.2)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+Pathogens, PCoA fig
+
 ``` r
 fig6c <-
+  ggplot(patho_mod_scor_site, aes(x = (MDS1), y = MDS2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("PCoA Axis 1 (", patho_mod_eig[1], "%)"),
+    y = paste0("PCoA Axis 2 (", patho_mod_eig[2], "%)")) +
+  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+Saprotrophs
+
+``` r
+fig6d <-
   ggplot(sapro_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
-  # geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
-  # geom_vline(xintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.3) +
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("gray20", "gray20", "darkblue", "darkblue", "gray20")) +
   geom_text(data = sapro_mod_scor_bp,
-            aes(x = (labx), y = laby, label = envlabs), parse = TRUE,
+            aes(x = (labx), y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Axis 1 (", sapro_mod_axpct[1], "%)"),
-    y = paste0("Axis 2 (", sapro_mod_axpct[2], "%)")) +
-  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+    x = paste0("db-RDA Axis 1 (", sapro_mod_axpct[1], "%)"),
+    y = paste0("db-RDA Axis 2 (", sapro_mod_axpct[2], "%)")) +
+  lims(x = c(-0.9,1.7)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -5540,23 +5695,31 @@ fig6c <-
 Display results of constrained analyses
 
 ``` r
-fig6 <- (fig6a | plot_spacer() | fig6b | plot_spacer() | fig6c) +
-  plot_layout(widths = c(0.50, 0.01, 0.50, 0.01, 0.50)) +
+fig6up <- (fig6a | plot_spacer() | fig6b) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6dn <- (fig6c | plot_spacer() | fig6d) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6 <- (fig6up / fig6dn) +
+  plot_layout(widths = c(0.50, 0.50)) +
   plot_annotation(tag_levels = 'A')
 ```
 
 ``` r
-# fig6
+fig6
 ```
 
-Results of constrained analysis on **a** whole-soil fungi, **b**
-arbuscular mycorrhizal fungi, and **c** saprotrophs. Percent variation
-explained by each constrained axis is shown with axis labels. Points
-show locations of restored fields (green) and remnant fields (blue) in
-Wisconsin based on fungal community distance. Blue arrows show the
-grass-forb index with labels indicating the direction of relative
-increase in grasses or forbs, respectively, along the index. The black
-arrows show significant constraints from soil properties.
+![](resources/fungal_ecology_files/figure-gfm/fig6-1.png)<!-- -->
+
+Fungal community ordinations which are constrained or unconstrained by
+explanatory variables. Panels show results for all soil fungi **a**, amf
+**b**, pathogens **c**, and saprotrophs **d**. Percent of constrained
+(db-RDA) and unconstrained (PCoA) variation explained is shown with axis
+labels. For explanatory variables with significant community
+correlations, blue arrows show the grass-forb index with labels
+indicating the direction of relative increase in C4 grasses or forbs,
+respectively, along the index. The black arrows show other significant
+constraining variables. Points show locations of restored fields (green)
+and remnant fields (blue) in Wisconsin.
 
 ## Saprotroph correlations with plant community
 
@@ -5624,7 +5787,7 @@ par(mfrow = c(2,2))
 plot(sarest_m_both)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-176-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-175-1.png)<!-- -->
 
 ``` r
 summary(sarest_m_logy)

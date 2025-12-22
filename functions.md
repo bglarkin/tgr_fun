@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 16 December, 2025
+Last updated: 22 December, 2025
 
 - [Description](#description)
   - [Sequence data processing

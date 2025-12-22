@@ -2,7 +2,7 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 16 December, 2025
+Last updated: 22 December, 2025
 
 - [Description](#description)
 - [Resources](#resources)
@@ -316,14 +316,8 @@ rare_fig
 ![](resources/sequence_data_files/figure-gfm/rarefaction_fig-1.png)<!-- -->
 
 ``` r
-ggsave(
-  root_path("figs", "figS1.png"),
-  plot = rare_fig,
-  height = 4.24,
-  width = 7.5,
-  units = "in",
-  dpi = 600
-)
+ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = "svg",
+       height = 4.24,width = 7.5, units = "in")
 ```
 
 ``` r
@@ -341,12 +335,6 @@ accum_fig <-
 ```
 
 ``` r
-ggsave(
-  root_path("figs", "figS2.png"),
-  plot = accum_fig,
-  height = 4.25,
-  width = 7.5,
-  units = "in",
-  dpi = 600
-)
+ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = "svg",
+       height = 4.25, width = 7.5, units = "in")
 ```

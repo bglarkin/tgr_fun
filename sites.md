@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 16 December, 2025
+Last updated: 22 December, 2025
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -38,23 +38,6 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
-
-    ## Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
-
-    ## Loading required package: ggpp
-
-    ## 
-    ## Attaching package: 'ggpp'
-
-    ## The following objects are masked from 'package:ggpubr':
-    ## 
-    ##     as_npc, as_npcx, as_npcy
-
-    ## The following object is masked from 'package:ggplot2':
-    ## 
-    ##     annotate
-
-    ## Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
 
 ## Root path function
 
@@ -267,8 +250,6 @@ cont_box <- st_bbox(c(
 sf_use_s2(FALSE)
 ```
 
-    ## Spherical geometry (s2) switched off
-
 ``` r
 cont_crop <- st_crop(cont, cont_box)
 ```
@@ -346,7 +327,7 @@ Retrieve roads data
 # rd_FG = get_osm_roads(bb_FG, density=8)
 # rd_FL = get_osm_roads(bb_FL, density=8)
 # rd_LP = get_osm_roads(bb_LP, density=8)
-# site_roads <- list(rd_BM, rd_FG, rd_FL, rd_LP)
+# site_roads <- list(rd_BM = rd_BM, rd_FG = rd_FG, rd_FL= rd_FL, rd_LP = rd_LP)
 ```
 
 ### Map styles
@@ -590,7 +571,7 @@ legend_plot <-
   ) +
   scale_fill_manual(
     values = ft_pal,
-    name = "Field type",
+    name = "Field Type",
     breaks = levels(sites_plot$field_type)
   ) +
   guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
@@ -605,7 +586,6 @@ legend_plot <-
     plot.margin          = margin(0, 0, 0, 0)
   )
 legend_grob <- cowplot::get_legend(legend_plot)
-
 credits_grob <- textGrob(
   "Roads: © OpenStreetMap contributors via {osmextract}\nBoundaries & Names: Natural Earth via {rnaturalearth}",
   x = unit(1, "npc") - unit(3, "mm"),
@@ -614,7 +594,6 @@ credits_grob <- textGrob(
   vjust = 0.5,
   gp = gpar(cex = 0.5, col = "grey20")
 )
-
 footer_row <- arrangeGrob(
   grobs   = list(legend_grob, credits_grob),
   ncol    = 2,
@@ -661,13 +640,7 @@ maps_fig
 ![](resources/sites_files/figure-gfm/tgr_map-1.png)<!-- -->
 
 ``` r
-ggsave(
-    root_path("figs/fig1.png"),
-    plot = maps_fig,
-    width = 6.5,
-    height = (6.5 * fhs[3] / fhs[1]) + 1.2, 
-    units = "in",
-    dpi = 600, 
-    bg = "white"
-)
+ggsave(root_path("figs/fig1.svg"), plot = maps_fig, device = "svg",
+    width = 6.5, height = (6.5 * fhs[3] / fhs[1]) + 1.2, units = "in",
+    dpi = 600)
 ```
