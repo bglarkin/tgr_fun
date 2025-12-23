@@ -4382,13 +4382,7 @@ fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plo
 fig7
 ```
 
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
-
 ![](resources/fungal_ecology_files/figure-gfm/fig7-1.png)<!-- -->
-
-    ## `geom_smooth()` using formula = 'y ~ x'
-    ## `geom_smooth()` using formula = 'y ~ x'
 
 ### Additional support
 
