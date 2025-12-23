@@ -1875,9 +1875,9 @@ fig7rh <- (fig7b / plot_spacer() / fig7c) +
   plot_layout(heights = c(0.5, 0.01,0.5))
 fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
   plot_layout(widths = c(0.60, 0.005, 0.01, 0.40))
-#+ fig7,warning=FALSE,fig.height=4,fig.width=4
+#+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig7
-#+ fig7_save,warning=FALSE,echo=FALSE
+#+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = "svg",
        width = 6.5, height = 4.5, units = "in")
 #' 
@@ -2409,7 +2409,7 @@ fig6dn <- (fig6c | plot_spacer() | fig6d) +
 fig6 <- (fig6up / fig6dn) +
   plot_layout(widths = c(0.50, 0.50)) +
   plot_annotation(tag_levels = 'A')
-#+ fig6,warning=FALSE,fig.height=4,fig.width=6.5
+#+ fig6,warning=FALSE,fig.height=7,fig.width=7
 fig6
 #' Fungal community ordinations which are constrained or unconstrained by explanatory variables. 
 #' Panels show results for all soil fungi **a**, amf **b**, pathogens **c**, and saprotrophs **d**.
