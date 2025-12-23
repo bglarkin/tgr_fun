@@ -567,7 +567,7 @@ get_osm_roads <- function(bb, density = 8) {
 }
 #' 
 #' ### Build site-level map panels
-make_zoom_map <- function(bb, panel_tag = NULL, show_counties = FALSE, road_data = NULL) {
+make_zoom_map <- function(bb, panel_tag = NULL, pos = c(0,1), show_counties = FALSE, road_data = NULL) {
   
   crop_states   <- st_crop(cont, bb)
   crop_counties <- if (show_counties) st_crop(st_transform(counties, 4326), bb) else NULL
@@ -599,25 +599,28 @@ make_zoom_map <- function(bb, panel_tag = NULL, show_counties = FALSE, road_data
     ) +
     scale_fill_manual(values = ft_pal) +
     annotation_scale(location = "bl", width_hint = 0.35, height = grid::unit(0.15, "cm")) +
-    geom_label_npc(
-      aes(npcx = 0.02, npcy = 0.98, label = panel_tag %||% ""),
-      color = "indianred",
-      fill = "snow",
-      hjust = "left", vjust = "top",
-      size = 3, fontface = "bold",
-      label.r = unit(0.3, "mm"),
-      label.size = 0.4,
-      label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
-    ) +
+    # geom_label_npc(
+    #   aes(npcx = 0.02, npcy = 0.98, label = panel_tag %||% ""),
+    #   color = "indianred",
+    #   fill = "snow",
+    #   hjust = "left", vjust = "top",
+    #   size = 3, fontface = "bold",
+    #   label.r = unit(0.3, "mm"),
+    #   label.size = 0.4,
+    #   label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
+    # ) +
     coord_sf(
       xlim = c(bb["xmin"], bb["xmax"]),
       ylim = c(bb["ymin"], bb["ymax"]),
       expand = FALSE
     ) +
+    labs(tag = panel_tag) +
     theme_void() +
     theme(
       panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
-      legend.position = "none"
+      legend.position = "none",
+      plot.tag = element_text(size = 14, face = 1, hjust = 0),
+      plot.tag.position = pos
     )
   
   g

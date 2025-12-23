@@ -190,7 +190,7 @@ city_pt_size <- 1.2
 city_col <- "grey35"
 panel_lab_x <- 0.02
 panel_lab_y <- 0.98
-
+tag_pos <- c(0.02, 0.96)
 #'
 #' ## Continental map
 cont_map <-
@@ -238,27 +238,29 @@ cont_map <-
     width_hint = 0.4,
     height = unit(0.15, "cm")
   ) +
-  geom_label_npc(
-    aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "A"),
-    hjust = "left",
-    vjust = "top",
-    size = 3,
-    fontface = "bold",
-    label.r = unit(0.3, "mm"),
-    label.size = 0.4,
-    label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
-  ) +
+  # geom_label_npc(
+  #   aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "A"),
+  #   hjust = "left",
+  #   vjust = "top",
+  #   size = 3,
+  #   fontface = "bold",
+  #   label.r = unit(0.3, "mm"),
+  #   label.size = 0.4,
+  #   label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
+  # ) +
   coord_sf(
     xlim = c(cont_box$xmin, cont_box$xmax),
     ylim = c(cont_box$ymin, cont_box$ymax),
     expand = FALSE
   ) +
+  labs(tag = "A") +
   theme_void() +
   theme(
     panel.grid.major = element_blank(),
-    panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5)
+    panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
+    plot.tag = element_text(size = 14, face = 1, hjust = 0),
+    plot.tag.position = tag_pos
   )
-
 #'
 #' ## Area map
 area_map <-
@@ -278,17 +280,11 @@ area_map <-
     color = "grey70",
     linewidth = 0.3
   ) +
-  geom_point(
-    data = region_locs,
-    aes(x = long_cen, y = lat_cen),
-    color = "indianred",
-    size = 3
-  ) +
   geom_label_repel(
     data = region_locs,
     aes(x = long_cen, y = lat_cen, label = region),
-    color = "indianred",
-    fill = "snow",
+    color = "black",
+    fill = "white",
     size = 3,
     fontface = "bold",
     label.r = unit(0.3, "mm"),
@@ -296,6 +292,14 @@ area_map <-
     label.padding = unit(1.3, "mm"),
     nudge_x = c(-0.25, 0.25, -0.25, 0.10),
     nudge_y = c(0.06, -0.05, 0.02, 0.15)
+  ) +
+  geom_point(
+    data = region_locs,
+    aes(x = long_cen, y = lat_cen),
+    color = "black",
+    fill = "white",
+    shape = 21,
+    size = 3
   ) +
   geom_text_repel(
     data = area_crop %>% filter(name %in% c("Wisconsin", "Illinois")),
@@ -333,27 +337,29 @@ area_map <-
     pad_y = unit(0.25, "cm"),
     style = north_arrow_fancy_orienteering()
   ) +
-  geom_label_npc(
-    aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "B"),
-    hjust = "left",
-    vjust = "top",
-    size = 3,
-    fontface = "bold",
-    label.r = unit(0.3, "mm"),
-    label.size = 0.4,
-    label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
-  ) +
+  # geom_label_npc(
+  #   aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "B"),
+  #   hjust = "left",
+  #   vjust = "top",
+  #   size = 3,
+  #   fontface = "bold",
+  #   label.r = unit(0.3, "mm"),
+  #   label.size = 0.4,
+  #   label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
+  # ) +
   coord_sf(
     xlim = c(area_box$xmin, area_box$xmax),
     ylim = c(area_box$ymin, area_box$ymax),
     expand = FALSE
   ) +
+  labs(tag = "B") +
   theme_void() +
   theme(
     panel.grid.major = element_blank(),
-    panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5)
+    panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
+    plot.tag = element_text(size = 14, face = 1, hjust = 0),
+    plot.tag.position = tag_pos
   )
-
 #'
 #' ## Site maps
 #' 
@@ -378,13 +384,13 @@ sites_plot <-
 #' 
 #' Produce individual region panels using `make_zoom_map()`. 
 #+ map_BM,message=FALSE,warning=FALSE
-map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", road_data = site_roads$rd_BM)
+map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", pos = tag_pos, road_data = site_roads$rd_BM)
 #+ map_FG,message=FALSE,warning=FALSE
-map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", road_data = site_roads$rd_FG)
+map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", pos = tag_pos, road_data = site_roads$rd_FG)
 #+ map_FL,message=FALSE,warning=FALSE
-map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", road_data = site_roads$rd_FL)
+map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", pos = tag_pos, road_data = site_roads$rd_FL)
 #+ map_LP,message=FALSE,warning=FALSE
-map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", road_data = site_roads$rd_LP)
+map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", pos = tag_pos, road_data = site_roads$rd_LP)
 #' 
 #+ sites_grid
 region_zoom_grid <- ggarrange(
