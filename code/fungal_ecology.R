@@ -28,10 +28,14 @@
 # Libraries ———————— ####
 #+ packages,message=FALSE
 packages_needed <- c(
-  "colorspace", "emmeans", "grid", "gridExtra", "knitr", "tidyverse", "vegan",
-  "rprojroot", "phyloseq", "ape", "phangorn", "geosphere", "conflicted",
-  "ggpubr", "patchwork", "car", "performance", "boot", "indicspecies",
-  "MASS", "DHARMa", "broom", "rlang", "rsq", "purrr", "sandwich", "lmtest"
+  # Analysis
+  "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
+  "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot", 
+  "indicspecies", "MASS", "DHARMa", "broom", 
+  # Scripting
+  "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
+  # Graphics
+  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork" 
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -224,7 +228,7 @@ pfg_comp_fig <-
   ggplot(pfg_comp, aes(x = fct_reorder(xlab, -gf_index), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
   labs(x = NULL, y = "Percent Composition") +
-  scale_fill_discrete_qualitative(name = "Functional\nGroup", palette = "pfg-col", rev = FALSE) +
+  scale_fill_manual(name = "Functional\nGroup", values = pfg_col) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -243,7 +247,7 @@ gf_pct_fig <-
   ggplot(pfg_pct, aes(x = fct_reorder(xlab, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  scale_color_manual(name = "Functional\nGroup", values = gfi_cols) +
+  scale_color_manual(name = "Functional\nGroup", values = pfg_col[4:5]) +
   labs(x = NULL, y = "Percent Cover") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
