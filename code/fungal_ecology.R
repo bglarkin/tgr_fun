@@ -960,8 +960,7 @@ performance::check_overdispersion(nlfa_glm) # not detected
 #' Gamma glm is the best choice; no high-leverage point
 #' 
 #' Model results, group means, and post-hoc
-summary(nlfa_glm)
-anova(nlfa_glm) # Decline in residual deviance worth the cost in df
+Anova(nlfa_glm, test.statistic = "LR") 
 nlfa_em <- emmeans(nlfa_glm, ~ field_type, type = "response")
 #+ nlfa_em_summary,echo=FALSE
 kable(summary(nlfa_em),
@@ -1124,9 +1123,9 @@ amf_protest <- protest(
   permutations = 1999
 )
 amf_protest
-#' The ordinations differ in spatial arrangement somewhat, with a correlation of
-#' $R^{2}=$ `r round(amf_protest$scale^2, 2)`, however, the null that these solutions are unrelated
-#' is still rejected at p<0.001. Clearly, the low biomass in cornfields is a driving difference in 
+#' The null that these solutions are unrelated
+#' is rejected at p<0.001. However, the alignment isn't perfect. 
+#' Clearly, the low biomass in cornfields is a driving difference in 
 #' the biomass-aware ordination, which, as a result, should possibly be preferred in this case.
 #' 
 #' ## AMF abundance in families
@@ -1994,7 +1993,6 @@ plot(sapro_glm_sim) # DHARMa passes all tests
 #' Gamma glm is the best choice; no high-leverage point
 #' 
 #' Model results, group means, and post-hoc
-summary(sapro_rich_glm)
 Anova(sapro_rich_glm, type = 2)
 #' Sequence depth is significant; richness doesn't vary in groups. View trend:
 sapro_div %>% 

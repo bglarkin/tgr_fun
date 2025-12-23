@@ -2027,46 +2027,14 @@ Gamma glm is the best choice; no high-leverage point
 Model results, group means, and post-hoc
 
 ``` r
-summary(nlfa_glm)
+Anova(nlfa_glm, test.statistic = "LR") 
 ```
 
-    ## 
-    ## Call:
-    ## glm(formula = amf ~ field_type, family = Gamma(link = "log"), 
-    ##     data = fa)
-    ## 
-    ## Coefficients:
-    ##                    Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)          1.3323     0.2262   5.890 6.30e-06 ***
-    ## field_typerestored   2.1418     0.2591   8.266 3.42e-08 ***
-    ## field_typeremnant    2.2178     0.3393   6.537 1.42e-06 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for Gamma family taken to be 0.2557978)
-    ## 
-    ##     Null deviance: 17.7149  on 24  degrees of freedom
-    ## Residual deviance:  5.8538  on 22  degrees of freedom
-    ## AIC: 190.67
-    ## 
-    ## Number of Fisher Scoring iterations: 5
-
-``` r
-anova(nlfa_glm) # Decline in residual deviance worth the cost in df
-```
-
-    ## Analysis of Deviance Table
-    ## 
-    ## Model: Gamma, link: log
+    ## Analysis of Deviance Table (Type II tests)
     ## 
     ## Response: amf
-    ## 
-    ## Terms added sequentially (first to last)
-    ## 
-    ## 
-    ##            Df Deviance Resid. Df Resid. Dev      F   Pr(>F)    
-    ## NULL                          24    17.7149                    
-    ## field_type  2   11.861        22     5.8538 23.184 3.83e-06 ***
+    ##            LR Chisq Df Pr(>Chisq)    
+    ## field_type   46.369  2  8.533e-11 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -2384,9 +2352,8 @@ amf_protest
     ## Permutation: free
     ## Number of permutations: 1999
 
-The ordinations differ in spatial arrangement somewhat, with a
-correlation of $R^{2}=$ 0.63, however, the null that these solutions are
-unrelated is still rejected at p\<0.001. Clearly, the low biomass in
+The null that these solutions are unrelated is rejected at p\<0.001.
+However, the alignment isn’t perfect. Clearly, the low biomass in
 cornfields is a driving difference in the biomass-aware ordination,
 which, as a result, should possibly be preferred in this case.
 
@@ -4825,32 +4792,6 @@ plot(sapro_glm_sim) # DHARMa passes all tests
 Gamma glm is the best choice; no high-leverage point
 
 Model results, group means, and post-hoc
-
-``` r
-summary(sapro_rich_glm)
-```
-
-    ## 
-    ## Call:
-    ## glm(formula = richness ~ depth_clg + field_type, family = Gamma(link = "log"), 
-    ##     data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
-    ## 
-    ## Coefficients:
-    ##                    Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)         4.62015    0.07010  65.911   <2e-16 ***
-    ## depth_clg           0.31969    0.13033   2.453   0.0230 *  
-    ## field_typerestored  0.16709    0.07851   2.128   0.0453 *  
-    ## field_typeremnant   0.24989    0.11767   2.124   0.0457 *  
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for Gamma family taken to be 0.0158652)
-    ## 
-    ##     Null deviance: 0.44813  on 24  degrees of freedom
-    ## Residual deviance: 0.33510  on 21  degrees of freedom
-    ## AIC: 211.22
-    ## 
-    ## Number of Fisher Scoring iterations: 4
 
 ``` r
 Anova(sapro_rich_glm, type = 2)
