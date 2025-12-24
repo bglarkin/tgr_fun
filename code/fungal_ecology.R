@@ -1309,7 +1309,7 @@ amf_mod_step$anova %>%
 #' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
 #' correlation between the site ordination on fungal communities
 #' and the selected explanatory variables (p<0.001). The first two constrained axes are
-#' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=35.1% of the community
+#' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=`r round(amf_mod_r2$adj.r.squared, 3) * 100` of the community
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for
 #' individual p values and statistics.
 #' 
@@ -2341,13 +2341,13 @@ fig6a <-
 #' AMF
 #+ fig6b
 fig6b <-
-  ggplot(amf_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
+  ggplot(amf_mod_scor_site, aes(x = -1 * (dbRDA1), y = dbRDA2)) +
   geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
+               aes(x = origin, xend = -1 * (dbRDA1), y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = amf_mod_scor_bp,
-            aes(x = (labx), y = laby, label = envlabs),
+            aes(x = -1 * (labx), y = laby, label = envlabs),
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +

@@ -7,7 +7,8 @@ library("colorspace")
 # hcl_wizard()
 # hcl_color_picker()
 # Field types: corn, restored, remnant:
-ft_pal <- sequential_hcl(n = 3, h = c(58, 271), c = c(131, 180, 145), l = c(43, 70), power = c(1.15, 2.4), rev = TRUE)
+# ft_pal <- sequential_hcl(n = 3, h = c(58, 271), c = c(131, 180, 145), l = c(43, 70), power = c(1.15, 2.4), rev = TRUE)
+ft_pal <- c("#CEA110", "#C0EC73", "#5086B5")
 # Plant functional groups
 pfg_col <- sequential_hcl(n = 5, h = c(-96, 224), c = c(81, NA, 75), l = c(44, 85), power = c(0.7, 2.25), rev = TRUE)
 # Shapes and sizes
