@@ -409,7 +409,7 @@ legend_plot <-
   ) +
   scale_fill_manual(
     values = ft_pal,
-    name = "Field Type",
+    name = "Field type",
     breaks = levels(sites_plot$field_type)
   ) +
   guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
