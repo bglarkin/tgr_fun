@@ -67,9 +67,9 @@ theme_cor <-
       size = 8, face = 1,
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
-    axis.ticks.length.y = unit(-2, "mm"),
+    axis.ticks.length.y = unit(-1.4, "mm"),
     axis.ticks.length.x = unit(0, "mm"),
-    legend.title = element_text(size = 10, face = 1),
+    legend.title = element_text(size = 9, face = 1),
     legend.text = element_text(size = 8, face = 1),
     panel.grid = element_blank()
   )
@@ -95,7 +95,7 @@ theme_corf <-
       size = 8, face = 1,
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
-    axis.ticks.length = unit(-2, "mm"),
+    axis.ticks.length = unit(-1.4, "mm"),
     panel.grid = element_blank(),
     legend.title = element_blank(),
     strip.background = element_blank(),

@@ -1768,7 +1768,8 @@ plot(parest_m_abs)
 crPlots(parest_m_abs)
 #' Slight leverage at the left tail of fungi mass; no serious leverage 
 #' visible with gf_index. 
-(parest_m_abs_av <- avPlots(parest_m_abs))
+parest_m_abs_av <- avPlots(parest_m_abs)
+c(R2.adj = summary(parest_m_abs)$adj.r.squared)
 #' Relationships appear monotonic and both appear clean (in log-log space). 
 ncvTest(parest_m_abs)
 #' Diagnostics (Shapiro p=0.693; NCV p=0.801; HC3 and LOOCV stable) support the additive log–log model.
@@ -1776,25 +1777,26 @@ ncvTest(parest_m_abs)
 #' between naïve and log-log models, using Duan's smearing and back-transformation to 
 #' compare models on the same scale, using custom function `rmse()`.
 parest_m_rmse <- list(
-  pred_log_raw <- exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))), # smearing factor
-  rmse_naive <- rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
-  rmse_log   <- rmse(patho_resto$patho_mass, pred_log_raw),
-  rmse_naive = rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
-  rmse_log = rmse(patho_resto$patho_mass, pred_log_raw)
+  pred_log_raw = exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))), # smearing factor
+  rmse_naive   = rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
+  rmse_log     = rmse(patho_resto$patho_mass, pred_log_raw)
 )
-parest_m_rmse[4:5]
+parest_m_rmse[2:3]
 #' Incorporating total biomass in the model drops RMSE by 
 #' `r round((parest_m_rmse$rmse_log-parest_m_rmse$rmse_naive) / parest_m_rmse$rmse_naive * 100, 1)`%. 
 #' 
 #' Results:
-c(R2.adj = summary(parest_m_abs)$adj.r.squared)
-coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
-coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
+(parest_m_abs_wald <- coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))) # Robust Wald t test
+(parest_m_abs_ci <- coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")))
 #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
 rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
-#' Elasticity of pathogen mass to fungal biomass: a 1% increase in biomass = 1.61% increase in pathogen mass.
+#' Elasticity of pathogen mass to fungal biomass: a 1% increase in biomass = `r round(parest_m_abs_wald[2, 1], 2)`% 
+#' increase in pathogen mass.
 #' Gf_index is multiplicative on the original scale. An increase in 0.1 along gf_index equals change in pathogen
-#' mass by a factor of (coef ± CI on multiplicative scale):
+#' mass by a factor of (exp(coef) ± CI on raw scale scale):
+#+ exp_wald_result
+c(gf_index = parest_m_abs_wald[3,1], ci = parest_m_abs_ci[3, ]) %>% map_dbl(\(x) round(exp(x * 0.1), 2))
+#' Produce objects for plotting
 parest_gf_pred <- list(
   gf_step = 0.1,
   gf_beta = coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))["gf_index", "Estimate"],
@@ -1832,9 +1834,14 @@ fig7a <-
     y = expression(atop("Pathogen biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`))))),
     tag = "A"
   ) +
-  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
-  theme(legend.position = "none",
+  theme(legend.position = c(0.03, 1),
+        legend.justification = c(0, 1),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
 #+ fig7b,warning=FALSE
@@ -1878,7 +1885,7 @@ fig7yax_grob <- textGrob(
 fig7rh <- (fig7b / plot_spacer() / fig7c) +
   plot_layout(heights = c(0.5, 0.01,0.5))
 fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
-  plot_layout(widths = c(0.60, 0.005, 0.05, 0.40))
+  plot_layout(widths = c(0.62, 0.005, 0.06, 0.38))
 #+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig7
 #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
@@ -2397,9 +2404,14 @@ fig6d <-
     x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
   lims(x = c(-0.9,1.7)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_ord +
-  theme(legend.position = "none",
+  theme(legend.position = c(0.98, 0.03),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' 
