@@ -111,10 +111,10 @@ soil_ord_regions <-
   geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
   geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region), size = 3) +
     geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = FALSE, shape = TRUE)) +
-    scale_fill_manual(name = "Field Type", values = ft_pal) +
+    scale_fill_manual(name = "Field type", values = ft_pal) +
     scale_shape_manual(name = "Region", values = c(22:25)) +
-  xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
-  ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
+  xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
+  ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
     theme_ord +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
   theme(legend.title = element_text(size = 8), legend.position = "top",
@@ -147,10 +147,10 @@ soil_ord_ftypes <-
     geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE, shape = TRUE)) +
   geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = TRUE, shape = FALSE)) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
-    scale_fill_manual(name = "Field Type", values = ft_pal) +
+    scale_fill_manual(name = "Field type", values = ft_pal) +
     scale_shape_manual(name = "Region", values = c(22:25)) +
-  xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
-  ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
+  xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
+  ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
     theme_ord +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
   theme(legend.title = element_text(size = 8), legend.position = "top",

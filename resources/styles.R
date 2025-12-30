@@ -23,11 +23,11 @@ theme_ord <-
   theme(
     plot.margin = margin(t = 0, r = 0, b = 1, l = 2, unit = "mm"),
     axis.title.x = element_text(
-      size = 10, face = 1,
+      size = 9, face = 1,
       margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
-      size = 10, face = 1,
+      size = 9, face = 1,
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.text.x = element_text(
@@ -52,16 +52,16 @@ theme_cor <-
   theme(
     plot.margin = margin(t = 0, r = 0, b = 1, l = 1, unit = "mm"),
     axis.title.x = element_text(
-      size = 10, face = 1,
+      size = 9, face = 1,
       margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
-      size = 10, face = 1,
+      size = 9, face = 1,
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.text.x = element_text(
       size = 8, face = 1,
-      margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
+      margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.text.y = element_text(
       size = 8, face = 1,
@@ -80,24 +80,24 @@ theme_corf <-
   theme(
     plot.margin = margin(t = 2, r = 2, b = 2, l = 2, unit = "mm"),
     axis.title.x = element_text(
-      size = 10, face = 1,
-      margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
+      size = 9, face = 1,
+      margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
-      size = 10, face = 1,
-      margin = margin(t = 0, r = 2, b = 0, l = 0, unit = "mm")
+      size = 9, face = 1,
+      margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.text.x = element_text(
       size = 8, face = 1,
-      margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
+      margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.text.y = element_text(
       size = 8, face = 1,
-      margin = margin(t = 0, r = 2, b = 0, l = 0, unit = "mm")
+      margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.ticks.length = unit(-2, "mm"),
     panel.grid = element_blank(),
     legend.title = element_blank(),
     strip.background = element_blank(),
-    strip.text = element_text(size = 12, face = 1)
+    strip.text = element_text(size = 10, face = 1)
   )
