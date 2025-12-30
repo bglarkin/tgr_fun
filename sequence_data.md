@@ -299,9 +299,9 @@ Create figure panels
 rare_panels <- (its_rare_fig / plot_spacer() / amf_rare_fig) +
   plot_layout(heights = c(1,0.01,1))
 x_lab <- ggdraw() + 
-  draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5, size = 10) 
+  draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5, size = 9) 
 y_lab <- ggdraw() + 
-  draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5, size = 10)
+  draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5, size = 9)
 rare_fig_h <- (y_lab | rare_panels) + plot_layout(widths = c(0.03, 1))
 rare_fig <- rare_fig_h / x_lab + plot_layout(heights = c(1, 0.10))
 rare_fig <- rare_fig + plot_annotation(

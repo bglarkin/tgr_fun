@@ -4134,42 +4134,17 @@ Slight leverage at the left tail of fungi mass; no serious leverage
 visible with gf_index.
 
 ``` r
-(parest_m_abs_av <- avPlots(parest_m_abs))
+parest_m_abs_av <- avPlots(parest_m_abs)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
 
-    ## $fungi_mass_lc
-    ##    fungi_mass_lc log(patho_mass)
-    ## 1     0.41495821      0.41053928
-    ## 2     0.18353079      0.33281645
-    ## 3     0.17065139     -0.19460225
-    ## 4     0.06084059      0.32936418
-    ## 5     0.25767616      0.54401404
-    ## 6     0.23919763      0.62537747
-    ## 7    -0.44258522     -0.31525302
-    ## 8    -0.46682047     -0.81661388
-    ## 9    -0.56733290     -1.11041095
-    ## 10   -0.38938434     -0.82394680
-    ## 11    0.27349213      0.57186618
-    ## 12    0.16721066      0.08201988
-    ## 13    0.09856538      0.36482942
-    ## 
-    ## $gf_index
-    ##        gf_index log(patho_mass)
-    ## 1  -0.043379836     -0.32847740
-    ## 2   0.146235186      0.28491237
-    ## 3   0.192188643     -0.14434710
-    ## 4   0.013497267      0.25449679
-    ## 5  -0.468755790     -0.65993944
-    ## 6  -0.149409844     -0.01040483
-    ## 7   0.144216034      0.63813757
-    ## 8   0.003805646     -0.06111096
-    ## 9  -0.450798517     -0.96022856
-    ## 10 -0.214649537     -0.56108748
-    ## 11  0.216449068      0.49800837
-    ## 12  0.450674459      0.57368608
-    ## 13  0.159927221      0.47635459
+``` r
+c(R2.adj = summary(parest_m_abs)$adj.r.squared)
+```
+
+    ##    R2.adj 
+    ## 0.8324986
 
 Relationships appear monotonic and both appear clean (in log-log space).
 
@@ -4189,13 +4164,11 @@ on the same scale, using custom function `rmse()`.
 
 ``` r
 parest_m_rmse <- list(
-  pred_log_raw <- exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))), # smearing factor
-  rmse_naive <- rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
-  rmse_log   <- rmse(patho_resto$patho_mass, pred_log_raw),
-  rmse_naive = rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
-  rmse_log = rmse(patho_resto$patho_mass, pred_log_raw)
+  pred_log_raw = exp(fitted(parest_m_abs)) * mean(exp(residuals(parest_m_abs))), # smearing factor
+  rmse_naive   = rmse(patho_resto$patho_mass, fitted(pama_rest_m)),
+  rmse_log     = rmse(patho_resto$patho_mass, pred_log_raw)
 )
-parest_m_rmse[4:5]
+parest_m_rmse[2:3]
 ```
 
     ## $rmse_naive
@@ -4209,14 +4182,7 @@ Incorporating total biomass in the model drops RMSE by -39.3%.
 Results:
 
 ``` r
-c(R2.adj = summary(parest_m_abs)$adj.r.squared)
-```
-
-    ##    R2.adj 
-    ## 0.8324986
-
-``` r
-coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald t test
+(parest_m_abs_wald <- coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))) # Robust Wald t test
 ```
 
     ## 
@@ -4230,7 +4196,7 @@ coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")) # Robust Wald
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
-coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))
+(parest_m_abs_ci <- coefci(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3")))
 ```
 
     ##                    2.5 %     97.5 %
@@ -4245,9 +4211,18 @@ rsq.partial(parest_m_abs, adj=TRUE)$partial.rsq
     ## [1] 0.8061071 0.7389316
 
 Elasticity of pathogen mass to fungal biomass: a 1% increase in biomass
-= 1.61% increase in pathogen mass. Gf_index is multiplicative on the
+= 1.6% increase in pathogen mass. Gf_index is multiplicative on the
 original scale. An increase in 0.1 along gf_index equals change in
-pathogen mass by a factor of (coef ± CI on multiplicative scale):
+pathogen mass by a factor of (exp(coef) ± CI on raw scale scale):
+
+``` r
+c(gf_index = parest_m_abs_wald[3,1], ci = parest_m_abs_ci[3, ]) %>% map_dbl(\(x) round(exp(x * 0.1), 2))
+```
+
+    ##  gf_index  ci.2.5 % ci.97.5 % 
+    ##      1.18      1.10      1.28
+
+Produce objects for plotting
 
 ``` r
 parest_gf_pred <- list(
@@ -4295,9 +4270,14 @@ fig7a <-
     y = expression(atop("Pathogen biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`))))),
     tag = "A"
   ) +
-  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
-  theme(legend.position = "none",
+  theme(legend.position = c(0.03, 1),
+        legend.justification = c(0, 1),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
 ```
@@ -4347,7 +4327,7 @@ fig7yax_grob <- textGrob(
 fig7rh <- (fig7b / plot_spacer() / fig7c) +
   plot_layout(heights = c(0.5, 0.01,0.5))
 fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
-  plot_layout(widths = c(0.60, 0.005, 0.05, 0.40))
+  plot_layout(widths = c(0.62, 0.005, 0.06, 0.38))
 ```
 
 ``` r
@@ -5625,9 +5605,14 @@ fig6d <-
     x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
   lims(x = c(-0.9,1.7)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_ord +
-  theme(legend.position = "none",
+  theme(legend.position = c(0.98, 0.03),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 ```
