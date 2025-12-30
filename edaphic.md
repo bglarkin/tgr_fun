@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 23 December, 2025
+Last updated: 30 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -186,10 +186,10 @@ soil_ord_regions <-
   geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
   geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region), size = 3) +
     geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = FALSE, shape = TRUE)) +
-    scale_fill_manual(name = "Field Type", values = ft_pal) +
+    scale_fill_manual(name = "Field type", values = ft_pal) +
     scale_shape_manual(name = "Region", values = c(22:25)) +
-  xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
-  ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
+  xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
+  ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
     theme_ord +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
   theme(legend.title = element_text(size = 8), legend.position = "top",
@@ -212,13 +212,13 @@ soilperm_ft$mvdisper
     ## Response: Distances
     ##           Df Sum Sq Mean Sq      F N.Perm Pr(>F)
     ## Groups     2 0.6288 0.31442 0.9035   1999 0.4305
-    ## Residuals 22 7.6560 0.34800                     
+    ## Residuals 22 7.6561 0.34800                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn restored remnant
     ## corn              0.51650  0.6515
-    ## restored 0.51779           0.1755
+    ## restored 0.51780           0.1755
     ## remnant  0.65358  0.17408
 
 ``` r
@@ -270,15 +270,15 @@ soilperm_reg$mvdisper
     ## Response: Distances
     ##           Df  Sum Sq Mean Sq      F N.Perm Pr(>F)
     ## Groups     3  2.1805 0.72682 0.9061   1999  0.434
-    ## Residuals 21 16.8447 0.80213                     
+    ## Residuals 21 16.8448 0.80214                     
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##         BM      FG      FL     LP
     ## BM         0.24200 0.61000 0.9130
     ## FG 0.24801         0.32450 0.5860
-    ## FL 0.49845 0.32847         0.8075
-    ## LP 0.90173 0.50644 0.76747
+    ## FL 0.49847 0.32848         0.8075
+    ## LP 0.90173 0.50644 0.76748
 
 ``` r
 soilperm_reg$gl_permtest
@@ -328,10 +328,10 @@ soil_ord_ftypes <-
     geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE, shape = TRUE)) +
   geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = TRUE, shape = FALSE)) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
-    scale_fill_manual(name = "Field Type", values = ft_pal) +
+    scale_fill_manual(name = "Field type", values = ft_pal) +
     scale_shape_manual(name = "Region", values = c(22:25)) +
-  xlab(paste0("Axis 1 (", eig_prop[1], "%)")) +
-  ylab(paste0("Axis 2 (", eig_prop[2], "%)")) +
+  xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
+  ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
     theme_ord +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
   theme(legend.title = element_text(size = 8), legend.position = "top",

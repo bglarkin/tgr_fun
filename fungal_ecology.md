@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 23 December, 2025
+Last updated: 30 December, 2025
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -396,8 +396,8 @@ pfg_comp <-
 pfg_comp_fig <- 
   ggplot(pfg_comp, aes(x = fct_reorder(xlab, -gf_index), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
-  labs(x = NULL, y = "Percent Composition") +
-  scale_fill_manual(name = "Functional\nGroup", values = pfg_col) +
+  labs(x = NULL, y = "Composition (%)") +
+  scale_fill_manual(name = "Functional group", values = pfg_col) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -416,19 +416,19 @@ gf_pct_fig <-
   ggplot(pfg_pct, aes(x = fct_reorder(xlab, -gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  scale_color_manual(name = "Functional\nGroup", values = pfg_col[4:5]) +
-  labs(x = NULL, y = "Percent Cover") +
+  scale_color_manual(name = "Functional group", values = pfg_col[4:5]) +
+  labs(x = NULL, y = "Cover (%)") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 gfi_loc_fig <- 
   gfi_yrs %>% 
   left_join(sites, by = join_by(field_name)) %>% 
-  ggplot(aes(x = -gf_index, y = rep("PCA\nAxis 1", nrow(gfi_yrs)))) + 
+  ggplot(aes(x = -gf_index, y = rep("PCA 1", nrow(gfi_yrs)))) + 
   geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
   geom_point(aes(color = field_type), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  labs(y = NULL, x = "Grass-Forb index") +
-  scale_color_manual(name = "Field Type", values = ft_pal[2:3]) +
+  labs(y = NULL, x = "Grass-forb index") +
+  scale_color_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1),
@@ -701,8 +701,8 @@ its_rich_fig <-
   ggplot(summary(its_rich_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = "Richness") +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   lims(y = c(0, 760)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -875,8 +875,8 @@ its_shan_fig <-
   ggplot(summary(its_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = "Field Type", y = "Shannon Diversity") +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1, family = "sans", size = 3.5) +
+  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
   lims(y = c(0, 160)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -970,8 +970,8 @@ plfa_fig <-
   ggplot(summary(plfa_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  labs(x = "Field Type", y = "Biomass") +
+  labs(x = "Field type", y = expression(atop("Biomass", paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")))) +
+  # labs(x = "Field Type", y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -1079,8 +1079,8 @@ its_ma_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_its_ma$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_its_ma$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_its_ma$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_its_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -1209,8 +1209,8 @@ its_ord <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("Axis 1 (", mva_its$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_its$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_its$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_its$axis_pct[2], "%)")) +
   scale_fill_manual(values = ft_pal) +
   theme_ord +
   theme(legend.position = "none",
@@ -1751,8 +1751,8 @@ amf_rich_fig <-
   ggplot(summary(amf_rich_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = NULL, y = "Richness") +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   lims(y = c(0, 75)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -1905,8 +1905,8 @@ amf_shan_fig <-
   ggplot(summary(amf_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  labs(x = "Field Type", y = "Shannon Diversity") +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
   lims(y = c(0, 32)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -2065,9 +2065,9 @@ nlfa_fig <-
   ggplot(summary(nlfa_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1.5, family = "sans", size = 4) +
-  # labs(x = NULL, y = Biomass~(nmol[NLFA]%*%g[soil]^-1)) +
-  labs(x = "Field Type", y = "Biomass") +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  labs(x = "Field type", y = expression(atop("Biomass", paste("(", nmol[NLFA], " × ", g[soil]^{-1}, ")")))) +
+  # labs(x = "Field Type", y = "Biomass") +
   scale_fill_manual(values = ft_pal) +
   lims(y = c(0, 75)) +
   theme_cor +
@@ -2170,9 +2170,9 @@ p_amf_ma_centers <- amf_ma_ord_data %>%
   summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
   mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
-         across(ends_with("Axis.1"), ~ .x * -1)) # reverse axis values to be consistent with other plots
+         across(ends_with("Axis.1"), ~ .x))
 amf_ma_ord <- 
-  ggplot(amf_ma_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) +  # reverse axis values to be consistent with other plots
+  ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) + 
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -2180,8 +2180,8 @@ amf_ma_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_amf_ma$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_amf_ma$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_amf_ma$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_amf_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -2304,8 +2304,8 @@ amf_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_amf$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_amf$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_amf$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_amf$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -3314,7 +3314,7 @@ patho_rich_fig <-
   ggplot(summary(patho_rich_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Richness") +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -3452,7 +3452,7 @@ patho_shan_fig <-
   ggplot(summary(patho_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field Type", y = "Shannon Diversity") +
+  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
   # lims(y = c(0, 160)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -3546,8 +3546,8 @@ patho_ma_fig <-
   ggplot(summary(patho_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  labs(x = "Field Type", y = "Biomass (scaled)") +
+  labs(x = "Field type", y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
+  # labs(x = "Field Type", y = "Biomass (scaled)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -3645,9 +3645,10 @@ p_patho_ma_centers <- patho_ma_ord_data %>%
   group_by(field_type) %>% 
   summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
   mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
+         across(ends_with("Axis.1"), ~ .x * -1)) # reverse axis values to be consistent with other plots
 patho_ma_ord <- 
-  ggplot(patho_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  ggplot(patho_ma_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reverse axis
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -3655,8 +3656,8 @@ patho_ma_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_patho_ma$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_patho_ma$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_patho_ma$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_patho_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -3783,8 +3784,8 @@ patho_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_patho$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_patho$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_patho$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_patho$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -4290,8 +4291,8 @@ fig7a <-
   geom_text(data = patho_resto, aes(x = gf_index, y = patho_mass, label = yr_since), 
             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = "Grass–Forb Index",
-    y = "Pathogen Biomass (scaled)",
+    x = "Grass–forb index",
+    y = expression(atop("Pathogen biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`))))),
     tag = "A"
   ) +
   scale_fill_manual(values = ft_pal[2:3]) +
@@ -4308,7 +4309,7 @@ fig7b <-
   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = "Residual Fungal Biomass", y = NULL, tag = "B") +
+  labs(x = expression(atop("Residual fungal biomass", paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")"))), y = NULL, tag = "B") +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   theme_cor +
@@ -4324,7 +4325,7 @@ fig7c <-
   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = "Residual Grass–Forb Index", y = NULL, tag = "C") +
+  labs(x = "Residual grass–forb index", y = NULL, tag = "C") +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   theme_cor +
@@ -4332,7 +4333,7 @@ fig7c <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.125, 1))
 fig7yax_grob <- textGrob(
-  "Residual Pathogen Biomass (scaled, log)",
+  expression(atop("Residual pathogen biomass (scaled, log)", paste(bold(`(`), "log((", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund))", bold(`)`))))),
   x = 0.5,
   y = 0.5,
   hjust = 0.5,
@@ -4346,7 +4347,7 @@ fig7yax_grob <- textGrob(
 fig7rh <- (fig7b / plot_spacer() / fig7c) +
   plot_layout(heights = c(0.5, 0.01,0.5))
 fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
-  plot_layout(widths = c(0.60, 0.005, 0.01, 0.40))
+  plot_layout(widths = c(0.60, 0.005, 0.05, 0.40))
 ```
 
 ``` r
@@ -4787,6 +4788,8 @@ sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
 plot(sapro_glm_sim) # DHARMa passes all tests
 ```
 
+    ## Warning in newton(lsp = lsp, X = G$X, y = G$y, Eb = G$Eb, UrS = G$UrS, L = G$L, : Fitting terminated with step failure - check results carefully
+
 ![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point
@@ -4849,7 +4852,7 @@ sapro_rich_fig <-
   ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = "Richness") +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -4968,7 +4971,7 @@ sapro_shan_fig <-
   ggplot(summary(sapro_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field Type", y = "Shannon Diversity") +
+  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -5056,8 +5059,8 @@ sapro_ma_fig <-
   ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  # labs(x = NULL, y = expression(Biomass~(nmol[PLFA]%*%g[soil]^-1))) +
-  labs(x = "Field Type", y = "Biomass (scaled)") +
+  labs(x = "Field type", y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
+  # labs(x = "Field Type", y = "Biomass (scaled)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -5154,9 +5157,10 @@ p_sapro_ma_centers <- sapro_ma_ord_data %>%
   group_by(field_type) %>% 
   summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
   mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
+         across(ends_with("Axis.1"), ~ .x * -1)) # reverse axis values to be consistent with other plots
 sapro_ma_ord <- 
-  ggplot(sapro_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  ggplot(sapro_ma_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reverse axis
   geom_linerange(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
@@ -5164,8 +5168,8 @@ sapro_ma_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_sapro_ma$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_sapro_ma$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_sapro_ma$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_sapro_ma$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -5291,8 +5295,8 @@ sapro_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("Axis 1 (", mva_sapro$axis_pct[1], "%)"),
-    y = paste0("Axis 2 (", mva_sapro$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_sapro$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_sapro$axis_pct[2], "%)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -5546,8 +5550,8 @@ fig6a <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA Axis 1 (", mod_axpct[1], "%)"),
-    y = paste0("db-RDA Axis 2 (", mod_axpct[2], "%)")) +
+    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
   lims(x = c(-0.95,1.6)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
@@ -5573,8 +5577,8 @@ fig6b <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA Axis 1 (", amf_mod_axpct[1], "%)"),
-    y = paste0("db-RDA Axis 2 (", amf_mod_axpct[2], "%)")) +
+    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
   lims(x = c(-1.2,1.2)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
@@ -5591,8 +5595,8 @@ fig6c <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("PCoA Axis 1 (", patho_mod_eig[1], "%)"),
-    y = paste0("PCoA Axis 2 (", patho_mod_eig[2], "%)")) +
+    x = paste0("PCoA 1 (", patho_mod_eig[1], "%)"),
+    y = paste0("PCoA 2 (", patho_mod_eig[2], "%)")) +
   # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
@@ -5618,8 +5622,8 @@ fig6d <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA Axis 1 (", sapro_mod_axpct[1], "%)"),
-    y = paste0("db-RDA Axis 2 (", sapro_mod_axpct[2], "%)")) +
+    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
   lims(x = c(-0.9,1.7)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
