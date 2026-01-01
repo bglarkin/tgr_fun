@@ -154,8 +154,10 @@ plant <- read_csv(root_path("clean_data/plant_avg.csv"), show_col_types = FALSE)
 prich <- plant %>% 
   select(-BARESOIL, -LITTER, -ROSA, -SALIX) %>% # remove non-species entries
   rowwise() %>% 
-  mutate(pl_rich = sum(c_across(where(is.numeric)) > 0)) %>% 
-  select(field_name = SITE, pl_rich) %>% 
+  mutate(pl_rich = sum(c_across(where(is.numeric)) > 0),
+         pl_shan = exp(diversity(c_across(where(is.numeric))))
+         ) %>% 
+  select(field_name = SITE, pl_rich, pl_shan) %>% 
   left_join(sites, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
   ungroup()
@@ -210,6 +212,39 @@ fs8_xlab <- pfg %>%
          ) %>% 
   ungroup() %>% 
   select(field_name, xlab)
+
+
+
+
+
+
+#' plant richness / diverstiy
+prich %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(fs8_xlab, by = join_by(field_name)) %>% 
+  ggplot(aes(x = fct_reorder(xlab, -gf_index), y = pl_rich)) +
+  geom_col() +
+  # labs(x = NULL, y = "Composition (%)") +
+  # scale_fill_manual(name = "Functional group", values = pfg_col) +
+  theme_cor +
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+
+prich %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(fs8_xlab, by = join_by(field_name)) %>% 
+  ggplot(aes(x = fct_reorder(xlab, -gf_index), y = pl_shan)) +
+  geom_col() +
+  # labs(x = NULL, y = "Composition (%)") +
+  # scale_fill_manual(name = "Functional group", values = pfg_col) +
+  theme_cor +
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+
+
+
+
+
 pfg_comp <- 
   pfg %>% 
   select(field_name, C3_grass:shrubTree) %>% 
@@ -1720,10 +1755,10 @@ patho_mod_scor_site <- patho_mod_scor %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
   left_join(sites, by = join_by(field_name))
+
 #' 
-#' 
-#' ## Pathogen correlation with plant functional groups
-#' How does grass-forb index relate to pathogen biomass? Data:
+#' ## Pathogen and plant community correlations
+#' Data for these tests
 patho_resto <- its_guild %>% 
   filter(field_type != "corn", region != "FL") %>% 
   left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
@@ -1733,6 +1768,20 @@ patho_resto <- its_guild %>%
     fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
   select(-sapro_abund) 
+#' 
+#' ### Plant richness and pathogen biomass
+#' Is plant richness related to pathogen mass?
+with(patho_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(patho_mass, pl_rich))
+#' Pathogen mass and plant richness aren't correlated, though the direction is negative. 
+#' Relationship is weak enough that no further tests are warranted.
+#' 
+#' Is plant diversity related to pathogen mass?
+with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
+     cor.test(patho_mass, shannon))
+#' Pathogen mass and plant diversity aren't correlated, though the slope is positive.  
+#' 
+#' ### Pathogen biomass and grass/forb composition
 #' Inspect simple linear relationship. Naïve model.
 pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
@@ -1942,18 +1991,6 @@ coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slo
 coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
 #' Agrees with what we found before with biomass as an untransformed
 #' response variable. 
-#' 
-#' ### Alternative explanations
-#' Is plant richness related to pathogen mass?
-with(patho_resto %>% left_join(prich, by = join_by(field_name)), 
-     cor.test(patho_mass, pl_rich))
-#' Pathogen mass and plant richness aren't correlated, though the direction is negative. 
-#' Plant richness was not signficant in the full log-log model (not shown).
-#' 
-#' Is plant diversity related to pathogen mass?
-with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
-     cor.test(patho_mass, shannon))
-#' Pathogen mass and plant diversity aren't correlated, though the correlation is positive.  
 
 #' 
 #' # Putative saprotrophs
