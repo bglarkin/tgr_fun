@@ -811,15 +811,41 @@ mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+
+
+
+
+
 #' 
-#' ## Fungi‒pfg correlations
+#' ## Soil fungi and plant community correlations
+#' Data for these tests
 fungi_resto <- its_div %>% 
   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   filter(field_type == "restored", region != "FL") %>% 
   select(field_name, fungi_ab = depth, fungi_mass, gf_index)
-
+#' 
+#' ### Plant richness and fungal biomass
+#' Is plant richness related to pathogen mass?
+(fa_prich_cor <- 
+  with(fungi_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(fungi_mass, pl_rich)))
+#' Fungal mass and plant richness aren't correlated, though the direction is negative. 
+#' Relationship is weak enough that no further tests are warranted.
+#' 
+#' Is plant diversity related to fungal mass?
+(fa_pshan_cor <-
+  with(fungi_resto %>% 
+       left_join(its_div %>% select(field_name, shannon), by = join_by(field_name)) %>% 
+       left_join(prich, by = join_by(field_name)), 
+     cor.test(fungi_mass, pl_shan)))
+#' Fungal biomass and plant diversity are negatively related but the correlation 
+#' is not significant. It's driven almost entirely by KORP (not shown) and wouldn't be close to 
+#' significant otherwise, no further testing warranted. 
+#' 
+#' ### Fungal biomass and grass/forb composition
+#' Inspect simple linear relationship. Naïve model.
 fuma_rest_m <- lm(fungi_mass ~ gf_index, data = fungi_resto)
 #+ cm1,warning=FALSE,fig.width=7,fig.height=9
 check_model(fuma_rest_m)
@@ -1381,16 +1407,39 @@ amf_mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+
+
+
+
 #' 
-#' ## AMF correlations with pfg
+#' ## AM fungi and plant community correlations
+#' Data for these tests
 amf_resto <- amf_div %>% 
   left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
   select(field_name, amf_ab = depth, amf_mass, gf_index) 
-
-amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
+#' 
+#' ### Plant richness and fungal biomass
+#' Is plant richness related to pathogen mass?
+(amfa_prich_cor <- 
+  with(amf_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(amf_mass, pl_rich)))
+#' AM fungal mass and plant richness aren't correlated.  
+#' Relationship is weak enough that no further tests are warranted.
+#' 
+#' Is plant diversity related to fungal mass?
+(amfa_pshan_cor <- 
+  with(amf_resto %>% 
+       left_join(amf_div %>% select(field_name, shannon), by = join_by(field_name)) %>% 
+       left_join(prich, by = join_by(field_name)), 
+     cor.test(amf_mass, pl_shan)))
+#' AM fungal biomass and plant diversity are positively related but only weakly so, 
+#' no further testing warranted. 
+#' 
+#' ### AM fungal biomass and grass/forb composition
+#' Inspect simple linear relationship. Naïve model.amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
 #+ cm7,warning=FALSE,fig.width=7,fig.height=9
 check_model(amma_rest_m)
 summary(amma_rest_m)
@@ -1755,7 +1804,6 @@ patho_mod_scor_site <- patho_mod_scor %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
   left_join(sites, by = join_by(field_name))
-
 #' 
 #' ## Pathogen and plant community correlations
 #' Data for these tests
@@ -1771,14 +1819,16 @@ patho_resto <- its_guild %>%
 #' 
 #' ### Plant richness and pathogen biomass
 #' Is plant richness related to pathogen mass?
-with(patho_resto %>% left_join(prich, by = join_by(field_name)), 
-     cor.test(patho_mass, pl_rich))
+(pathofa_prich_cor <- 
+  with(patho_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(patho_mass, pl_rich)))
 #' Pathogen mass and plant richness aren't correlated, though the direction is negative. 
 #' Relationship is weak enough that no further tests are warranted.
 #' 
 #' Is plant diversity related to pathogen mass?
-with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
-     cor.test(patho_mass, shannon))
+(pathofa_pshan_cor <- 
+  with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
+     cor.test(patho_mass, shannon)))
 #' Pathogen mass and plant diversity aren't correlated, though the slope is positive.  
 #' 
 #' ### Pathogen biomass and grass/forb composition
@@ -2474,8 +2524,12 @@ fig6
 #+ fig6_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = "svg",
        width = 18, height = 18, units = "cm")
+
+
+
 #' 
-#' ## Saprotroph correlations with plant community
+#' ## Saprotroph and plant community correlations
+#' Data for these tests
 sapro_resto <- its_guild %>% 
   filter(field_type != "corn", region != "FL") %>% 
   left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>% 
@@ -2485,7 +2539,53 @@ sapro_resto <- its_guild %>%
     fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
   select(-patho_abund)
-#' Inspect simple linear relationship. Naïve model.
+#' 
+#' ### Plant richness and pathogen biomass
+#' Is plant richness related to saprotroph mass?
+(saprofa_prich_cor <- 
+  with(sapro_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(sapro_mass, pl_rich)))
+#' Strong negative relationship worthy of closer examination. It isn't driven by 
+#' grass-forb index (see below), so this isn't a confounding with C4 grass abundance...
+#' KORP site appears to have some leverage (not shown), conduct linear model 
+#' selection as before and perform LOOCV test...
+
+sapro_resto %>% left_join(prich, by = join_by(field_name)) %>% 
+  ggplot(aes(x = pl_rich, y = sapro_mass)) +
+  geom_point()
+
+
+
+
+#' 
+#' Is plant diversity related to saprotroph mass?
+(saprofa_pshan_cor <- 
+  with(sapro_resto %>% left_join(sapro_div %>% select(field_name, shannon), by = join_by(field_name)), 
+     cor.test(sapro_mass, shannon)))
+#' Saprotroph mass and plant diversity aren't correlated.  
+
+
+
+#' Unified table with plant richness/shannon and fungal biomass correlations
+
+list(
+  fa_prich_cor,
+  fa_pshan_cor,
+  amfa_prich_cor,
+  amfa_pshan_cor,
+  pathofa_prich_cor,
+  pathofa_pshan_cor,
+  saprofa_prich_cor,
+  saprofa_pshan_cor
+) %>% map_dbl(\(x) x[[3]])
+
+
+
+
+
+
+#' 
+#' ### Saprotroph biomass and grass/forb composition
 sama_rest_m <- lm(sapro_mass ~ gf_index, data = sapro_resto)
 summary(sama_rest_m)
 #' Examine mass+richness models, similar to pathogen models
