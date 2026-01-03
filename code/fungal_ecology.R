@@ -823,7 +823,7 @@ fungi_resto <- its_div %>%
   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
-  filter(field_type == "restored", region != "FL") %>% 
+  filter(field_type != "corn", region != "FL") %>% 
   select(field_name, fungi_ab = depth, fungi_mass, gf_index)
 #' 
 #' ### Plant richness and fungal biomass
@@ -831,8 +831,7 @@ fungi_resto <- its_div %>%
 (fa_prich_cor <- 
   with(fungi_resto %>% left_join(prich, by = join_by(field_name)), 
      cor.test(fungi_mass, pl_rich)))
-#' Fungal mass and plant richness aren't correlated, though the direction is negative. 
-#' Relationship is weak enough that no further tests are warranted.
+#' Fungal mass and plant richness are weakly correlated. but driven by a high-leverage point (not shown). 
 #' 
 #' Is plant diversity related to fungal mass?
 (fa_pshan_cor <-
@@ -2568,19 +2567,23 @@ sapro_resto %>% left_join(prich, by = join_by(field_name)) %>%
 
 #' Unified table with plant richness/shannon and fungal biomass correlations
 
-list(
-  fa_prich_cor,
-  fa_pshan_cor,
-  amfa_prich_cor,
-  amfa_pshan_cor,
-  pathofa_prich_cor,
-  pathofa_pshan_cor,
-  saprofa_prich_cor,
-  saprofa_pshan_cor
-) %>% map_dbl(\(x) x[[3]])
-
-
-
+fun_p_cors <- 
+  list(
+    its_prich   = fa_prich_cor,
+    its_pshan   = fa_pshan_cor,
+    amf_prich   = amfa_prich_cor,
+    amf_pshan   = amfa_pshan_cor,
+    patho_prich = pathofa_prich_cor,
+    patho_pshan = pathofa_pshan_cor,
+    sapro_prich = saprofa_prich_cor,
+    sapro_pshan = saprofa_pshan_cor
+  ) %>% map(\(x) data.frame(x[1:4]) %>% 
+              select(t_statistic = statistic, df = parameter, R = estimate, p_val = p.value)) %>% 
+    bind_rows(.id = "set") %>% 
+    separate_wider_delim(set, delim = "_", names = c("group", "response"))
+split(fun_p_cors, fun_p_cors$response) %>% 
+  map(\(df) df %>% mutate(p_adj = p.adjust(p_val, "fdr")) %>% 
+        kable(format = "pandoc"))
 
 
 
