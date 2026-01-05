@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 30 December, 2025
+Last updated: 05 January, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -25,7 +25,8 @@ Last updated: 30 December, 2025
   - [Abundance (PLFA biomass)](#abundance-plfa-biomass)
   - [Beta Diversity](#beta-diversity)
   - [Constrained Analysis](#constrained-analysis)
-  - [Fungi‒pfg correlations](#fungipfg-correlations)
+  - [Soil fungi and plant community
+    correlations](#soil-fungi-and-plant-community-correlations)
 - [Arbuscular mycorrhizal fungi](#arbuscular-mycorrhizal-fungi)
   - [Diversity Indices](#diversity-indices-1)
   - [Abundance (NLFA biomass)](#abundance-nlfa-biomass)
@@ -33,23 +34,24 @@ Last updated: 30 December, 2025
   - [AMF abundance in families](#amf-abundance-in-families)
   - [Indicator species analysis](#indicator-species-analysis)
   - [Constrained Analysis](#constrained-analysis-1)
-  - [AMF correlations with pfg](#amf-correlations-with-pfg)
+  - [AM fungi and plant community
+    correlations](#am-fungi-and-plant-community-correlations)
 - [Putative plant pathogens](#putative-plant-pathogens)
   - [Diversity Indices](#diversity-indices-2)
   - [Abundance](#abundance)
   - [Beta Diversity](#beta-diversity-2)
   - [Pathogen Indicator Species](#pathogen-indicator-species)
   - [Constrained Analysis](#constrained-analysis-2)
-  - [Pathogen correlation with plant functional
-    groups](#pathogen-correlation-with-plant-functional-groups)
+  - [Pathogen and plant community
+    correlations](#pathogen-and-plant-community-correlations)
 - [Putative saprotrophs](#putative-saprotrophs)
   - [Diversity Indices](#diversity-indices-3)
   - [Abundance](#abundance-1)
   - [Beta Diversity](#beta-diversity-3)
   - [Saprotroph Indicator Species](#saprotroph-indicator-species)
   - [Constrained Analysis](#constrained-analysis-3)
-  - [Saprotroph correlations with plant
-    community](#saprotroph-correlations-with-plant-community)
+  - [Saprotroph and plant community
+    correlations](#saprotroph-and-plant-community-correlations)
 
 # Description
 
@@ -262,8 +264,10 @@ plant <- read_csv(root_path("clean_data/plant_avg.csv"), show_col_types = FALSE)
 prich <- plant %>% 
   select(-BARESOIL, -LITTER, -ROSA, -SALIX) %>% # remove non-species entries
   rowwise() %>% 
-  mutate(pl_rich = sum(c_across(where(is.numeric)) > 0)) %>% 
-  select(field_name = SITE, pl_rich) %>% 
+  mutate(pl_rich = sum(c_across(where(is.numeric)) > 0),
+         pl_shan = exp(diversity(c_across(where(is.numeric))))
+         ) %>% 
+  select(field_name = SITE, pl_rich, pl_shan) %>% 
   left_join(sites, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
   ungroup()
@@ -379,6 +383,20 @@ fs8_xlab <- pfg %>%
          ) %>% 
   ungroup() %>% 
   select(field_name, xlab)
+plt_div <- 
+  prich %>% 
+  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(fs8_xlab, by = join_by(field_name)) %>% 
+  select(field_name, xlab, gf_index, pl_rich, pl_shan) %>%
+  pivot_longer(pl_rich:pl_shan, names_to = "var", values_to = "value") %>% 
+  ggplot(aes(x = fct_reorder(xlab, gf_index), y = value, group = var)) +
+  geom_col(aes(fill = var), position = position_dodge()) +
+  labs(x = NULL, y = expression(atop("Alpha diversity", paste("(", italic(n), " species)")))) +
+  scale_fill_discrete_qualitative(name = "Diversity index", palette = "Dynamic", 
+                                  labels = c(expression("Richness"), expression(paste("Shannon (", italic(e)^italic(H), ")")))) +
+  theme_cor +
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
 pfg_comp <- 
   pfg %>% 
   select(field_name, C3_grass:shrubTree) %>% 
@@ -394,10 +412,12 @@ pfg_comp <-
                       labels = c("shrub, tree", "legume", "grass (C3)", "grass (C4)", "forb"))) %>% 
   left_join(fs8_xlab, by = join_by(field_name))
 pfg_comp_fig <- 
-  ggplot(pfg_comp, aes(x = fct_reorder(xlab, -gf_index), y = pct_comp, group = pfg)) +
+  ggplot(pfg_comp, aes(x = fct_reorder(xlab, gf_index), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
   labs(x = NULL, y = "Composition (%)") +
-  scale_fill_manual(name = "Functional group", values = pfg_col) +
+  scale_fill_manual(name = "Functional group", values = pfg_col,
+                    labels = c(expression("shrub, tree"), expression("legume"), 
+                               expression("grass ("*C[3]*")"), expression("grass ("*C[4]*")"), expression("forb"))) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -413,10 +433,11 @@ pfg_pct <-
                       labels = c("grass (C4)", "forb"))) %>% 
   left_join(fs8_xlab, by = join_by(field_name))
 gf_pct_fig <- 
-  ggplot(pfg_pct, aes(x = fct_reorder(xlab, -gf_index), y = pct_cvr, group = pfg)) +
+  ggplot(pfg_pct, aes(x = fct_reorder(xlab, gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  scale_color_manual(name = "Functional group", values = pfg_col[4:5]) +
+  scale_color_manual(name = "Functional group", values = pfg_col[4:5], 
+                     labels = c(expression("grass ("*C[4]*")"), expression("forb"))) +
   labs(x = NULL, y = "Cover (%)") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -424,7 +445,7 @@ gf_pct_fig <-
 gfi_loc_fig <- 
   gfi_yrs %>% 
   left_join(sites, by = join_by(field_name)) %>% 
-  ggplot(aes(x = -gf_index, y = rep("PCA 1", nrow(gfi_yrs)))) + 
+  ggplot(aes(x = gf_index, y = rep("PCA 1", nrow(gfi_yrs)))) + 
   geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
   geom_point(aes(color = field_type), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   labs(y = NULL, x = "Grass-forb index") +
@@ -438,8 +459,8 @@ gfi_loc_fig <-
 #### Unified figure
 
 ``` r
-pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / gfi_loc_fig) +
-  plot_layout(heights = c(1,0.01,1,0.01,0.2))  +
+pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / gfi_loc_fig) +
+  plot_layout(heights = c(1,0.01,1,0.01,0.7,0.01,0.2)) +
   plot_annotation(tag_levels = 'A') 
 ```
 
@@ -1495,16 +1516,76 @@ mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
 
-## Fungi‒pfg correlations
+## Soil fungi and plant community correlations
+
+Data for these tests
 
 ``` r
 fungi_resto <- its_div %>% 
   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
-  filter(field_type == "restored", region != "FL") %>% 
+  filter(field_type != "corn", region != "FL") %>% 
   select(field_name, fungi_ab = depth, fungi_mass, gf_index)
+```
 
+### Plant richness and fungal biomass
+
+Is plant richness related to pathogen mass?
+
+``` r
+(fa_prich_cor <- 
+  with(fungi_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(fungi_mass, pl_rich)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  fungi_mass and pl_rich
+    ## t = -2.164, df = 11, p-value = 0.05334
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.843470324  0.006510221
+    ## sample estimates:
+    ##        cor 
+    ## -0.5464352
+
+Fungal mass and plant richness are weakly correlated. but driven by a
+high-leverage point (not shown).
+
+Is plant diversity related to fungal mass?
+
+``` r
+(fa_pshan_cor <-
+  with(fungi_resto %>% 
+       left_join(its_div %>% select(field_name, shannon), by = join_by(field_name)) %>% 
+       left_join(prich, by = join_by(field_name)), 
+     cor.test(fungi_mass, pl_shan)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  fungi_mass and pl_shan
+    ## t = -1.6124, df = 11, p-value = 0.1352
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.7963656  0.1498557
+    ## sample estimates:
+    ##       cor 
+    ## -0.437231
+
+Fungal biomass and plant diversity are negatively related but the
+correlation is not significant. It’s driven almost entirely by KORP (not
+shown) and wouldn’t be close to significant otherwise, no further
+testing warranted.
+
+### Fungal biomass and grass/forb composition
+
+Inspect simple linear relationship. Naïve model.
+
+``` r
 fuma_rest_m <- lm(fungi_mass ~ gf_index, data = fungi_resto)
 ```
 
@@ -1524,18 +1605,18 @@ summary(fuma_rest_m)
     ## 
     ## Residuals:
     ##     Min      1Q  Median      3Q     Max 
-    ## -2.2384 -1.1336  0.3691  1.0195  1.8953 
+    ## -2.7014 -1.6462  0.6455  1.0298  2.2321 
     ## 
     ## Coefficients:
     ##             Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)   5.1235     0.4797  10.680 5.18e-06 ***
-    ## gf_index     -3.4063     1.7823  -1.911   0.0924 .  
+    ## (Intercept)    4.971      0.442  11.246 2.26e-07 ***
+    ## gf_index      -2.180      1.657  -1.315    0.215    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 1.5 on 8 degrees of freedom
-    ## Multiple R-squared:  0.3135, Adjusted R-squared:  0.2276 
-    ## F-statistic: 3.653 on 1 and 8 DF,  p-value: 0.09236
+    ## Residual standard error: 1.594 on 11 degrees of freedom
+    ## Multiple R-squared:  0.1359, Adjusted R-squared:  0.05736 
+    ## F-statistic:  1.73 on 1 and 11 DF,  p-value: 0.2151
 
 PFG doesn’t strongly predict fungal biomass at sites. How are mass and
 sequence abundance related?
@@ -1556,10 +1637,10 @@ compare_performance(furest_m_raw, furest_m_logy, furest_m_logx, furest_m_both,
     ## 
     ## Name          | Model |    R2 |    RMSE | AIC weights | Performance-Score
     ## -------------------------------------------------------------------------
-    ## furest_m_logy |    lm | 0.526 |   0.077 |       0.425 |           100.00%
-    ## furest_m_both |    lm | 0.451 |   0.083 |       0.204 |            51.32%
-    ## furest_m_raw  |    lm | 0.497 | 674.523 |       0.247 |            39.96%
-    ## furest_m_logx |    lm | 0.423 | 722.714 |       0.124 |             0.00%
+    ## furest_m_logy |    lm | 0.225 |   0.096 |       0.343 |           100.00%
+    ## furest_m_both |    lm | 0.205 |   0.098 |       0.290 |            71.70%
+    ## furest_m_raw  |    lm | 0.208 | 821.791 |       0.198 |            24.04%
+    ## furest_m_logx |    lm | 0.188 | 832.114 |       0.169 |             0.00%
 
 ``` r
 check_model(furest_m_logy)
@@ -1576,20 +1657,20 @@ summary(furest_m_logy)
     ## lm(formula = log(fungi_ab) ~ fungi_mass + gf_index, data = fungi_resto)
     ## 
     ## Residuals:
-    ##      Min       1Q   Median       3Q      Max 
-    ## -0.10489 -0.04912 -0.02196  0.02377  0.13805 
+    ##       Min        1Q    Median        3Q       Max 
+    ## -0.136791 -0.069312 -0.002956  0.011927  0.205670 
     ## 
     ## Coefficients:
     ##             Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  9.29020    0.11508  80.727 1.18e-11 ***
-    ## fungi_mass  -0.05330    0.02171  -2.455   0.0438 *  
-    ## gf_index    -0.03710    0.13210  -0.281   0.7869    
+    ## (Intercept)  9.15026    0.10773  84.939 1.25e-15 ***
+    ## fungi_mass  -0.02841    0.02079  -1.367    0.202    
+    ## gf_index     0.05461    0.12289   0.444    0.666    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 0.0921 on 7 degrees of freedom
-    ## Multiple R-squared:  0.526,  Adjusted R-squared:  0.3905 
-    ## F-statistic: 3.884 on 2 and 7 DF,  p-value: 0.07334
+    ## Residual standard error: 0.1099 on 10 degrees of freedom
+    ## Multiple R-squared:  0.2254, Adjusted R-squared:  0.07042 
+    ## F-statistic: 1.455 on 2 and 10 DF,  p-value: 0.2789
 
 ``` r
 ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
@@ -1928,7 +2009,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -1993,7 +2074,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-69-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-72-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -2009,7 +2090,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-69-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-72-2.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2380,7 +2461,7 @@ par(mfrow = c(2,2))
 plot(glom_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-73-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
 
 ``` r
 distribution_prob(glom_lm)
@@ -2444,7 +2525,7 @@ par(mfrow = c(2,2))
 plot(glom_lm_log) # some improvement, leverage point still exists
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
 
 ``` r
 ncvTest(glom_lm_log) # p=0.29, null of constant variance not rejected, model fit is improved
@@ -2467,7 +2548,7 @@ glom_glm_diag <- glm.diag(glom_glm)
 glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
 
 ``` r
 check_model(glom_glm) # corroborates
@@ -2521,7 +2602,7 @@ par(mfrow = c(2,2))
 plot(clar_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-80-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
 
 ``` r
 distribution_prob(clar_lm)
@@ -2567,7 +2648,7 @@ clar_glm_diag <- glm.diag(clar_glm)
 glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-86-1.png)<!-- -->
 
 ``` r
 check_model(clar_glm) # corroborates
@@ -2621,7 +2702,7 @@ par(mfrow = c(2,2))
 plot(para_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-85-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-88-1.png)<!-- -->
 
 ``` r
 distribution_prob(para_lm)
@@ -2667,7 +2748,7 @@ para_glm_diag <- glm.diag(para_glm)
 glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-88-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-91-1.png)<!-- -->
 
 ``` r
 check_model(para_glm) # corroborates
@@ -2726,7 +2807,7 @@ diver_glm_diag <- glm.diag(diver_glm)
 glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-91-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-94-1.png)<!-- -->
 
 ``` r
 check_model(diver_glm) # corroborates
@@ -3047,7 +3128,9 @@ amf_mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
 
-## AMF correlations with pfg
+## AM fungi and plant community correlations
+
+Data for these tests
 
 ``` r
 amf_resto <- amf_div %>% 
@@ -3056,9 +3139,62 @@ amf_resto <- amf_div %>%
   left_join(gf_index, by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
   select(field_name, amf_ab = depth, amf_mass, gf_index) 
-
-amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
 ```
+
+### Plant richness and fungal biomass
+
+Is plant richness related to pathogen mass?
+
+``` r
+(amfa_prich_cor <- 
+  with(amf_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(amf_mass, pl_rich)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  amf_mass and pl_rich
+    ## t = -0.0080515, df = 11, p-value = 0.9937
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.5526737  0.5492924
+    ## sample estimates:
+    ##          cor 
+    ## -0.002427618
+
+AM fungal mass and plant richness aren’t correlated.  
+Relationship is weak enough that no further tests are warranted.
+
+Is plant diversity related to fungal mass?
+
+``` r
+(amfa_pshan_cor <- 
+  with(amf_resto %>% 
+       left_join(amf_div %>% select(field_name, shannon), by = join_by(field_name)) %>% 
+       left_join(prich, by = join_by(field_name)), 
+     cor.test(amf_mass, pl_shan)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  amf_mass and pl_shan
+    ## t = 0.52988, df = 11, p-value = 0.6067
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.4306568  0.6520676
+    ## sample estimates:
+    ##       cor 
+    ## 0.1577635
+
+AM fungal biomass and plant diversity are positively related but only
+weakly so, no further testing warranted.
+
+### AM fungal biomass and grass/forb composition
+
+Inspect simple linear relationship. Naïve model.amma_rest_m \<-
+lm(amf_mass ~ gf_index, data = amf_resto)
 
 ``` r
 check_model(amma_rest_m)
@@ -3469,7 +3605,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-114-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-119-1.png)<!-- -->
 
 no serious violations observed
 
@@ -3966,9 +4102,9 @@ patho_mod_scor_site <- patho_mod_scor %>%
   left_join(sites, by = join_by(field_name))
 ```
 
-## Pathogen correlation with plant functional groups
+## Pathogen and plant community correlations
 
-How does grass-forb index relate to pathogen biomass? Data:
+Data for these tests
 
 ``` r
 patho_resto <- its_guild %>% 
@@ -3981,6 +4117,57 @@ patho_resto <- its_guild %>%
   ) %>% 
   select(-sapro_abund) 
 ```
+
+### Plant richness and pathogen biomass
+
+Is plant richness related to pathogen mass?
+
+``` r
+(pathofa_prich_cor <- 
+  with(patho_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(patho_mass, pl_rich)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  patho_mass and pl_rich
+    ## t = -0.61192, df = 11, p-value = 0.553
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.6658573  0.4105949
+    ## sample estimates:
+    ##        cor 
+    ## -0.1814372
+
+Pathogen mass and plant richness aren’t correlated, though the direction
+is negative. Relationship is weak enough that no further tests are
+warranted.
+
+Is plant diversity related to pathogen mass?
+
+``` r
+(pathofa_pshan_cor <- 
+  with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
+     cor.test(patho_mass, shannon)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  patho_mass and shannon
+    ## t = 1.2644, df = 11, p-value = 0.2322
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.2423266  0.7583608
+    ## sample estimates:
+    ##       cor 
+    ## 0.3562207
+
+Pathogen mass and plant diversity aren’t correlated, though the slope is
+positive.
+
+### Pathogen biomass and grass/forb composition
 
 Inspect simple linear relationship. Naïve model.
 
@@ -4122,13 +4309,13 @@ par(mfrow = c(2,2))
 plot(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-139-1.png)<!-- -->
 
 ``` r
 crPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-139-2.png)<!-- -->
 
 Slight leverage at the left tail of fungi mass; no serious leverage
 visible with gf_index.
@@ -4137,7 +4324,7 @@ visible with gf_index.
 parest_m_abs_av <- avPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-140-1.png)<!-- -->
 
 ``` r
 c(R2.adj = summary(parest_m_abs)$adj.r.squared)
@@ -4175,9 +4362,26 @@ parest_m_rmse[2:3]
     ## [1] 0.363519
     ## 
     ## $rmse_log
-    ## [1] 0.2205934
+    ## [1] 0.6043775
 
-Incorporating total biomass in the model drops RMSE by -39.3%.
+``` r
+parest_m_rmse_log <- list(
+  rmse_naive_log = rmse(log(patho_resto$patho_mass), log(fitted(pama_rest_m))),
+  rmse_log  = rmse(log(patho_resto$patho_mass), fitted(parest_m_abs))
+)
+parest_m_rmse_log
+```
+
+    ## $rmse_naive_log
+    ## [1] 0.5969046
+    ## 
+    ## $rmse_log
+    ## [1] 0.2402708
+
+Incorporating total biomass in the model drops RMSE by 66.3% on the raw
+scale and by
+`r round((parest_m_rmse_log$rmse_log-parest_m_rmse_log$rmse_naive_log) / parest_m_rmse_log$rmse_naive_log * 100, 1)`%
+on the log scale.
 
 Results:
 
@@ -4472,7 +4676,7 @@ par(mfrow = c(1,1))
 crPlots(parest_m_rel, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-141-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-148-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_rel)
@@ -4543,14 +4747,14 @@ par(mfrow = c(2,2))
 plot(parest_m_biom)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-150-1.png)<!-- -->
 
 ``` r
 par(mfrow = c(1,1))
 crPlots(parest_m_biom, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-150-2.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_biom) # Ok
@@ -4586,53 +4790,6 @@ coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
 
 Agrees with what we found before with biomass as an untransformed
 response variable.
-
-### Alternative explanations
-
-Is plant richness related to pathogen mass?
-
-``` r
-with(patho_resto %>% left_join(prich, by = join_by(field_name)), 
-     cor.test(patho_mass, pl_rich))
-```
-
-    ## 
-    ##  Pearson's product-moment correlation
-    ## 
-    ## data:  patho_mass and pl_rich
-    ## t = -0.61192, df = 11, p-value = 0.553
-    ## alternative hypothesis: true correlation is not equal to 0
-    ## 95 percent confidence interval:
-    ##  -0.6658573  0.4105949
-    ## sample estimates:
-    ##        cor 
-    ## -0.1814372
-
-Pathogen mass and plant richness aren’t correlated, though the direction
-is negative. Plant richness was not signficant in the full log-log model
-(not shown).
-
-Is plant diversity related to pathogen mass?
-
-``` r
-with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
-     cor.test(patho_mass, shannon))
-```
-
-    ## 
-    ##  Pearson's product-moment correlation
-    ## 
-    ## data:  patho_mass and shannon
-    ## t = 1.2644, df = 11, p-value = 0.2322
-    ## alternative hypothesis: true correlation is not equal to 0
-    ## 95 percent confidence interval:
-    ##  -0.2423266  0.7583608
-    ## sample estimates:
-    ##       cor 
-    ## 0.3562207
-
-Pathogen mass and plant diversity aren’t correlated, though the
-correlation is positive.
 
 # Putative saprotrophs
 
@@ -4747,7 +4904,7 @@ sapro_glm_diag <- glm.diag(sapro_rich_glm)
 glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-152-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-157-1.png)<!-- -->
 
 Slight improvement to qq plot shape, slightly reduced hatvalue (not
 shown)
@@ -4770,7 +4927,7 @@ plot(sapro_glm_sim) # DHARMa passes all tests
 
     ## Warning in newton(lsp = lsp, X = G$X, y = G$y, Eb = G$Eb, UrS = G$UrS, L = G$L, : Fitting terminated with step failure - check results carefully
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-158-1.png)<!-- -->
 
 Gamma glm is the best choice; no high-leverage point
 
@@ -4969,7 +5126,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-162-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-167-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -5648,7 +5805,9 @@ respectively, along the index. The black arrows show other significant
 constraining variables. Points show locations of restored fields (green)
 and remnant fields (blue) in Wisconsin.
 
-## Saprotroph correlations with plant community
+## Saprotroph and plant community correlations
+
+Data for these tests
 
 ``` r
 sapro_resto <- its_guild %>% 
@@ -5662,7 +5821,473 @@ sapro_resto <- its_guild %>%
   select(-patho_abund)
 ```
 
+### Plant richness and pathogen biomass
+
+Is plant richness related to saprotroph mass?
+
+``` r
+(saprofa_prich_cor <- 
+  with(sapro_resto %>% left_join(prich, by = join_by(field_name)), 
+     cor.test(sapro_mass, pl_rich)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  sapro_mass and pl_rich
+    ## t = -3.6065, df = 11, p-value = 0.004123
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.9156868 -0.3113652
+    ## sample estimates:
+    ##        cor 
+    ## -0.7360717
+
+Strong negative relationship worthy of closer examination. It isn’t
+driven by grass-forb index (see below), so this isn’t a confounding with
+C4 grass abundance… KORP site appears to have some leverage (not shown),
+conduct linear model selection as before and perform LOOCV test (see
+below, past initial results display).
+
+Is plant diversity related to saprotroph mass?
+
+``` r
+(saprofa_pshan_cor <- 
+  with(sapro_resto %>% left_join(sapro_div %>% select(field_name, shannon), by = join_by(field_name)), 
+     cor.test(sapro_mass, shannon)))
+```
+
+    ## 
+    ##  Pearson's product-moment correlation
+    ## 
+    ## data:  sapro_mass and shannon
+    ## t = -0.37606, df = 11, p-value = 0.714
+    ## alternative hypothesis: true correlation is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.6248600  0.4673319
+    ## sample estimates:
+    ##        cor 
+    ## -0.1126635
+
+Saprotroph mass and plant diversity aren’t correlated.
+
+#### Initial results tables
+
+P-values corrected with fdr
+
+``` r
+fun_p_cors <- 
+  list(
+    its_prich   = fa_prich_cor,
+    its_pshan   = fa_pshan_cor,
+    amf_prich   = amfa_prich_cor,
+    amf_pshan   = amfa_pshan_cor,
+    patho_prich = pathofa_prich_cor,
+    patho_pshan = pathofa_pshan_cor,
+    sapro_prich = saprofa_prich_cor,
+    sapro_pshan = saprofa_pshan_cor
+  ) %>% map(\(x) data.frame(x[1:4]) %>% 
+              select(t_statistic = statistic, df = parameter, R = estimate, p_val = p.value)) %>% 
+    bind_rows(.id = "set") %>% 
+    separate_wider_delim(set, delim = "_", names = c("group", "response"))
+split(fun_p_cors, fun_p_cors$response) %>% 
+  map(\(df) df %>% mutate(p_adj = p.adjust(p_val, "fdr")) %>% 
+        kable(format = "pandoc"))
+```
+
+    ## $prich
+    ## 
+    ## 
+    ## group   response    t_statistic   df            R       p_val       p_adj
+    ## ------  ---------  ------------  ---  -----------  ----------  ----------
+    ## its     prich        -2.1639610   11   -0.5464352   0.0533352   0.1066704
+    ## amf     prich        -0.0080515   11   -0.0024276   0.9937201   0.9937201
+    ## patho   prich        -0.6119155   11   -0.1814372   0.5530312   0.7373749
+    ## sapro   prich        -3.6065313   11   -0.7360717   0.0041225   0.0164900
+    ## 
+    ## $pshan
+    ## 
+    ## 
+    ## group   response    t_statistic   df            R       p_val       p_adj
+    ## ------  ---------  ------------  ---  -----------  ----------  ----------
+    ## its     pshan        -1.6124228   11   -0.4372310   0.1351666   0.4644459
+    ## amf     pshan         0.5298781   11    0.1577635   0.6067260   0.7140266
+    ## patho   pshan         1.2643924   11    0.3562207   0.2322230   0.4644459
+    ## sapro   pshan        -0.3760568   11   -0.1126635   0.7140266   0.7140266
+
+#### Saprotrophs & plant richness: model selection
+
 Inspect simple linear relationship. Naïve model.
+
+``` r
+sapro_pltrich <- sapro_resto %>% left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name))
+saplr_m_raw <- lm(sapro_mass ~ pl_rich, data = sapro_pltrich)
+```
+
+``` r
+check_model(saplr_m_raw)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/cm_saplr_m_raw-1.png)<!-- -->
+
+``` r
+shapiro.test(saplr_m_raw$residuals)
+```
+
+    ## 
+    ##  Shapiro-Wilk normality test
+    ## 
+    ## data:  saplr_m_raw$residuals
+    ## W = 0.95843, p-value = 0.7293
+
+``` r
+summary(saplr_m_raw)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = sapro_mass ~ pl_rich, data = sapro_pltrich)
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -0.56697 -0.32365  0.06416  0.24916  0.53019 
+    ## 
+    ## Coefficients:
+    ##              Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  2.422247   0.349522   6.930 2.49e-05 ***
+    ## pl_rich     -0.030600   0.008485  -3.607  0.00412 ** 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.3617 on 11 degrees of freedom
+    ## Multiple R-squared:  0.5418, Adjusted R-squared:  0.5001 
+    ## F-statistic: 13.01 on 1 and 11 DF,  p-value: 0.004123
+
+The naïve model shows an inverse relationship that is significant but
+with a rather small slope. Conduct model selection as before with
+pathogens in log-log space.
+
+``` r
+saplr_m_logy <- lm(log(sapro_mass) ~ fungi_mass + pl_rich, data = sapro_pltrich)
+saplr_m_logx <- lm(sapro_mass ~ log(fungi_mass) + pl_rich, data = sapro_pltrich)
+saplr_m_both <- lm(log(sapro_mass) ~ log(fungi_mass) + pl_rich, data = sapro_pltrich)
+compare_performance(saplr_m_raw, saplr_m_logy, saplr_m_logx, saplr_m_both, 
+                    metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+```
+
+    ## # Comparison of Model Performance Indices
+    ## 
+    ## Name         | Model |    R2 |  RMSE | AIC weights | Performance-Score
+    ## ----------------------------------------------------------------------
+    ## saplr_m_both |    lm | 0.826 | 0.169 |       0.422 |            98.37%
+    ## saplr_m_logy |    lm | 0.818 | 0.173 |       0.319 |            88.62%
+    ## saplr_m_logx |    lm | 0.841 | 0.196 |       0.259 |            81.53%
+    ## saplr_m_raw  |    lm | 0.542 | 0.333 |    7.38e-04 |             0.00%
+
+Log-log model selected
+
+``` r
+saplr_m_abs <- lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich, data = sapro_pltrich) # centered log of fungi_mass
+augment(saplr_m_abs, data = sapro_pltrich %>% select(field_name)) 
+```
+
+    ## # A tibble: 13 × 6
+    ##    field_name .fitted   .hat .sigma     .cooksd .std.resid
+    ##    <chr>        <dbl>  <dbl>  <dbl>       <dbl>      <dbl>
+    ##  1 BBRP1       0.595  0.226  0.199  0.0357        -0.606  
+    ##  2 ERRP1       0.258  0.0905 0.191  0.0381         1.07   
+    ##  3 FGREM1      0.115  0.136  0.0985 0.400         -2.76   
+    ##  4 FGRP1       0.0764 0.121  0.203  0.000000480   -0.00324
+    ##  5 KORP1       0.828  0.471  0.203  0.000635      -0.0462 
+    ##  6 LPREM1      0.451  0.147  0.194  0.0493         0.927  
+    ##  7 LPRP1      -0.270  0.388  0.203  0.00150       -0.0843 
+    ##  8 LPRP2      -0.260  0.341  0.203  0.00501        0.170  
+    ##  9 MBREM1     -0.463  0.280  0.203  0.000346      -0.0517 
+    ## 10 MBRP1      -0.358  0.223  0.203  0.00175        0.135  
+    ## 11 MHRP1       0.105  0.318  0.189  0.201          1.14   
+    ## 12 MHRP2       0.0822 0.0817 0.200  0.00922        0.557  
+    ## 13 PHRP1       0.310  0.177  0.201  0.0111        -0.394
+
+Max cooks of 0.4 is FGREM1. Lower saprotrophs than expected. Check
+leave-one-out slopes.
+
+``` r
+slopes_sma <- map_dbl(seq_len(nrow(sapro_pltrich)), function(i){
+  coef(lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich, data = sapro_pltrich[-i, ]))["pl_rich"]
+})
+summary(slopes_sma); slopes_sma[which.min(slopes_sma)]; slopes_sma[which.max(slopes_sma)]
+```
+
+    ##      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+    ## -0.016258 -0.013204 -0.013044 -0.013055 -0.012911 -0.009541
+
+    ## [1] -0.01625763
+
+    ## [1] -0.009541033
+
+LOOCV test doesn’t suggest that inference would change
+
+``` r
+distribution_prob(saplr_m_abs)
+```
+
+    ## 
+    ## 
+    ## Distribution    p_Residuals
+    ## -------------  ------------
+    ## cauchy              0.46875
+    ## normal              0.18750
+    ## beta                0.15625
+    ## 
+    ## 
+    ## Distribution    p_Response
+    ## -------------  -----------
+    ## gamma              0.56250
+    ## exponential        0.12500
+    ## pareto             0.09375
+
+``` r
+shapiro.test(saplr_m_abs$residuals)
+```
+
+    ## 
+    ##  Shapiro-Wilk normality test
+    ## 
+    ## data:  saplr_m_abs$residuals
+    ## W = 0.80485, p-value = 0.007787
+
+Residuals distribution difference from normal rejected by shapiro test
+and machine learning approach. This is almost certainly driven by the
+large outlier FGREM1
+
+``` r
+par(mfrow = c(2,2))
+plot(saplr_m_abs)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-186-1.png)<!-- -->
+
+``` r
+crPlots(saplr_m_abs)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-186-2.png)<!-- -->
+
+FGREM1 is mid-fitted value so has little leverage. Structure to model
+residuals likely doesn’t affect inference.
+
+``` r
+saplr_m_abs_av <- avPlots(saplr_m_abs)
+```
+
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-187-1.png)<!-- -->
+
+``` r
+c(R2.adj = summary(saplr_m_abs)$adj.r.squared)
+```
+
+    ##   R2.adj 
+    ## 0.791165
+
+Relationships appear monotonic and both appear relatively clean with
+FGREM1 not overly dictating fit (in log-log space).
+
+``` r
+ncvTest(saplr_m_abs)
+```
+
+    ## Non-constant Variance Score Test 
+    ## Variance formula: ~ fitted.values 
+    ## Chisquare = 0.1407079, Df = 1, p = 0.70758
+
+Diagnostics (NCV p=0.801; HC3 and LOOCV stable) support the additive
+log–log model. Shapiro test of log-log resids failed (p\<0.01), but was
+strong in the raw model (p=0.73). Did adding total biomass indeed
+improve inference of the relationship? Check RMSE between naïve and
+log-log models, using Duan’s smearing and back-transformation to compare
+models on the same scale, using custom function `rmse()`.
+
+``` r
+saplr_m_rmse <- list(
+  pred_log_raw = exp(fitted(saplr_m_abs)) * mean(exp(residuals(saplr_m_abs))), # smearing factor
+  rmse_naive   = rmse(sapro_pltrich$sapro_mass, fitted(saplr_m_raw)),
+  rmse_log     = rmse(sapro_pltrich$sapro_mass, pred_log_raw)
+)
+saplr_m_rmse[2:3]
+```
+
+    ## $rmse_naive
+    ## [1] 0.3327078
+    ## 
+    ## $rmse_log
+    ## [1] 0.1861211
+
+RMSE increases, nearly doubles, on the raw scale
+
+``` r
+saplr_m_rmse_on_log <- list(
+  rmse_naive_log = rmse(log(sapro_pltrich$sapro_mass), log(fitted(saplr_m_raw))),
+  rmse_log  = rmse(log(sapro_pltrich$sapro_mass), fitted(saplr_m_abs))
+)
+saplr_m_rmse_on_log
+```
+
+    ## $rmse_naive_log
+    ## [1] 0.300018
+    ## 
+    ## $rmse_log
+    ## [1] 0.1688336
+
+On the log scale, however, RMSE decreases by -43.7%, suggesting that for
+inference, this model is superior.
+
+Results:
+
+``` r
+(saplr_m_abs_wald <- coeftest(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3"))) # Robust Wald t test
+```
+
+    ## 
+    ## t test of coefficients:
+    ## 
+    ##                 Estimate Std. Error t value  Pr(>|t|)    
+    ## (Intercept)    0.6259324  0.1507115  4.1532 0.0019700 ** 
+    ## fungi_mass_lc  0.7925524  0.1518762  5.2184 0.0003908 ***
+    ## pl_rich       -0.0129963  0.0048326 -2.6893 0.0227281 *  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+(saplr_m_abs_ci <- coefci(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3")))
+```
+
+    ##                     2.5 %       97.5 %
+    ## (Intercept)    0.29012626  0.961738561
+    ## fungi_mass_lc  0.45415108  1.130953719
+    ## pl_rich       -0.02376412 -0.002228496
+
+``` r
+rsq.partial(saplr_m_abs, adj=TRUE)$partial.rsq
+```
+
+    ## [1] 0.6242069 0.3267464
+
+Elasticity of saprotroph mass to fungal biomass: a 1% increase in fungal
+biomass = 0.79% increase in saprotroph mass while holding plant richness
+constant (± 0.454 to 1.131%). Plant richness is multiplicative on the
+original scale.
+
+``` r
+-1+c(plant_richness = saplr_m_abs_wald[3,1], ci = saplr_m_abs_ci[3, ]) %>% map_dbl(\(x) round(exp(x), 3))
+```
+
+    ## plant_richness       ci.2.5 %      ci.97.5 % 
+    ##         -0.013         -0.023         -0.002
+
+An increase in 1 in plant species richness equals a 1.3% decrease in
+saprotroph mass (± 0.2 to 2.3% decrease).
+
+Produce objects for plotting Median fungal biomass on the original scale
+and model prediction for figure.
+
+``` r
+saplr_med_fungi <- median(sapro_pltrich$fungi_mass_lc, na.rm = TRUE)
+saplr_newdat <- tibble(
+  pl_rich   = seq(min(sapro_pltrich$pl_rich, na.rm = TRUE),
+                   max(sapro_pltrich$pl_rich, na.rm = TRUE),
+                   length.out = 200),
+  fungi_mass_lc = saplr_med_fungi
+)
+# Predict on the log scale, then back-transform to the original scale
+saplr_pred <- augment(saplr_m_abs, newdata = saplr_newdat, se_fit = TRUE) %>%
+  mutate(
+    fit_med = exp(.fitted),                       # median on raw scale
+    lwr_med = exp(.fitted - 1.96 * .se.fit),
+    upr_med = exp(.fitted + 1.96 * .se.fit)
+  )
+```
+
+``` r
+fig8a <- 
+  ggplot(saplr_pred, aes(x = pl_rich, y = fit_med)) +
+  # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+  geom_line(color = "black", linewidth = lw) +
+  geom_point(data = sapro_pltrich, aes(x = pl_rich, y = sapro_mass, fill = field_type),
+             size = sm_size, stroke = lw, shape = 21) +
+  geom_text(data = sapro_pltrich, aes(x = pl_rich, y = sapro_mass, label = yr_since), 
+            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = "Plant richness",
+    y = expression(atop("Saprotroph biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`))))),
+    tag = "A"
+  ) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_cor +
+  theme(legend.position = c(0.03, 0.13),
+        legend.justification = c(0, 1),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+```
+
+``` r
+fig8b <- 
+  cbind(saplr_m_abs_av$fungi_mass_lc, sapro_pltrich %>% select(field_name:region)) %>% 
+  ggplot(aes(x = fungi_mass_lc, y = `log(sapro_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = expression(atop("Residual fungal biomass", paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")"))), y = NULL, tag = "B") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+```
+
+``` r
+fig8c <- 
+  cbind(saplr_m_abs_av$pl_rich, sapro_pltrich %>% select(field_name:region)) %>% 
+  ggplot(aes(x = pl_rich, y = `log(sapro_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = "Residual plant richness", y = NULL, tag = "C") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+fig8yax_grob <- textGrob(
+  expression(atop("Residual saprotroph biomass (scaled, log)", paste(bold(`(`), "log((", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund))", bold(`)`))))),
+  x = 0.5,
+  y = 0.5,
+  hjust = 0.5,
+  vjust = 0.5,
+  rot = 90,
+  gp = gpar(cex = 10/12)
+)
+```
+
+``` r
+fig8rh <- (fig8b / plot_spacer() / fig8c) +
+  plot_layout(heights = c(0.5, 0.01,0.5))
+fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plot.tag = element_blank())) | fig8rh) +
+  plot_layout(widths = c(0.62, 0.005, 0.06, 0.38))
+```
+
+``` r
+fig8
+```
+
+![](resources/fungal_ecology_files/figure-gfm/fig8-1.png)<!-- -->
+
+### Saprotroph biomass and grass/forb composition
 
 ``` r
 sama_rest_m <- lm(sapro_mass ~ gf_index, data = sapro_resto)
@@ -5714,7 +6339,7 @@ par(mfrow = c(2,2))
 plot(sarest_m_both)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-175-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-194-1.png)<!-- -->
 
 ``` r
 summary(sarest_m_logy)
