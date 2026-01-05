@@ -212,39 +212,20 @@ fs8_xlab <- pfg %>%
          ) %>% 
   ungroup() %>% 
   select(field_name, xlab)
-
-
-
-
-
-
-#' plant richness / diverstiy
-prich %>% 
+plt_div <- 
+  prich %>% 
   left_join(gf_index, by = join_by(field_name)) %>% 
   left_join(fs8_xlab, by = join_by(field_name)) %>% 
-  ggplot(aes(x = fct_reorder(xlab, -gf_index), y = pl_rich)) +
-  geom_col() +
-  # labs(x = NULL, y = "Composition (%)") +
-  # scale_fill_manual(name = "Functional group", values = pfg_col) +
+  select(field_name, xlab, gf_index, pl_rich, pl_shan) %>%
+  pivot_longer(pl_rich:pl_shan, names_to = "var", values_to = "value") %>% 
+  ggplot(aes(x = fct_reorder(xlab, gf_index), y = value, group = var)) +
+  geom_col(aes(fill = var), position = position_dodge()) +
+  labs(x = NULL, y = expression(atop("Alpha diversity", paste("(", italic(n), " species)")))) +
+  scale_fill_discrete_qualitative(name = "Diversity index", palette = "Dynamic", 
+                                  labels = c(expression("Richness"), expression(paste("Shannon (", italic(e)^italic(H), ")")))) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
-prich %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
-  left_join(fs8_xlab, by = join_by(field_name)) %>% 
-  ggplot(aes(x = fct_reorder(xlab, -gf_index), y = pl_shan)) +
-  geom_col() +
-  # labs(x = NULL, y = "Composition (%)") +
-  # scale_fill_manual(name = "Functional group", values = pfg_col) +
-  theme_cor +
-  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-
-
-
-
-
 pfg_comp <- 
   pfg %>% 
   select(field_name, C3_grass:shrubTree) %>% 
@@ -260,10 +241,12 @@ pfg_comp <-
                       labels = c("shrub, tree", "legume", "grass (C3)", "grass (C4)", "forb"))) %>% 
   left_join(fs8_xlab, by = join_by(field_name))
 pfg_comp_fig <- 
-  ggplot(pfg_comp, aes(x = fct_reorder(xlab, -gf_index), y = pct_comp, group = pfg)) +
+  ggplot(pfg_comp, aes(x = fct_reorder(xlab, gf_index), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
   labs(x = NULL, y = "Composition (%)") +
-  scale_fill_manual(name = "Functional group", values = pfg_col) +
+  scale_fill_manual(name = "Functional group", values = pfg_col,
+                    labels = c(expression("shrub, tree"), expression("legume"), 
+                               expression("grass ("*C[3]*")"), expression("grass ("*C[4]*")"), expression("forb"))) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -279,10 +262,11 @@ pfg_pct <-
                       labels = c("grass (C4)", "forb"))) %>% 
   left_join(fs8_xlab, by = join_by(field_name))
 gf_pct_fig <- 
-  ggplot(pfg_pct, aes(x = fct_reorder(xlab, -gf_index), y = pct_cvr, group = pfg)) +
+  ggplot(pfg_pct, aes(x = fct_reorder(xlab, gf_index), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg)) +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  scale_color_manual(name = "Functional group", values = pfg_col[4:5]) +
+  scale_color_manual(name = "Functional group", values = pfg_col[4:5], 
+                     labels = c(expression("grass ("*C[4]*")"), expression("forb"))) +
   labs(x = NULL, y = "Cover (%)") +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -290,7 +274,7 @@ gf_pct_fig <-
 gfi_loc_fig <- 
   gfi_yrs %>% 
   left_join(sites, by = join_by(field_name)) %>% 
-  ggplot(aes(x = -gf_index, y = rep("PCA 1", nrow(gfi_yrs)))) + 
+  ggplot(aes(x = gf_index, y = rep("PCA 1", nrow(gfi_yrs)))) + 
   geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
   geom_point(aes(color = field_type), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   labs(y = NULL, x = "Grass-forb index") +
@@ -302,14 +286,14 @@ gfi_loc_fig <-
 #' 
 #' #### Unified figure
 #+ pfg_fig_patchwork,warning=FALSE
-pfg_pct_fig <- (pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / gfi_loc_fig) +
-  plot_layout(heights = c(1,0.01,1,0.01,0.2))  +
+pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / gfi_loc_fig) +
+  plot_layout(heights = c(1,0.01,1,0.01,0.7,0.01,0.2)) +
   plot_annotation(tag_levels = 'A') 
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = "svg",
-       width = 7.5, height = 6, units = "in")
+       width = 7.5, height = 7, units = "in")
 #' 
 #' ## Whole soil fungi
 #' Wrangle data to produce proportional biomass in guilds for its and families for amf
@@ -811,11 +795,6 @@ mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-
-
-
-
-
 #' 
 #' ## Soil fungi and plant community correlations
 #' Data for these tests
@@ -1406,10 +1385,6 @@ amf_mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-
-
-
-
 #' 
 #' ## AM fungi and plant community correlations
 #' Data for these tests
@@ -1880,8 +1855,16 @@ parest_m_rmse <- list(
   rmse_log     = rmse(patho_resto$patho_mass, pred_log_raw)
 )
 parest_m_rmse[2:3]
+parest_m_rmse_log <- list(
+  rmse_naive_log = rmse(log(patho_resto$patho_mass), log(fitted(pama_rest_m))),
+  rmse_log  = rmse(log(patho_resto$patho_mass), fitted(parest_m_abs))
+)
+parest_m_rmse_log
 #' Incorporating total biomass in the model drops RMSE by 
-#' `r round((parest_m_rmse$rmse_log-parest_m_rmse$rmse_naive) / parest_m_rmse$rmse_naive * 100, 1)`%. 
+#' `r round((parest_m_rmse$rmse_log-parest_m_rmse$rmse_naive) / parest_m_rmse$rmse_naive * 100, 1)`% on the 
+#' raw scale and by 
+#' ` r round((parest_m_rmse_log$rmse_log-parest_m_rmse_log$rmse_naive_log) / parest_m_rmse_log$rmse_naive_log * 100, 1)`% 
+#' on the log scale.
 #' 
 #' Results:
 (parest_m_abs_wald <- coeftest(parest_m_abs, vcov. = vcovHC(parest_m_abs, type = "HC3"))) # Robust Wald t test
@@ -2523,9 +2506,6 @@ fig6
 #+ fig6_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = "svg",
        width = 18, height = 18, units = "cm")
-
-
-
 #' 
 #' ## Saprotroph and plant community correlations
 #' Data for these tests
@@ -2547,26 +2527,17 @@ sapro_resto <- its_guild %>%
 #' Strong negative relationship worthy of closer examination. It isn't driven by 
 #' grass-forb index (see below), so this isn't a confounding with C4 grass abundance...
 #' KORP site appears to have some leverage (not shown), conduct linear model 
-#' selection as before and perform LOOCV test...
-
-sapro_resto %>% left_join(prich, by = join_by(field_name)) %>% 
-  ggplot(aes(x = pl_rich, y = sapro_mass)) +
-  geom_point()
-
-
-
-
+#' selection as before and perform LOOCV test (see below, past initial results display).
 #' 
 #' Is plant diversity related to saprotroph mass?
 (saprofa_pshan_cor <- 
   with(sapro_resto %>% left_join(sapro_div %>% select(field_name, shannon), by = join_by(field_name)), 
      cor.test(sapro_mass, shannon)))
 #' Saprotroph mass and plant diversity aren't correlated.  
-
-
-
-#' Unified table with plant richness/shannon and fungal biomass correlations
-
+#' 
+#' #### Initial results tables
+#' P-values corrected with fdr
+#+ fungi_plt_cors_table
 fun_p_cors <- 
   list(
     its_prich   = fa_prich_cor,
@@ -2584,6 +2555,183 @@ fun_p_cors <-
 split(fun_p_cors, fun_p_cors$response) %>% 
   map(\(df) df %>% mutate(p_adj = p.adjust(p_val, "fdr")) %>% 
         kable(format = "pandoc"))
+#' 
+#' #### Saprotrophs & plant richness: model selection
+#' Inspect simple linear relationship. Naïve model.
+sapro_pltrich <- sapro_resto %>% left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name))
+saplr_m_raw <- lm(sapro_mass ~ pl_rich, data = sapro_pltrich)
+#+ cm_saplr_m_raw,warning=FALSE,fig.width=7,fig.height=9
+check_model(saplr_m_raw)
+shapiro.test(saplr_m_raw$residuals)
+summary(saplr_m_raw)
+#' The naïve model shows an inverse relationship that is significant but with a 
+#' rather small slope. Conduct model selection as before with pathogens in log-log space.
+saplr_m_logy <- lm(log(sapro_mass) ~ fungi_mass + pl_rich, data = sapro_pltrich)
+saplr_m_logx <- lm(sapro_mass ~ log(fungi_mass) + pl_rich, data = sapro_pltrich)
+saplr_m_both <- lm(log(sapro_mass) ~ log(fungi_mass) + pl_rich, data = sapro_pltrich)
+compare_performance(saplr_m_raw, saplr_m_logy, saplr_m_logx, saplr_m_both, 
+                    metrics = c("AIC", "RMSE","R2"), rank = TRUE)
+#' Log-log model selected 
+saplr_m_abs <- lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich, data = sapro_pltrich) # centered log of fungi_mass
+augment(saplr_m_abs, data = sapro_pltrich %>% select(field_name)) 
+#' Max cooks of 0.4 is FGREM1. Lower saprotrophs than expected. 
+#' Check leave-one-out slopes.
+slopes_sma <- map_dbl(seq_len(nrow(sapro_pltrich)), function(i){
+  coef(lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich, data = sapro_pltrich[-i, ]))["pl_rich"]
+})
+summary(slopes_sma); slopes_sma[which.min(slopes_sma)]; slopes_sma[which.max(slopes_sma)]
+#' LOOCV test doesn't suggest that inference would change
+distribution_prob(saplr_m_abs)
+shapiro.test(saplr_m_abs$residuals)
+#' Residuals distribution difference from normal rejected by shapiro test and machine learning approach. 
+#' This is almost certainly driven by the large outlier FGREM1
+par(mfrow = c(2,2))
+plot(saplr_m_abs)
+crPlots(saplr_m_abs)
+#' FGREM1 is mid-fitted value so has little leverage. Structure to model residuals likely doesn't 
+#' affect inference.  
+saplr_m_abs_av <- avPlots(saplr_m_abs)
+c(R2.adj = summary(saplr_m_abs)$adj.r.squared)
+#' Relationships appear monotonic and both appear relatively clean with FGREM1 not overly dictating fit (in log-log space). 
+ncvTest(saplr_m_abs)
+#' Diagnostics (NCV p=0.801; HC3 and LOOCV stable) support the additive log–log model. Shapiro test
+#' of log-log resids failed (p<0.01), but was strong in the raw model (p=0.73). 
+#' Did adding total biomass indeed improve inference of the relationship? Check RMSE
+#' between naïve and log-log models, using Duan's smearing and back-transformation to 
+#' compare models on the same scale, using custom function `rmse()`.
+saplr_m_rmse <- list(
+  pred_log_raw = exp(fitted(saplr_m_abs)) * mean(exp(residuals(saplr_m_abs))), # smearing factor
+  rmse_naive   = rmse(sapro_pltrich$sapro_mass, fitted(saplr_m_raw)),
+  rmse_log     = rmse(sapro_pltrich$sapro_mass, pred_log_raw)
+)
+saplr_m_rmse[2:3]
+#' RMSE increases, nearly doubles, on the raw scale
+saplr_m_rmse_on_log <- list(
+  rmse_naive_log = rmse(log(sapro_pltrich$sapro_mass), log(fitted(saplr_m_raw))),
+  rmse_log  = rmse(log(sapro_pltrich$sapro_mass), fitted(saplr_m_abs))
+)
+saplr_m_rmse_on_log
+
+#' On the log scale, however, RMSE decreases by
+#' `r round((saplr_m_rmse_on_log$rmse_log-saplr_m_rmse_on_log$rmse_naive_log) / saplr_m_rmse_on_log$rmse_naive_log * 100, 1)`%,
+#' suggesting that for inference, this model is superior. 
+#' 
+#' Results:
+(saplr_m_abs_wald <- coeftest(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3"))) # Robust Wald t test
+(saplr_m_abs_ci <- coefci(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3")))
+#+ saplr_m_abs_rsq,warning=FALSE,message=FALSE
+rsq.partial(saplr_m_abs, adj=TRUE)$partial.rsq
+#' Elasticity of saprotroph mass to fungal biomass: a 1% increase in fungal biomass = `r round(saplr_m_abs_wald[2, 1], 2)`% 
+#' increase in saprotroph mass while holding plant richness constant (± 0.454 to 1.131%).
+#' Plant richness is multiplicative on the original scale. 
+#+ saplr_exp_wald_result
+c(plant_richness = saplr_m_abs_wald[3,1], ci = saplr_m_abs_ci[3, ]) %>% map_dbl(\(x) round(exp(x), 3))
+#' An increase in 1 in plant species richness equals a 1.3% decrease in saprotroph
+#' mass (± 0.2 to 2.3% decrease).
+#' Produce objects for plotting
+saplr_m_abs <- list(
+  plr_step = 0.1,
+  plr_beta = coeftest(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3"))["pl_rich", "Estimate"],
+  plr_ci   = coefci(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3"))["pl_rich", ]
+)
+exp(c(coef = saplr_m_abs$plr_beta, saplr_m_abs$plr_ci) * saplr_m_abs$plr_step)
+#' 
+#' View results:
+#' Median fungal biomass on the original scale and model prediction for figure.
+saplr_med_fungi <- median(sapro_pltrich$fungi_mass_lc, na.rm = TRUE)
+saplr_newdat <- tibble(
+  pl_rich   = seq(min(sapro_pltrich$pl_rich, na.rm = TRUE),
+                   max(sapro_pltrich$pl_rich, na.rm = TRUE),
+                   length.out = 200),
+  fungi_mass_lc = saplr_med_fungi
+)
+# Predict on the log scale, then back-transform to the original scale
+saplr_pred <- augment(saplr_m_abs, newdata = saplr_newdat, se_fit = TRUE) %>%
+  mutate(
+    fit_med = exp(.fitted),                       # median on raw scale
+    lwr_med = exp(.fitted - 1.96 * .se.fit),
+    upr_med = exp(.fitted + 1.96 * .se.fit)
+  )
+#+ fig8a,warning=FALSE
+fig8a <- 
+  ggplot(saplr_pred, aes(x = pl_rich, y = fit_med)) +
+  # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+  geom_line(color = "black", linewidth = lw) +
+  geom_point(data = sapro_pltrich, aes(x = pl_rich, y = sapro_mass, fill = field_type),
+             size = sm_size, stroke = lw, shape = 21) +
+  geom_text(data = sapro_pltrich, aes(x = pl_rich, y = sapro_mass, label = yr_since), 
+            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = "Plant richness",
+    y = expression(atop("Saprotroph biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`))))),
+    tag = "A"
+  ) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_cor +
+  theme(legend.position = c(0.03, 0.13),
+        legend.justification = c(0, 1),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#+ fig8b,warning=FALSE
+fig8b <- 
+  cbind(saplr_m_abs_av$fungi_mass_lc, sapro_pltrich %>% select(field_name:region)) %>% 
+  ggplot(aes(x = fungi_mass_lc, y = `log(sapro_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = expression(atop("Residual fungal biomass", paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")"))), y = NULL, tag = "B") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+#+ fig8c,warning=FALSE
+fig8c <- 
+  cbind(saplr_m_abs_av$pl_rich, sapro_pltrich %>% select(field_name:region)) %>% 
+  ggplot(aes(x = pl_rich, y = `log(sapro_mass)`)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = "Residual plant richness", y = NULL, tag = "C") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.125, 1))
+fig8yax_grob <- textGrob(
+  expression(atop("Residual saprotroph biomass (scaled, log)", paste(bold(`(`), "log((", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund))", bold(`)`))))),
+  x = 0.5,
+  y = 0.5,
+  hjust = 0.5,
+  vjust = 0.5,
+  rot = 90,
+  gp = gpar(cex = 10/12)
+)
+#+ fig8_patchwork
+fig8rh <- (fig8b / plot_spacer() / fig8c) +
+  plot_layout(heights = c(0.5, 0.01,0.5))
+fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plot.tag = element_blank())) | fig8rh) +
+  plot_layout(widths = c(0.62, 0.005, 0.06, 0.38))
+#+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
+fig8
+#+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig8.svg"), plot = fig7, device = "svg",
+       width = 18, height = 11, units = "cm")
+
+
+
+
+
+
+
+
+
 
 
 
