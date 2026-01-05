@@ -2625,18 +2625,11 @@ rsq.partial(saplr_m_abs, adj=TRUE)$partial.rsq
 #' increase in saprotroph mass while holding plant richness constant (± 0.454 to 1.131%).
 #' Plant richness is multiplicative on the original scale. 
 #+ saplr_exp_wald_result
-c(plant_richness = saplr_m_abs_wald[3,1], ci = saplr_m_abs_ci[3, ]) %>% map_dbl(\(x) round(exp(x), 3))
+-1+c(plant_richness = saplr_m_abs_wald[3,1], ci = saplr_m_abs_ci[3, ]) %>% map_dbl(\(x) round(exp(x), 3))
 #' An increase in 1 in plant species richness equals a 1.3% decrease in saprotroph
 #' mass (± 0.2 to 2.3% decrease).
-#' Produce objects for plotting
-saplr_m_abs <- list(
-  plr_step = 0.1,
-  plr_beta = coeftest(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3"))["pl_rich", "Estimate"],
-  plr_ci   = coefci(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3"))["pl_rich", ]
-)
-exp(c(coef = saplr_m_abs$plr_beta, saplr_m_abs$plr_ci) * saplr_m_abs$plr_step)
 #' 
-#' View results:
+#' Produce objects for plotting
 #' Median fungal biomass on the original scale and model prediction for figure.
 saplr_med_fungi <- median(sapro_pltrich$fungi_mass_lc, na.rm = TRUE)
 saplr_newdat <- tibble(
@@ -2723,18 +2716,6 @@ fig8
 #+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig8.svg"), plot = fig7, device = "svg",
        width = 18, height = 11, units = "cm")
-
-
-
-
-
-
-
-
-
-
-
-
 #' 
 #' ### Saprotroph biomass and grass/forb composition
 sama_rest_m <- lm(sapro_mass ~ gf_index, data = sapro_resto)
