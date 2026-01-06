@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 05 January, 2026
+Last updated: 06 January, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -563,42 +563,22 @@ source(root_path("code", "functions.R"))
 ## Diversity Indices
 
 ``` r
-its_div <- calc_div(its_avg, sites)
+its_div <- calc_div(its_avg, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 ```
 
 ### Richness
 
-Account for sequencing depth as a covariate. Test covar transformations
-for best model performance.
+Sequence depth square root transformed and centered
 
 ``` r
-its_rich_covar <- covar_shape_test(
-  data  = its_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-its_rich_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |   RMSE | AIC weights | Performance-Score
-    ## -----------------------------------------------------------------
-    ## m_lin  |    lm | 0.634 | 41.654 |       0.344 |           100.00%
-    ## m_sqrt |    lm | 0.633 | 41.705 |       0.334 |            52.74%
-    ## m_log  |    lm | 0.632 | 41.763 |       0.322 |             0.00%
-
-Best model does not use transformation of covariate.
-
-``` r
-its_rich_lm <- lm(richness ~ depth + field_type, data = its_div) # Interaction NS (not shown)
+its_rich_lm <- lm(richness ~ depth_csq + field_type, data = its_div)
 ```
 
 Diagnostics
 
 ``` r
-its_rich_covar$diagnostics
+check_model(its_rich_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/its_rich_covar_diagnostics-1.png)<!-- -->
@@ -641,7 +621,7 @@ leveneTest(residuals(its_rich_lm) ~ its_div$field_type) %>% as.data.frame() %>% 
 
 |       |  Df |   F value |   Pr(\>F) |
 |-------|----:|----------:|----------:|
-| group |   2 | 0.0997223 | 0.9054955 |
+| group |   2 | 0.0881621 | 0.9159343 |
 |       |  22 |        NA |        NA |
 
 Residuals/response distributions do not suggest the need for
@@ -652,41 +632,22 @@ Model results, group means, and post-hoc. Use Type II SS for test of
 variables due to unbalanced design.
 
 ``` r
-its_rich_covar$anova_t2
+Anova(its_rich_lm, type = 2)
 ```
 
     ## Anova Table (Type II tests)
     ## 
     ## Response: richness
     ##            Sum Sq Df F value    Pr(>F)    
-    ## x_lin       15822  1  7.6602   0.01153 *  
-    ## field_type  65966  2 15.9683 6.079e-05 ***
-    ## Residuals   43376 21                      
+    ## depth_csq   15715  1  7.5896   0.01187 *  
+    ## field_type  66360  2 16.0241 5.947e-05 ***
+    ## Residuals   43483 21                      
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Sequence depth is significant, less so than field type. Check
-relationship of depth and field type.
-
-``` r
-its_div %>% 
-  group_by(field_type) %>% 
-  summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
-  kable(format = "pandoc")
-```
-
-| field_type | depth | richness |
-|:-----------|------:|---------:|
-| corn       |  8257 |      393 |
-| restored   |  8266 |      502 |
-| remnant    |  7750 |      540 |
-
-Sequence depth isn’t obviously related to field type, but they’re weakly
-inversely related. The possibility for an interaction between depth and
-field_type was tested, it did not improve model fit (tested with
-anova(), not shown). Proceed with means separation by obtaining
-estimated marginal means for field type. Arithmetic means calculated in
-this case.
+Sequence depth is significant, less so than field type. Proceed with
+means separation by obtaining estimated marginal means for field type.
+Arithmetic means calculated in this case.
 
 ``` r
 its_rich_em <- emmeans(its_rich_lm, ~ field_type, type = "response")
@@ -694,23 +655,21 @@ its_rich_em <- emmeans(its_rich_lm, ~ field_type, type = "response")
 
 Results tables below show the emmeans summary of group means and
 confidence intervals, with sequencing depth as a covariate, and the post
-hoc contrast of richness among field types. Main effect and covariate in
-model significant after p value adjustment (see summary section):
-pairwise contrast warranted.
+hoc contrast of richness among field types.
 
 | field_type |   emmean |       SE |  df | lower.CL | upper.CL |
 |:-----------|---------:|---------:|----:|---------:|---------:|
-| corn       | 390.5680 | 20.34401 |  21 | 348.2603 | 432.8756 |
-| restored   | 499.6535 | 11.40451 |  21 | 475.9365 | 523.3704 |
-| remnant    | 554.1762 | 23.27447 |  21 | 505.7742 | 602.5781 |
+| corn       | 390.0944 | 20.37739 |  21 | 347.7173 | 432.4714 |
+| restored   | 499.7817 | 11.41491 |  21 | 476.0431 | 523.5203 |
+| remnant    | 554.2552 | 23.31310 |  21 | 505.7729 | 602.7374 |
 
 Confidence level used: 0.95
 
 | contrast           |   estimate |       SE |  df |   t.ratio |   p.value |
 |:-------------------|-----------:|---------:|----:|----------:|----------:|
-| corn - restored    | -109.08551 | 23.28548 |  21 | -4.684702 | 0.0003581 |
-| corn - remnant     | -163.60820 | 31.05516 |  21 | -5.268310 | 0.0000912 |
-| restored - remnant |  -54.52269 | 26.10861 |  21 | -2.088303 | 0.1165142 |
+| corn - restored    | -109.68738 | 23.31421 |  21 | -4.704743 | 0.0003415 |
+| corn - remnant     | -164.16080 | 31.13618 |  21 | -5.272348 | 0.0000903 |
+| restored - remnant |  -54.47342 | 26.14137 |  21 | -2.083801 | 0.1174883 |
 
 P value adjustment: tukey method for comparing a family of 3 estimates
 
@@ -734,45 +693,22 @@ its_rich_fig <-
 
 ### Shannon’s diversity
 
-Account for sequencing depth as a covariate. Test covariate
-transformations.
+Sequence depth square root transformed and centered
 
 ``` r
-its_shan_covar <- covar_shape_test(
-  data  = its_div,
-  y     = "shannon",       
-  covar = "depth",   
-  group = "field_type"           
-)
-its_shan_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |   RMSE | AIC weights | Performance-Score
-    ## -----------------------------------------------------------------
-    ## m_log  |    lm | 0.391 | 17.816 |       0.350 |           100.00%
-    ## m_sqrt |    lm | 0.389 | 17.851 |       0.333 |            48.90%
-    ## m_lin  |    lm | 0.386 | 17.886 |       0.317 |             0.00%
-
-Log transformation of depth selected; difference between models is
-slight. Produce model with centered, log transformed depth.
-
-``` r
-its_shan_lm <- lm(shannon ~ depth_clg + field_type, 
-                  data = its_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+its_shan_lm <- lm(shannon ~ depth_csq + field_type, data = its_div)
 ```
 
 Diagnostics
 
 ``` r
-its_shan_covar$diagnostics
+check_model(its_shan_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/its_shan_covar_diagnostics-1.png)<!-- -->
 
-Lots of residual structure, no leverage points, no evidence for
-increasing mean/var relationship.
+Some residual structure, no leverage points, no evidence for increasing
+mean/var relationship.
 
 ``` r
 distribution_prob(its_shan_lm)
@@ -811,7 +747,7 @@ leveneTest(residuals(its_shan_lm) ~ its_div$field_type) %>% as.data.frame() %>% 
 
 |       |  Df |  F value |   Pr(\>F) |
 |-------|----:|---------:|----------:|
-| group |   2 | 2.234138 | 0.1308179 |
+| group |   2 | 2.265973 | 0.1274059 |
 |       |  22 |       NA |        NA |
 
 Residuals distribution does not suggest the need for transformation.
@@ -834,29 +770,31 @@ augment(its_shan_lm) %>%
 
 | field_type | mean_fitted | sd_resid | cv_resid |
 |:-----------|------------:|---------:|---------:|
-| corn       |       79.92 |    15.24 |     0.19 |
-| restored   |      111.36 |    21.32 |     0.19 |
-| remnant    |      120.89 |     7.89 |     0.07 |
+| corn       |       79.92 |    15.20 |     0.19 |
+| restored   |      111.36 |    21.39 |     0.19 |
+| remnant    |      120.89 |     7.76 |     0.06 |
 
 CV of residuals and fitted means in groups
 
-CV constant to declining. Relatively low p value likely due to unequal
-variance in restored and remnant despite similar means. Unbalanced data.
+Residuals’ CV constant to declining. Relatively low Levene’s p value
+likely due to unequal variance in restored and remnant despite similar
+means. Unbalanced data and possible biological reality likely causing
+this. No need for further transformation.
 
 Model results, group means, and post-hoc. Type II SS used due to
 unbalanced design.
 
 ``` r
-its_shan_covar$anova_t2
+Anova(its_shan_lm, type = 2)
 ```
 
     ## Anova Table (Type II tests)
     ## 
     ## Response: shannon
     ##            Sum Sq Df F value   Pr(>F)   
-    ## x_log       359.9  1  0.9524 0.340225   
-    ## field_type 4996.2  2  6.6107 0.005932 **
-    ## Residuals  7935.6 21                    
+    ## depth_csq   328.6  1  0.8662 0.362577   
+    ## field_type 4968.9  2  6.5489 0.006162 **
+    ## Residuals  7966.9 21                    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -874,17 +812,17 @@ hoc contrast of richness among field types.
 
 | field_type |    emmean |       SE |  df |  lower.CL |  upper.CL |
 |:-----------|----------:|---------:|----:|----------:|----------:|
-| corn       |  79.40574 | 8.709329 |  21 |  61.29369 |  97.51778 |
-| restored   | 110.98354 | 4.874880 |  21 | 100.84567 | 121.12141 |
-| remnant    | 123.02795 | 9.962773 |  21 | 102.30923 | 143.74667 |
+| corn       |  79.49764 | 8.722310 |  21 |  61.35861 |  97.63668 |
+| restored   | 110.98223 | 4.886025 |  21 | 100.82118 | 121.14327 |
+| remnant    | 122.91831 | 9.978907 |  21 | 102.16604 | 143.67059 |
 
 Confidence level used: 0.95
 
 | contrast           |  estimate |        SE |  df |   t.ratio |   p.value |
 |:-------------------|----------:|----------:|----:|----------:|----------:|
-| corn - restored    | -31.57780 |  9.960673 |  21 | -3.170248 | 0.0122823 |
-| corn - remnant     | -43.62221 | 13.319347 |  21 | -3.275101 | 0.0096914 |
-| restored - remnant | -12.04441 | 11.166765 |  21 | -1.078594 | 0.5373742 |
+| corn - restored    | -31.48458 |  9.979385 |  21 | -3.154962 | 0.0127116 |
+| corn - remnant     | -43.42067 | 13.327491 |  21 | -3.257978 | 0.0100752 |
+| restored - remnant | -11.93609 | 11.189520 |  21 | -1.066720 | 0.5445052 |
 
 P value adjustment: tukey method for comparing a family of 3 estimates
 
@@ -914,7 +852,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 variance differs slightly in groups. Tails on qq plot diverge, lots of
 groups structure visible.
@@ -1693,44 +1631,22 @@ fungi.
 ## Diversity Indices
 
 ``` r
-amf_div <- calc_div(amf_avg, sites)
+amf_div <- calc_div(amf_avg, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 ```
 
 ### Richness
 
-Account for sequencing depth as a covariate. Test covar transformations
-for best model performance.
+Sequence depth square root transformed and centered
 
 ``` r
-amf_rich_covar <- covar_shape_test(
-  data  = amf_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-amf_rich_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |  RMSE | AIC weights | Performance-Score
-    ## ----------------------------------------------------------------
-    ## m_log  |    lm | 0.361 | 6.037 |       0.342 |           100.00%
-    ## m_sqrt |    lm | 0.359 | 6.043 |       0.333 |            48.60%
-    ## m_lin  |    lm | 0.358 | 6.050 |       0.324 |             0.00%
-
-Log transformation performs best, but very little difference among
-models
-
-``` r
-amf_rich_lm <- lm(richness ~ depth_clg + field_type, 
-                  data = amf_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+amf_rich_lm <- lm(richness ~ depth_csq + field_type, data = amf_div)
 ```
 
 Diagnostics
 
 ``` r
-amf_rich_covar$diagnostics
+check_model(amf_rich_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/amf_rich_covar_diagnostics-1.png)<!-- -->
@@ -1747,8 +1663,8 @@ distribution_prob(amf_rich_lm)
     ## Distribution    p_Residuals
     ## -------------  ------------
     ## normal              0.40625
-    ## cauchy              0.37500
-    ## chi                 0.15625
+    ## cauchy              0.34375
+    ## chi                 0.18750
     ## 
     ## 
     ## Distribution                  p_Response
@@ -1757,7 +1673,7 @@ distribution_prob(amf_rich_lm)
     ## neg. binomial (zero-infl.)       0.25000
     ## normal                           0.09375
 
-Residuals distribution most likely normal, response bimodal (ignore)
+Residuals distribution most likely normal, response bimodal
 
 ``` r
 leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
@@ -1774,7 +1690,7 @@ leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type) %>% as.data.frame() %>% 
 
 |       |  Df |   F value |   Pr(\>F) |
 |-------|----:|----------:|----------:|
-| group |   2 | 0.7020383 | 0.5063407 |
+| group |   2 | 0.6933442 | 0.5104973 |
 |       |  22 |        NA |        NA |
 
 Residuals/response distributions do not suggest the need for
@@ -1784,16 +1700,16 @@ considered equal.
 Model results, group means, and post-hoc
 
 ``` r
-amf_rich_covar$anova_t2
+Anova(amf_rich_lm, type = 2)
 ```
 
     ## Anova Table (Type II tests)
     ## 
     ## Response: richness
     ##            Sum Sq Df F value  Pr(>F)  
-    ## x_log       16.31  1  0.3759 0.54640  
-    ## field_type 498.55  2  5.7462 0.01022 *
-    ## Residuals  910.99 21                  
+    ## depth_csq   14.28  1  0.3286 0.57260  
+    ## field_type 494.62  2  5.6883 0.01061 *
+    ## Residuals  913.02 21                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -1810,17 +1726,17 @@ field types. Main effect in model significant after p value adjustment
 
 | field_type |   emmean |       SE |  df | lower.CL | upper.CL |
 |:-----------|---------:|---------:|----:|---------:|---------:|
-| corn       | 41.80119 | 2.945527 |  21 | 35.67563 | 47.92675 |
-| restored   | 52.81688 | 1.649325 |  21 | 49.38692 | 56.24684 |
-| remnant    | 53.48097 | 3.314676 |  21 | 46.58773 | 60.37422 |
+| corn       | 41.83420 | 2.949398 |  21 | 35.70059 | 47.96780 |
+| restored   | 52.81562 | 1.651678 |  21 | 49.38077 | 56.25047 |
+| remnant    | 53.44476 | 3.314316 |  21 | 46.55227 | 60.33726 |
 
 Confidence level used: 0.95
 
 | contrast           |    estimate |       SE |  df |    t.ratio |   p.value |
 |:-------------------|------------:|---------:|----:|-----------:|----------:|
-| corn - restored    | -11.0156904 | 3.375910 |  21 | -3.2630282 | 0.0099605 |
-| corn - remnant     | -11.6797819 | 4.434156 |  21 | -2.6340485 | 0.0395103 |
-| restored - remnant |  -0.6640915 | 3.711977 |  21 | -0.1789051 | 0.9825242 |
+| corn - restored    | -10.9814262 | 3.382210 |  21 | -3.2468195 | 0.0103332 |
+| corn - remnant     | -11.6105667 | 4.432053 |  21 | -2.6196815 | 0.0407168 |
+| restored - remnant |  -0.6291405 | 3.712563 |  21 | -0.1694626 | 0.9843046 |
 
 P value adjustment: tukey method for comparing a family of 3 estimates
 
@@ -1844,50 +1760,22 @@ amf_rich_fig <-
 
 ### Shannon diversity
 
-Account for sequencing depth as a covariate. Test covar transformations
-for best model performance.
+Sequence depth square root transformed and centered
 
 ``` r
-amf_shan_covar <- covar_shape_test(
-  data  = amf_div,
-  y     = "shannon",       
-  covar = "depth",   
-  group = "field_type"           
-)
-amf_shan_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |  RMSE | AIC weights | Performance-Score
-    ## ----------------------------------------------------------------
-    ## m_lin  |    lm | 0.559 | 2.859 |       0.335 |           100.00%
-    ## m_sqrt |    lm | 0.559 | 2.859 |       0.333 |            40.94%
-    ## m_log  |    lm | 0.559 | 2.860 |       0.332 |             0.00%
-
-Models are equivalent; no transformation selected on parsimony grounds
-
-``` r
-amf_shan_lm <- lm(shannon ~ depth + field_type, data = amf_div)
+amf_shan_lm <- lm(shannon ~ depth_csq + field_type, data = amf_div)
 ```
 
 Diagnostics
 
 ``` r
-amf_shan_covar$diagnostics
+check_model(amf_shan_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/amf_shan_covar_diagnostics-1.png)<!-- -->
 
-``` r
-par(mfrow = c(2,2))
-plot(amf_shan_lm)
-```
-
-![](resources/fungal_ecology_files/figure-gfm/amf_shan_covar_diagnostics-2.png)<!-- -->
-
-Variance somewhat non-constant in groups, qqplot fit is poor, one
-leverage point (Cook’s \> 0.5), a cornfield with high richness. Mean
+Variance appears somewhat non-constant in groups, qqplot fit is poor,
+one leverage point (Cook’s \> 0.5), a cornfield with high richness. Mean
 richness in corn fields is lowest; this outlier would make the pairwise
 contrast less significant, possible Type II error which is more
 acceptable.
@@ -1928,12 +1816,12 @@ leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type) %>% as.data.frame() %>% 
 
 |       |  Df |   F value |   Pr(\>F) |
 |-------|----:|----------:|----------:|
-| group |   2 | 0.3042903 | 0.7407015 |
+| group |   2 | 0.3022751 | 0.7421555 |
 |       |  22 |        NA |        NA |
 
 Residuals/response distributions do not suggest the need for
-transformation. Covariate adds little added explanatory value. Levene’s
-p \> 0.05 → fail to reject = variances can be considered equal.
+transformation. Levene’s p \> 0.05 → fail to reject = variances can be
+considered equal.
 
 Model results, group means, and post-hoc
 
@@ -1945,9 +1833,9 @@ Anova(amf_shan_lm, type = 2)
     ## 
     ## Response: shannon
     ##             Sum Sq Df F value    Pr(>F)    
-    ## depth        0.216  1  0.0222 0.8829148    
-    ## field_type 258.695  2 13.2953 0.0001859 ***
-    ## Residuals  204.305 21                      
+    ## depth_csq    0.123  1  0.0127 0.9114841    
+    ## field_type 258.303  2 13.2691 0.0001881 ***
+    ## Residuals  204.398 21                      
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -1964,17 +1852,17 @@ hoc contrast of richness among field types.
 
 | field_type |   emmean |        SE |  df | lower.CL | upper.CL |
 |:-----------|---------:|----------:|----:|---------:|---------:|
-| corn       | 14.71542 | 1.3959996 |  21 | 11.81228 | 17.61856 |
-| restored   | 21.52725 | 0.7816073 |  21 | 19.90181 | 23.15269 |
-| remnant    | 24.84337 | 1.5662608 |  21 | 21.58615 | 28.10058 |
+| corn       | 14.72048 | 1.3955076 |  21 | 11.81837 | 17.62260 |
+| restored   | 21.52479 | 0.7814914 |  21 | 19.89959 | 23.14999 |
+| remnant    | 24.84687 | 1.5681686 |  21 | 21.58568 | 28.10805 |
 
 Confidence level used: 0.95
 
 | contrast           |   estimate |       SE |  df |   t.ratio |   p.value |
 |:-------------------|-----------:|---------:|----:|----------:|----------:|
-| corn - restored    |  -6.811832 | 1.601761 |  21 | -4.252715 | 0.0009933 |
-| corn - remnant     | -10.127948 | 2.094272 |  21 | -4.836023 | 0.0002507 |
-| restored - remnant |  -3.316116 | 1.754871 |  21 | -1.889663 | 0.1664019 |
+| corn - restored    |  -6.804309 | 1.600293 |  21 | -4.251915 | 0.0009952 |
+| corn - remnant     | -10.126384 | 2.097026 |  21 | -4.828927 | 0.0002549 |
+| restored - remnant |  -3.322075 | 1.756599 |  21 | -1.891197 | 0.1659595 |
 
 P value adjustment: tukey method for comparing a family of 3 estimates
 
@@ -2009,7 +1897,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-65-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -2074,7 +1962,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-72-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -2090,7 +1978,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-72-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-67-2.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2461,7 +2349,7 @@ par(mfrow = c(2,2))
 plot(glom_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-71-1.png)<!-- -->
 
 ``` r
 distribution_prob(glom_lm)
@@ -2525,7 +2413,7 @@ par(mfrow = c(2,2))
 plot(glom_lm_log) # some improvement, leverage point still exists
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
 
 ``` r
 ncvTest(glom_lm_log) # p=0.29, null of constant variance not rejected, model fit is improved
@@ -2548,7 +2436,7 @@ glom_glm_diag <- glm.diag(glom_glm)
 glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
 
 ``` r
 check_model(glom_glm) # corroborates
@@ -2602,7 +2490,7 @@ par(mfrow = c(2,2))
 plot(clar_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
 
 ``` r
 distribution_prob(clar_lm)
@@ -2648,7 +2536,7 @@ clar_glm_diag <- glm.diag(clar_glm)
 glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-86-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
 
 ``` r
 check_model(clar_glm) # corroborates
@@ -2702,7 +2590,7 @@ par(mfrow = c(2,2))
 plot(para_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-88-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-83-1.png)<!-- -->
 
 ``` r
 distribution_prob(para_lm)
@@ -2748,7 +2636,7 @@ para_glm_diag <- glm.diag(para_glm)
 glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-91-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-86-1.png)<!-- -->
 
 ``` r
 check_model(para_glm) # corroborates
@@ -2807,7 +2695,7 @@ diver_glm_diag <- glm.diag(diver_glm)
 glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-94-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-89-1.png)<!-- -->
 
 ``` r
 check_model(diver_glm) # corroborates
@@ -3293,44 +3181,22 @@ patho <- guildseq(its_avg, its_meta, "plant_pathogen")
 ## Diversity Indices
 
 ``` r
-patho_div <- calc_div(patho, sites)
+patho_div <- calc_div(patho, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 ```
 
 ### Richness
 
-Account for sequencing depth as a covariate. Compare models with raw,
-sqrt, and log transformed depth.
+Sequence depth square root transformed and centered
 
 ``` r
-patho_rich_covar <- covar_shape_test(
-  data  = patho_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-patho_rich_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |  RMSE | AIC weights | Performance-Score
-    ## ----------------------------------------------------------------
-    ## m_sqrt |    lm | 0.517 | 4.744 |       0.374 |           100.00%
-    ## m_lin  |    lm | 0.513 | 4.766 |       0.333 |            51.97%
-    ## m_log  |    lm | 0.508 | 4.791 |       0.293 |             0.00%
-
-Sqrt transform selected based on model performance. Model with centered,
-sqrt depth covar
-
-``` r
-patho_rich_lm <- lm(richness ~ depth_csq + field_type, # Interaction NS (not shown)
-                    data = patho_div %>% mutate(depth_csq = sqrt(depth) - mean(sqrt(depth))))
+patho_rich_lm <- lm(richness ~ depth_csq + field_type, data = patho_div)
 ```
 
 Diagnostics
 
 ``` r
-patho_rich_covar$diagnostics
+check_model(patho_rich_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/patho_rich_covar_diagnostics-1.png)<!-- -->
@@ -3354,7 +3220,7 @@ distribution_prob(patho_rich_lm)
     ## neg. binomial (zero-infl.)       0.25000
     ## chi                              0.09375
 
-residuals distribution normal or close, response showing group divisions
+Residuals distribution normal or close, response showing group divisions
 
 ``` r
 leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% 
@@ -3387,14 +3253,14 @@ considered equal.
 Model results, group means, and post-hoc
 
 ``` r
-patho_rich_covar$anova_t2
+Anova(patho_rich_lm, type = 2)
 ```
 
     ## Anova Table (Type II tests)
     ## 
     ## Response: richness
     ##            Sum Sq Df F value   Pr(>F)    
-    ## x_sqrt     485.18  1 18.1065 0.000353 ***
+    ## depth_csq  485.18  1 18.1065 0.000353 ***
     ## field_type  66.63  2  1.2434 0.308790    
     ## Residuals  562.71 21                     
     ## ---
@@ -3460,38 +3326,16 @@ patho_rich_fig <-
 
 ### Shannon’s diversity
 
-Account for sequencing depth as a covariate. Test transformations of
-covariate.
+Sequence depth square root transformed and centered
 
 ``` r
-patho_shan_covar <- covar_shape_test(
-  data  = patho_div,
-  y     = "shannon",       
-  covar = "depth",   
-  group = "field_type"           
-)
-patho_shan_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |  RMSE | AIC weights | Performance-Score
-    ## ----------------------------------------------------------------
-    ## m_log  |    lm | 0.274 | 2.140 |       0.490 |           100.00%
-    ## m_sqrt |    lm | 0.246 | 2.181 |       0.306 |            43.03%
-    ## m_lin  |    lm | 0.221 | 2.216 |       0.204 |             0.00%
-
-Log transform selected, center the covariate
-
-``` r
-patho_shan_lm <- lm(shannon ~ depth_clg + field_type, 
-                    data = patho_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+patho_shan_lm <- lm(shannon ~ depth_csq + field_type, data = patho_div)
 ```
 
 Diagnostics
 
 ``` r
-patho_shan_covar$diagnostics # variance similar in groups 
+check_model(patho_shan_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/patho_shan_covar_diagnostics-1.png)<!-- -->
@@ -3504,9 +3348,9 @@ distribution_prob(patho_shan_lm)
     ## 
     ## Distribution    p_Residuals
     ## -------------  ------------
-    ## normal              0.81250
+    ## normal              0.84375
     ## cauchy              0.12500
-    ## chi                 0.03125
+    ## pareto              0.03125
     ## 
     ## 
     ## Distribution    p_Response
@@ -3533,7 +3377,7 @@ leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() 
 
 |       |  Df |   F value |   Pr(\>F) |
 |-------|----:|----------:|----------:|
-| group |   2 | 0.2668678 | 0.7682178 |
+| group |   2 | 0.1904989 | 0.8278957 |
 |       |  22 |        NA |        NA |
 
 Residuals distribution does not suggest the need for further model
@@ -3543,21 +3387,20 @@ considered equal.
 Model results, group means, and post-hoc
 
 ``` r
-patho_shan_covar$anova_t2
+Anova(patho_shan_lm, type = 2)
 ```
 
     ## Anova Table (Type II tests)
     ## 
     ## Response: shannon
     ##             Sum Sq Df F value  Pr(>F)  
-    ## x_log       25.911  1  4.7531 0.04077 *
-    ## field_type  14.098  2  1.2931 0.29540  
-    ## Residuals  114.478 21                  
+    ## depth_csq   21.506  1  3.7988 0.06477 .
+    ## field_type  15.342  2  1.3551 0.27958  
+    ## Residuals  118.884 21                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Sequence depth is a significant predictor of Shannon diversity, field
-type is not.
+Neither predictor is significant
 
 ``` r
 patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
@@ -3569,17 +3412,17 @@ hoc contrast of richness among field types.
 
 | field_type |   emmean |        SE |  df |  lower.CL | upper.CL |
 |:-----------|---------:|----------:|----:|----------:|---------:|
-| corn       | 12.30141 | 1.0477327 |  21 | 10.122527 | 14.48029 |
-| restored   | 10.37646 | 0.5850275 |  21 |  9.159831 | 11.59309 |
-| remnant    | 10.83953 | 1.1975999 |  21 |  8.348982 | 13.33007 |
+| corn       | 12.37989 | 1.0655872 |  21 | 10.163883 | 14.59590 |
+| restored   | 10.37509 | 0.5965357 |  21 |  9.134528 | 11.61566 |
+| remnant    | 10.74690 | 1.2159866 |  21 |  8.218121 | 13.27569 |
 
 Confidence level used: 0.95
 
 | contrast           |   estimate |       SE |  df |    t.ratio |   p.value |
 |:-------------------|-----------:|---------:|----:|-----------:|----------:|
-| corn - restored    |  1.9249435 | 1.197121 |  21 |  1.6079767 | 0.2643971 |
-| corn - remnant     |  1.4618786 | 1.605769 |  21 |  0.9103915 | 0.6398707 |
-| restored - remnant | -0.4630649 | 1.340794 |  21 | -0.3453663 | 0.9365631 |
+| corn - restored    |  2.0048015 | 1.219093 |  21 |  1.6445023 | 0.2497492 |
+| corn - remnant     |  1.6329897 | 1.625668 |  21 |  1.0045038 | 0.5822155 |
+| restored - remnant | -0.3718118 | 1.362784 |  21 | -0.2728324 | 0.9598747 |
 
 P value adjustment: tukey method for comparing a family of 3 estimates
 
@@ -3605,7 +3448,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-119-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-112-1.png)<!-- -->
 
 no serious violations observed
 
@@ -4309,13 +4152,13 @@ par(mfrow = c(2,2))
 plot(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-139-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
 
 ``` r
 crPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-139-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-2.png)<!-- -->
 
 Slight leverage at the left tail of fungi mass; no serious leverage
 visible with gf_index.
@@ -4324,7 +4167,7 @@ visible with gf_index.
 parest_m_abs_av <- avPlots(parest_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-140-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
 
 ``` r
 c(R2.adj = summary(parest_m_abs)$adj.r.squared)
@@ -4676,7 +4519,7 @@ par(mfrow = c(1,1))
 crPlots(parest_m_rel, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-148-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-141-1.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_rel)
@@ -4747,14 +4590,14 @@ par(mfrow = c(2,2))
 plot(parest_m_biom)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-150-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
 
 ``` r
 par(mfrow = c(1,1))
 crPlots(parest_m_biom, terms = ~ gf_index)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-150-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-2.png)<!-- -->
 
 ``` r
 ncvTest(parest_m_biom) # Ok
@@ -4806,43 +4649,22 @@ sapro <- guildseq(its_avg, its_meta, "saprotroph")
 ## Diversity Indices
 
 ``` r
-sapro_div <- calc_div(sapro, sites)
+sapro_div <- calc_div(sapro, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 ```
 
 ### Richness
 
-Account for sequencing depth as a covariate
+Sequence depth square root transformed and centered
 
 ``` r
-sapro_rich_covar <- covar_shape_test(
-  data  = sapro_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-sapro_rich_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |   RMSE | AIC weights | Performance-Score
-    ## -----------------------------------------------------------------
-    ## m_log  |    lm | 0.257 | 13.775 |       0.555 |           100.00%
-    ## m_sqrt |    lm | 0.218 | 14.129 |       0.294 |            46.63%
-    ## m_lin  |    lm | 0.175 | 14.510 |       0.151 |             0.00%
-
-Log transform selected based on model performance. Model with centered,
-log depth covar
-
-``` r
-sapro_rich_lm <- lm(richness ~ depth_clg + field_type,
-                    data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+sapro_rich_lm <- lm(richness ~ depth_csq + field_type, data = sapro_div)
 ```
 
 Diagnostics
 
 ``` r
-sapro_rich_covar$diagnostics # heavy residual structure, poor qq alignment
+check_model(sapro_rich_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/sapro_rich_covar_diagnostics-1.png)<!-- -->
@@ -4857,7 +4679,7 @@ distribution_prob(sapro_rich_lm)
     ## -------------  ------------
     ## normal              0.53125
     ## cauchy              0.31250
-    ## tweedie             0.06250
+    ## gamma               0.06250
     ## 
     ## 
     ## Distribution                  p_Response
@@ -4886,99 +4708,44 @@ leveneTest(residuals(sapro_rich_lm) ~ sapro_div$field_type) %>% as.data.frame() 
   kable(format = "pandoc", caption = "Residuals var in groups")
 ```
 
-|       |  Df |   F value |   Pr(\>F) |
-|-------|----:|----------:|----------:|
-| group |   2 | 0.7282612 | 0.4940258 |
-|       |  22 |        NA |        NA |
+|       |  Df |  F value |   Pr(\>F) |
+|-------|----:|---------:|----------:|
+| group |   2 | 0.582445 | 0.5669135 |
+|       |  22 |       NA |        NA |
 
 Residuals var in groups
 
 Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
-Despite lack of unequal variance, does gamma glm improve other
-diagnostics?
-
-``` r
-sapro_rich_glm  <- glm(richness ~ depth_clg + field_type, family = Gamma(link = "log"), 
-                       data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
-sapro_glm_diag <- glm.diag(sapro_rich_glm)
-glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
-```
-
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-157-1.png)<!-- -->
-
-Slight improvement to qq plot shape, slightly reduced hatvalue (not
-shown)
-
-``` r
-performance::check_overdispersion(sapro_rich_glm) # not detected
-```
-
-    ## # Overdispersion test
-    ## 
-    ##  dispersion ratio = 1.078
-    ##           p-value = 0.696
-
-    ## No overdispersion detected.
-
-``` r
-sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
-plot(sapro_glm_sim) # DHARMa passes all tests
-```
-
-    ## Warning in newton(lsp = lsp, X = G$X, y = G$y, Eb = G$Eb, UrS = G$UrS, L = G$L, : Fitting terminated with step failure - check results carefully
-
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-158-1.png)<!-- -->
-
-Gamma glm is the best choice; no high-leverage point
 
 Model results, group means, and post-hoc
 
 ``` r
-Anova(sapro_rich_glm, type = 2)
+Anova(sapro_rich_lm, type = 2)
 ```
 
-    ## Analysis of Deviance Table (Type II tests)
+    ## Anova Table (Type II tests)
     ## 
     ## Response: richness
-    ##            LR Chisq Df Pr(>Chisq)  
-    ## depth_clg    6.0614  1    0.01382 *
-    ## field_type   5.5344  2    0.06284 .
+    ##            Sum Sq Df F value  Pr(>F)  
+    ## depth_csq  1162.8  1  4.8932 0.03818 *
+    ## field_type 1195.6  2  2.5156 0.10486  
+    ## Residuals  4990.4 21                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Sequence depth is significant; richness doesn’t vary in groups. View
-trend:
+Richness and field type aren’t significantly related. Calculate
+confidence intervals for figure. Arithmetic means calculated in this
+case, back-transformed.
 
 ``` r
-sapro_div %>% 
-  group_by(field_type) %>% 
-  summarize(avg_depth = mean(depth), 
-            avg_richness = mean(richness), .groups = "drop") %>% 
-  mutate(across(starts_with("avg"), ~ round(.x, 1))) %>% 
-  kable(format = "pandoc")
+sapro_rich_em <- emmeans(sapro_rich_lm, ~ field_type, type = "response")
 ```
 
-| field_type | avg_depth | avg_richness |
-|:-----------|----------:|-------------:|
-| corn       |    2915.9 |        111.8 |
-| restored   |    2054.2 |        119.3 |
-| remnant    |    1624.2 |        119.5 |
-
-Inverse relationship between depth and field_type. There was a mildly
-significant interaction, but how to work out what that would even mean?
-
-Calculate confidence intervals for figure. Arithmetic means calculated
-in this case, back-transformed.
-
-``` r
-sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
-```
-
-| field_type | response |       SE |  df |  lower.CL | upper.CL |
-|:-----------|---------:|---------:|----:|----------:|---------:|
-| corn       | 101.5093 | 7.115512 |  21 |  87.73973 | 117.4397 |
-| restored   | 119.9692 | 3.794780 |  21 | 112.33149 | 128.1262 |
-| remnant    | 130.3263 | 9.735566 |  21 | 111.57439 | 152.2299 |
+| field_type |    emmean |       SE |  df |  lower.CL | upper.CL |
+|:-----------|----------:|---------:|----:|----------:|---------:|
+| corn       |  99.27225 | 8.921977 |  21 |  80.71798 | 117.8265 |
+| restored   | 120.65740 | 3.901548 |  21 | 112.54368 | 128.7711 |
+| remnant    | 129.78011 | 9.000393 |  21 | 111.06276 | 148.4974 |
 
 Confidence level used: 0.95
 
@@ -4986,9 +4753,9 @@ Model NS; no post hoc comparison…
 
 ``` r
 sapro_rich_fig <- 
-  ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
+  ggplot(summary(sapro_rich_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -4999,38 +4766,16 @@ sapro_rich_fig <-
 
 ### Shannon’s diversity
 
-Account for sequencing depth as a covariate
+Sequence depth square root transformed and centered
 
 ``` r
-sapro_shan_covar <- covar_shape_test(
-  data = sapro_div,
-  y = "shannon",
-  covar = "depth",
-  group = "field_type"
-)
-sapro_shan_covar$compare
-```
-
-    ## # Comparison of Model Performance Indices
-    ## 
-    ## Name   | Model |    R2 |  RMSE | AIC weights | Performance-Score
-    ## ----------------------------------------------------------------
-    ## m_log  |    lm | 0.096 | 7.096 |       0.347 |           100.00%
-    ## m_sqrt |    lm | 0.093 | 7.108 |       0.333 |            48.53%
-    ## m_lin  |    lm | 0.090 | 7.119 |       0.320 |             0.00%
-
-Log transform selected based on model performance. Model with centered,
-log depth covar
-
-``` r
-sapro_shan_lm <- lm(shannon ~ depth_clg + field_type,
-                    data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+sapro_shan_lm <- lm(shannon ~ depth_csq + field_type, data = sapro_div)
 ```
 
 Diagnostics
 
 ``` r
-sapro_shan_covar$diagnostics # variance similar in groups 
+check_model(sapro_shan_lm)
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/sapro_shan_covar_diagnostics-1.png)<!-- -->
@@ -5073,24 +4818,25 @@ leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() 
 
 |       |  Df |   F value |   Pr(\>F) |
 |-------|----:|----------:|----------:|
-| group |   2 | 0.0781284 | 0.9251011 |
+| group |   2 | 0.0967895 | 0.9081315 |
 |       |  22 |        NA |        NA |
 
 Residuals distribution does not suggest the need for transformation.
 Levene’s p \> 0.05 → fail to reject = variances can be considered equal.
+
 Model results, group means, and post-hoc
 
 ``` r
-sapro_shan_covar$anova_t2
+Anova(sapro_shan_lm, type = 2)
 ```
 
     ## Anova Table (Type II tests)
     ## 
     ## Response: shannon
     ##             Sum Sq Df F value Pr(>F)
-    ## x_log        14.56  1  0.2428 0.6273
-    ## field_type  125.64  2  1.0479 0.3683
-    ## Residuals  1258.95 21
+    ## depth_csq    10.49  1  0.1744 0.6804
+    ## field_type  114.23  2  0.9497 0.4029
+    ## Residuals  1263.01 21
 
 Sequence depth is not a significant predictor of Shannon diversity, nor
 field type
@@ -5126,7 +4872,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-167-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-155-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -6065,13 +5811,13 @@ par(mfrow = c(2,2))
 plot(saplr_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-186-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-174-1.png)<!-- -->
 
 ``` r
 crPlots(saplr_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-186-2.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-174-2.png)<!-- -->
 
 FGREM1 is mid-fitted value so has little leverage. Structure to model
 residuals likely doesn’t affect inference.
@@ -6080,7 +5826,7 @@ residuals likely doesn’t affect inference.
 saplr_m_abs_av <- avPlots(saplr_m_abs)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-187-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-175-1.png)<!-- -->
 
 ``` r
 c(R2.adj = summary(saplr_m_abs)$adj.r.squared)
@@ -6339,7 +6085,7 @@ par(mfrow = c(2,2))
 plot(sarest_m_both)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-194-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-182-1.png)<!-- -->
 
 ``` r
 summary(sarest_m_logy)
