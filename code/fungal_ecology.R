@@ -368,22 +368,15 @@ source(root_path("code", "functions.R"))
 #' 
 #' ## Diversity Indices
 #+ its_diversity
-its_div <- calc_div(its_avg, sites)
+its_div <- calc_div(its_avg, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Account for sequencing depth as a covariate. Test covar transformations for best model performance.
-its_rich_covar <- covar_shape_test(
-  data  = its_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-its_rich_covar$compare
-#' Best model does not use transformation of covariate.
-its_rich_lm <- lm(richness ~ depth + field_type, data = its_div) # Interaction NS (not shown)
+#' Sequence depth square root transformed and centered 
+its_rich_lm <- lm(richness ~ depth_csq + field_type, data = its_div)
 #' Diagnostics
 #+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-its_rich_covar$diagnostics
+check_model(its_rich_lm)
 #' Long tails, some midrange structure, no leverage points
 distribution_prob(its_rich_lm)
 #' residuals distribution normal or long-tailed, response log
@@ -393,22 +386,13 @@ leveneTest(residuals(its_rich_lm) ~ its_div$field_type) %>% as.data.frame() %>% 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
 #' 
 #' Model results, group means, and post-hoc. Use Type II SS for test of variables due to unbalanced design.
-its_rich_covar$anova_t2
-#' Sequence depth is significant, less so than field type. Check relationship of depth and field type. 
-its_div %>% 
-  group_by(field_type) %>% 
-  summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
-  kable(format = "pandoc")
-#' Sequence depth isn't obviously related to field type, but they're weakly inversely related. 
-#' The possibility for an interaction between depth and field_type was tested, it did not improve 
-#' model fit (tested with anova(), not shown).
+Anova(its_rich_lm, type = 2)
+#' Sequence depth is significant, less so than field type. 
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 #' Arithmetic means calculated in this case.
 its_rich_em <- emmeans(its_rich_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals, 
+#' Results tables below show the emmeans summary of group means and confidence intervals,
 #' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
-#' Main effect and covariate in model significant after p value adjustment (see summary section): pairwise
-#' contrast warranted.
 #+ its_rich_em_summary,echo=FALSE
 kable(summary(its_rich_em), 
       format = "pandoc", 
@@ -434,22 +418,12 @@ its_rich_fig <-
         plot.tag.position = c(0, 1))
 #' 
 #' ### Shannon's diversity
-#' Account for sequencing depth as a covariate. Test covariate transformations.
-its_shan_covar <- covar_shape_test(
-  data  = its_div,
-  y     = "shannon",       
-  covar = "depth",   
-  group = "field_type"           
-)
-its_shan_covar$compare
-#' Log transformation of depth selected; difference between models is slight. Produce model 
-#' with centered, log transformed depth. 
-its_shan_lm <- lm(shannon ~ depth_clg + field_type, 
-                  data = its_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+#' Sequence depth square root transformed and centered  
+its_shan_lm <- lm(shannon ~ depth_csq + field_type, data = its_div)
 #' Diagnostics
 #+ its_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-its_shan_covar$diagnostics
-#' Lots of residual structure, no leverage points, no evidence for increasing mean/var relationship.
+check_model(its_shan_lm)
+#' Some residual structure, no leverage points, no evidence for increasing mean/var relationship.
 distribution_prob(its_shan_lm)
 #' residuals distribution most likely cauchy/normal; symmetric but long tails, response gamma
 leveneTest(shannon ~ field_type, data = its_div) %>% as.data.frame() %>% kable(format = "pandoc")
@@ -467,12 +441,12 @@ augment(its_shan_lm) %>%
   ) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>% 
   kable(format = "pandoc", caption = "CV of residuals and fitted means in groups")
-#' CV constant to declining.
-#' Relatively low p value likely due to unequal variance in restored and remnant despite similar means.
-#' Unbalanced data. 
+#' Residuals' CV constant to declining.
+#' Relatively low Levene's p value likely due to unequal variance in restored and remnant despite similar means.
+#' Unbalanced data and possible biological reality likely causing this. No need for further transformation.
 #' 
 #' Model results, group means, and post-hoc. Type II SS used due to unbalanced design.
-its_shan_covar$anova_t2
+Anova(its_shan_lm, type = 2)
 #' Sequence depth is not a significant predictor of Shannon diversity.
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 #' Arithmetic means calculated in this case.
@@ -851,34 +825,25 @@ ggplot(fungi_resto, aes(x = gf_index, y = fungi_mass)) +
 # AMF ———————— ####
 #' ## Diversity Indices
 #+ amf_diversity
-amf_div <- calc_div(amf_avg, sites)
+amf_div <- calc_div(amf_avg, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Account for sequencing depth as a covariate. Test covar transformations 
-#' for best model performance.
-amf_rich_covar <- covar_shape_test(
-  data  = amf_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-amf_rich_covar$compare
-#' Log transformation performs best, but very little difference among models
-amf_rich_lm <- lm(richness ~ depth_clg + field_type, 
-                  data = amf_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+#' Sequence depth square root transformed and centered 
+amf_rich_lm <- lm(richness ~ depth_csq + field_type, data = amf_div)
 #' Diagnostics
 #+ amf_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-amf_rich_covar$diagnostics
+check_model(amf_rich_lm)
 #' Long tails, one outlier without significant leverage...mean/variance relationship shows no trend...
 distribution_prob(amf_rich_lm)
-#' Residuals distribution most likely normal, response bimodal (ignore)
+#' Residuals distribution most likely normal, response bimodal
 leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
 leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals/response distributions do not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 #' 
 #' Model results, group means, and post-hoc
-amf_rich_covar$anova_t2
+Anova(amf_rich_lm, type = 2)
 #' Sequencing depth not a significant predictor of amf richness
 amf_rich_em <- emmeans(amf_rich_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group arithmetic means and confidence intervals, 
@@ -910,22 +875,12 @@ amf_rich_fig <-
         plot.tag.position = c(0, 1))
 #' 
 #' ### Shannon diversity
-#' Account for sequencing depth as a covariate. Test covar transformations for best model performance.
-amf_shan_covar <- covar_shape_test(
-  data  = amf_div,
-  y     = "shannon",       
-  covar = "depth",   
-  group = "field_type"           
-)
-amf_shan_covar$compare
-#' Models are equivalent; no transformation selected on parsimony grounds
-amf_shan_lm <- lm(shannon ~ depth + field_type, data = amf_div)
+#' Sequence depth square root transformed and centered 
+amf_shan_lm <- lm(shannon ~ depth_csq + field_type, data = amf_div)
 #' Diagnostics
 #+ amf_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-amf_shan_covar$diagnostics
-par(mfrow = c(2,2))
-plot(amf_shan_lm)
-#' Variance somewhat non-constant in groups, qqplot fit is poor, 
+check_model(amf_shan_lm)
+#' Variance appears somewhat non-constant in groups, qqplot fit is poor, 
 #' one leverage point (Cook's > 0.5), a cornfield with high richness. Mean
 #' richness in corn fields is lowest; this outlier would make the pairwise contrast
 #' less significant, possible Type II error which is more acceptable.
@@ -934,7 +889,6 @@ distribution_prob(amf_shan_lm)
 leveneTest(shannon ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
 leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals/response distributions do not suggest the need for transformation.
-#' Covariate adds little added explanatory value.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 #' 
 #' Model results, group means, and post-hoc
@@ -1438,25 +1392,17 @@ patho <- guildseq(its_avg, its_meta, "plant_pathogen")
 #' 
 #' ## Diversity Indices
 #+ patho_diversity
-patho_div <- calc_div(patho, sites)
+patho_div <- calc_div(patho, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Account for sequencing depth as a covariate. Compare models with raw, sqrt, and log transformed depth.
-patho_rich_covar <- covar_shape_test(
-  data  = patho_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-patho_rich_covar$compare
-#' Sqrt transform selected based on model performance. Model with centered, sqrt depth covar
-patho_rich_lm <- lm(richness ~ depth_csq + field_type, # Interaction NS (not shown)
-                    data = patho_div %>% mutate(depth_csq = sqrt(depth) - mean(sqrt(depth))))
+#' Sequence depth square root transformed and centered 
+patho_rich_lm <- lm(richness ~ depth_csq + field_type, data = patho_div)
 #' Diagnostics
 #+ patho_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-patho_rich_covar$diagnostics
+check_model(patho_rich_lm)
 distribution_prob(patho_rich_lm)
-#' residuals distribution normal or close, response showing group divisions
+#' Residuals distribution normal or close, response showing group divisions
 leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% 
   kable(format = "pandoc", caption = "Response var in groups")
 leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() %>% 
@@ -1465,7 +1411,7 @@ leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 #' 
 #' Model results, group means, and post-hoc
-patho_rich_covar$anova_t2
+Anova(patho_rich_lm, type = 2)
 #' Sequence depth is highly significant; richness doesn't vary in groups. 
 #' patho_depth_ft
 patho_div %>% 
@@ -1500,20 +1446,11 @@ patho_rich_fig <-
         plot.tag.position = c(0, 1))
 #' 
 #' ### Shannon's diversity
-#' Account for sequencing depth as a covariate. Test transformations of covariate.
-patho_shan_covar <- covar_shape_test(
-  data  = patho_div,
-  y     = "shannon",       
-  covar = "depth",   
-  group = "field_type"           
-)
-patho_shan_covar$compare
-#' Log transform selected, center the covariate
-patho_shan_lm <- lm(shannon ~ depth_clg + field_type, 
-                    data = patho_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+#' Sequence depth square root transformed and centered 
+patho_shan_lm <- lm(shannon ~ depth_csq + field_type, data = patho_div)
 #' Diagnostics
 #+ patho_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-patho_shan_covar$diagnostics # variance similar in groups 
+check_model(patho_shan_lm)
 distribution_prob(patho_shan_lm)
 #' residuals distribution most likely cauchy/normal; symmetric but long tails
 #' response normal
@@ -1523,8 +1460,8 @@ leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() 
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 #' 
 #' Model results, group means, and post-hoc
-patho_shan_covar$anova_t2
-#' Sequence depth is a significant predictor of Shannon diversity, field type is not.
+Anova(patho_shan_lm, type = 2)
+#' Neither predictor is significant
 patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group means and confidence intervals,
 #' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
@@ -2033,23 +1970,15 @@ sapro <- guildseq(its_avg, its_meta, "saprotroph")
 #' 
 #' ## Diversity Indices
 #+ sapro_diversity
-sapro_div <- calc_div(sapro, sites)
+sapro_div <- calc_div(sapro, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Account for sequencing depth as a covariate
-sapro_rich_covar <- covar_shape_test(
-  data  = sapro_div,
-  y     = "richness",       
-  covar = "depth",   
-  group = "field_type"           
-)
-sapro_rich_covar$compare
-#' Log transform selected based on model performance. Model with centered, log depth covar
-sapro_rich_lm <- lm(richness ~ depth_clg + field_type,
-                    data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+#' Sequence depth square root transformed and centered 
+sapro_rich_lm <- lm(richness ~ depth_csq + field_type, data = sapro_div)
 #' Diagnostics
 #+ sapro_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-sapro_rich_covar$diagnostics # heavy residual structure, poor qq alignment
+check_model(sapro_rich_lm)
 distribution_prob(sapro_rich_lm)
 #' residuals distribution normal or close, response showing group divisions and count 
 #' overdispersion (binomial family)
@@ -2058,32 +1987,12 @@ leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>%
 leveneTest(residuals(sapro_rich_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% 
   kable(format = "pandoc", caption = "Residuals var in groups")
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-#' Despite lack of unequal variance, does gamma glm improve other diagnostics?
-sapro_rich_glm  <- glm(richness ~ depth_clg + field_type, family = Gamma(link = "log"), 
-                       data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
-sapro_glm_diag <- glm.diag(sapro_rich_glm)
-glm.diag.plots(sapro_rich_glm, sapro_glm_diag) 
-#' Slight improvement to qq plot shape, slightly reduced hatvalue (not shown)
-performance::check_overdispersion(sapro_rich_glm) # not detected
-sapro_glm_sim <- simulateResiduals(sapro_rich_glm)
-plot(sapro_glm_sim) # DHARMa passes all tests
-#' Gamma glm is the best choice; no high-leverage point
 #' 
 #' Model results, group means, and post-hoc
-Anova(sapro_rich_glm, type = 2)
-#' Sequence depth is significant; richness doesn't vary in groups. View trend:
-sapro_div %>% 
-  group_by(field_type) %>% 
-  summarize(avg_depth = mean(depth), 
-            avg_richness = mean(richness), .groups = "drop") %>% 
-  mutate(across(starts_with("avg"), ~ round(.x, 1))) %>% 
-  kable(format = "pandoc")
-#' Inverse relationship between depth and field_type. There was a mildly significant
-#' interaction, but how to work out what that would even mean?
-#' 
-#' Calculate confidence intervals for figure.
+Anova(sapro_rich_lm, type = 2)
+#' Richness and field type aren't significantly related. Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case, back-transformed.
-sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
+sapro_rich_em <- emmeans(sapro_rich_lm, ~ field_type, type = "response")
 #+ sapro_rich_em_summary,echo=FALSE
 kable(summary(sapro_rich_em), 
       format = "pandoc", 
@@ -2091,9 +2000,9 @@ kable(summary(sapro_rich_em),
 #' Model NS; no post hoc comparison...
 #+ sapro_richness_fig,fig.width=4,fig.height=4
 sapro_rich_fig <- 
-  ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
+  ggplot(summary(sapro_rich_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -2102,20 +2011,11 @@ sapro_rich_fig <-
         plot.tag.position = c(0, 1))
 #' 
 #' ### Shannon's diversity
-#' Account for sequencing depth as a covariate
-sapro_shan_covar <- covar_shape_test(
-  data = sapro_div,
-  y = "shannon",
-  covar = "depth",
-  group = "field_type"
-)
-sapro_shan_covar$compare
-#' Log transform selected based on model performance. Model with centered, log depth covar
-sapro_shan_lm <- lm(shannon ~ depth_clg + field_type,
-                    data = sapro_div %>% mutate(depth_clg = log(depth) - mean(log(depth))))
+#' Sequence depth square root transformed and centered 
+sapro_shan_lm <- lm(shannon ~ depth_csq + field_type, data = sapro_div)
 #' Diagnostics
 #+ sapro_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-sapro_shan_covar$diagnostics # variance similar in groups 
+check_model(sapro_shan_lm)
 distribution_prob(sapro_shan_lm)
 #' residuals distribution most likely normal, qq fit good, no evidence of mean/variance increase
 #' response non-normal, check variance in groups though
@@ -2123,9 +2023,9 @@ leveneTest(shannon ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable
 leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-
+#' 
 #' Model results, group means, and post-hoc
-sapro_shan_covar$anova_t2
+Anova(sapro_shan_lm, type = 2)
 #' Sequence depth is not a significant predictor of Shannon diversity, nor field type
 sapro_shan_em <- emmeans(sapro_shan_lm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group means and confidence intervals,
