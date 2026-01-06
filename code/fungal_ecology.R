@@ -2815,7 +2815,7 @@ fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plo
 #+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig8
 #+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig8.svg"), plot = fig7, device = "svg",
+ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = "svg",
        width = 18, height = 11, units = "cm")
 #' 
 #' ### Saprotroph biomass and grass/forb composition
