@@ -98,6 +98,7 @@ calc_div <- function(spe, site_dat) {
     rowwise() %>% 
     mutate(
       depth = sum(c_across(starts_with("otu"))),
+      depth_csq = sqrt(depth) - mean(sqrt(depth)),
       richness = sum(c_across(starts_with("otu")) > 0),
       shannon = exp(diversity(c_across(starts_with("otu"))))
     ) %>% 
@@ -448,60 +449,6 @@ reg_dist_stats <- function(dist_mat,
       max_dist = max(dist, na.rm = TRUE),
       .groups = "drop"
     )
-}
-#' 
-#' ## Test raw and transformed covariates in linear models
-#' Function `covar_shape_test()` compares a series of linear models with raw, 
-#' square root, or log transforms of the covariate. It selects the best model
-#' based on various criteria. 
-covar_shape_test <- function(data, y, covar, group = field_type) {
-  
-  resp <- ensym(y)
-  x    <- ensym(covar)
-  g    <- ensym(group)
-  
-  df <- data %>% 
-    select(!!resp, !!g, x_raw = !!x) %>% 
-    mutate(x_lin  = as.numeric(scale(x_raw, center = TRUE, scale = FALSE)),
-           x_sqrt = as.numeric(scale(sqrt(pmax(x_raw, 0)), center = TRUE, scale = FALSE)),
-           x_log  = as.numeric(scale(log1p(pmax(x_raw, 0)), center = TRUE, scale = FALSE))
-    ) %>% drop_na()
-  
-  f_lin  <- new_formula(expr(!!resp), expr(x_lin  + !!g))
-  f_sqrt <- new_formula(expr(!!resp), expr(x_sqrt + !!g))
-  f_log  <- new_formula(expr(!!resp), expr(x_log  + !!g))
-  
-  # Fit candidate models
-  m_lin  <- lm(f_lin,  data = df)
-  m_sqrt <- lm(f_sqrt, data = df)
-  m_log  <- lm(f_log,  data = df)
-  
-  # Compare candidate fits
-  cmp <- compare_performance(
-    lin = m_lin, sqrt = m_sqrt, log = m_log,
-    metrics = c("AIC","RMSE","R2"), rank = TRUE
-  )
-  best_name <- cmp$Name[1]
-  best_mod  <- switch(best_name, m_lin = m_lin, m_sqrt = m_sqrt, m_log = m_log)
-  
-  # Type-II tests (unbalanced design; additive model)
-  anova_t2 <- Anova(best_mod, type = 2)
-  
-  # LS-means for group at centered covariate
-  emm <- emmeans(best_mod, specs = as_name(g))
-  
-  chmd <- check_model(best_mod)
-  
-  # return everything
-  list(
-    data      = df,
-    compare   = cmp,
-    best_name = best_name,
-    best_model= best_mod,
-    anova_t2  = anova_t2,
-    emmeans   = emm,
-    diagnostics = chmd
-  )
 }
 #' 
 #' ## Site mapping functions
