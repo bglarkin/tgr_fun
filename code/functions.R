@@ -106,7 +106,7 @@ calc_div <- function(spe, site_dat) {
     as_tibble() %>% 
     ungroup() %>% 
     left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-    select(field_name, field_type, depth, richness, shannon)
+    select(field_name, field_type, depth, depth_csq, richness, shannon)
   
   return(div_data)
   
