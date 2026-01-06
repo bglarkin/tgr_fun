@@ -1724,9 +1724,10 @@ patho_resto <- its_guild %>%
   mutate(
     patho_prop = patho_abund / fungi_abund, # no zeroes present...
     patho_logit = qlogis(patho_prop),
+    notpatho_abund = fungi_abund - patho_abund,
     fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
-  select(-sapro_abund) 
+  select(-sapro_abund, -c(annual:shrubTree)) 
 #' 
 #' ### Plant richness and pathogen biomass
 #' Is plant richness related to pathogen mass?
@@ -1740,15 +1741,206 @@ patho_resto <- its_guild %>%
 (pathofa_pshan_cor <- 
   with(patho_resto %>% left_join(patho_div %>% select(field_name, shannon), by = join_by(field_name)), 
      cor.test(patho_mass, shannon)))
-#' Pathogen mass and plant diversity aren't correlated, though the slope is positive.  
+#' Pathogen mass and plant diversity aren't correlated, though the relationship is positive.  
 #' 
 #' ### Pathogen biomass and grass/forb composition
 #' Inspect simple linear relationship. Naïve model.
-pama_rest_m <- lm(patho_mass ~ gf_index, data = patho_resto)
+patho_gf_lm <- lm(patho_mass ~ gf_index, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
-check_model(pama_rest_m)
-summary(pama_rest_m)
-#' The naïve model shows a positive relationship that isn't significant. Since
+check_model(patho_gf_lm)
+summary(patho_gf_lm)
+#' The naïve model shows a positive relationship that isn't significant. 
+#' Diagnostic reveals noisy fit and lots of structure. Decompose biomass and 
+#' sequence abundance in a model to test changes in each given the other. 
+#' 
+
+
+
+# Notes for the ms:
+# Weighted Multiple Quasibinomial GLM
+#' "We employed a multiple logistic 
+#' regression within a Generalized Linear Model (GLM) framework, using a 
+#' quasibinomial error distribution to account for 
+#' overdispersion in the pathogen proportions. The model was weighted to account for sequence depth."
+#' 
+#' "The multiple quasibinomial model revealed that the grass-forb 
+#' index was a strong, positive predictor of 
+#' pathogen share (β=1.91,p<0.001), even after adjusting for total fungal biomass."
+
+patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_index,
+                    data = patho_resto, family = quasibinomial(link = "logit"),
+                    weights = fungi_abund)
+
+summary(patho_gf_glm)
+
+
+check_model(patho_gf_glm)
+augment(patho_gf_glm)
+
+par(mfrow = c(2,2))
+plot(patho_gf_glm)
+
+
+loocv_paglm_gfi <- map_dbl(seq_len(nrow(patho_resto)), function(i){
+  exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
+           data = patho_resto[-i, ], 
+           family = quasibinomial(link = "logit"),
+           weights = fungi_abund))["gf_index"])
+})
+
+summary(loocv_paglm_gfi)
+(cv_paglm <- (sd(loocv_paglm_gfi) / mean(loocv_paglm_gfi) * 100) %>% round(., 1))
+
+
+loocv_paglm_fma <- map_dbl(seq_len(nrow(patho_resto)), function(i){
+  exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
+               data = patho_resto[-i, ], 
+               family = quasibinomial(link = "logit"),
+               weights = fungi_abund))["fungi_mass_lc"])
+})
+
+summary(loocv_paglm_fma)
+(cv_paglm <- (sd(loocv_paglm_fma) / mean(loocv_paglm_fma) * 100) %>% round(., 1))
+
+paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
+check_collinearity(patho_gf_glm)
+
+avPlots(patho_gf_glm)
+
+
+coeftest(patho_gf_glm, vcov. = vcovHC(patho_gf_glm, type = "HC3")) # Robust Wald t test
+coefci(patho_gf_glm, vcov. = vcovHC(patho_gf_glm, type = "HC3"))
+#+ parest_m_abs_rsq,warning=FALSE,message=FALSE
+rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
+
+
+
+
+
+
+
+# New prediction data
+paglm_med_fungi <- median(patho_resto$fungi_mass_lc, na.rm = TRUE)
+paglm_med_abund <- median(patho_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
+paglm_newdat <- tibble(
+  gf_index = seq(min(patho_resto$gf_index, na.rm = TRUE),
+                 max(patho_resto$gf_index, na.rm = TRUE),
+                 length.out = 200),
+  fungi_mass_lc = paglm_med_fungi,
+  fungi_abund = paglm_med_abund 
+)
+
+# Predict on link scale, back-transform with plogis
+paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fit = TRUE) %>%
+  as_tibble() %>%
+  bind_cols(newdat) %>%
+  mutate(
+    fit_prob = plogis(fit),
+    lwr_prob = plogis(fit - 1.96 * se.fit),
+    upr_prob = plogis(fit + 1.96 * se.fit)
+  )
+
+
+
+#+ fig7a,warning=FALSE
+fig7a <- 
+  ggplot(paglm_pred, aes(x = gf_index, y = fit_prob)) +
+  # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+  geom_line(color = "black", linewidth = lw) +
+  geom_point(data = patho_resto, aes(x = gf_index, y = patho_prop, fill = field_type),
+             size = sm_size, stroke = lw, shape = 21) +
+  geom_text(data = patho_resto, aes(x = gf_index, y = patho_prop, label = yr_since), 
+            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = "Grass–forb index",
+    y = "Pathogen proportion (share of total sequences)",
+    tag = "A"
+  ) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_cor +
+  theme(legend.position = c(0.03, 1),
+        legend.justification = c(0, 1),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+
+
+
+
+
+#+ fig7b,warning=FALSE
+fig7b <- 
+  cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
+  ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.patho_prop)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), y = NULL, tag = "B") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
+  scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(patho_resto$fungi_mass)), 
+                     labels = breaks_raw) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.175, 1))
+
+
+
+
+#+ fig7c,warning=FALSE
+fig7c <- 
+  cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
+  ggplot(aes(x = gf_index.gf_index, y = gf_index.patho_prop)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(x = "Grass–forb index", y = NULL, tag = "C") +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0.175, 1))
+
+
+
+fig7yax_grob <- textGrob(
+  "Pathogen proportion (partial residuals, logit scale)",
+  x = 0.5,
+  y = 0.5,
+  hjust = 0.5,
+  vjust = 0.5,
+  rot = 90,
+  gp = gpar(cex = 9/12)
+)
+
+#+ fig7_patchwork
+fig7rh <- (fig7b / plot_spacer() / fig7c) +
+  plot_layout(heights = c(0.5, 0.01,0.5))
+fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
+  plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
+#+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
+fig7
+#+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = "svg",
+       width = 18, height = 11, units = "cm")
+
+
+
+
+fig7yax_grob <- textGrob(
+  "Pathogen proportion (partial residuals, logit scale)",
+  rot = 90,
+  gp = gpar(fontsize = 10, fontface = "bold")
+)
+
+
+
+#' Since
 #' pathogen mass = pathogen sequence relative proportion * site biomass, site 
 #' biomass should also be accounted for in the model if it's variation is high or 
 #' if it trends in opposition to proportion of pathogens. Since pathogen mass is 
@@ -1960,6 +2152,15 @@ coeftest(parest_m_biom, vcov = vcovHC(parest_m_biom, type = "HC3")) # robust slo
 coefci(parest_m_biom, vcov. = vcovHC(parest_m_biom, type = "HC3"))
 #' Agrees with what we found before with biomass as an untransformed
 #' response variable. 
+
+
+
+
+
+
+
+
+
 
 #' 
 #' # Putative saprotrophs
