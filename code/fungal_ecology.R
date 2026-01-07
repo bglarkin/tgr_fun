@@ -2390,68 +2390,59 @@ summary(saprofa_pshan_lm)
 
 
 
-# patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_index,
-#                     data = patho_resto, family = quasibinomial(link = "logit"),
-#                     weights = fungi_abund)
-# 
-# summary(patho_gf_glm)
-# 
-# 
-# check_model(patho_gf_glm)
-# augment(patho_gf_glm)
-# 
-# par(mfrow = c(2,2))
-# plot(patho_gf_glm)
-# 
-# 
-# loocv_paglm_gfi <- map_dbl(seq_len(nrow(patho_resto)), function(i){
-#   exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
-#                data = patho_resto[-i, ], 
-#                family = quasibinomial(link = "logit"),
-#                weights = fungi_abund))["gf_index"])
-# })
-# 
-# summary(loocv_paglm_gfi)
-# (cv_paglm <- (sd(loocv_paglm_gfi) / mean(loocv_paglm_gfi) * 100) %>% round(., 1))
-# 
-# 
-# loocv_paglm_fma <- map_dbl(seq_len(nrow(patho_resto)), function(i){
-#   exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
-#                data = patho_resto[-i, ], 
-#                family = quasibinomial(link = "logit"),
-#                weights = fungi_abund))["fungi_mass_lc"])
-# })
-# 
-# summary(loocv_paglm_fma)
-# (cv_paglm <- (sd(loocv_paglm_fma) / mean(loocv_paglm_fma) * 100) %>% round(., 1))
-# 
-# paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
-# check_collinearity(patho_gf_glm)
-# 
-# avPlots(patho_gf_glm)
-# 
-# 
-# coeftest(patho_gf_glm, vcov. = vcovHC(patho_gf_glm, type = "HC3")) # Robust Wald t test
-# coefci(patho_gf_glm, vcov. = vcovHC(patho_gf_glm, type = "HC3"))
+sapro_prich_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_rich,
+                    data = sapro_resto, family = quasibinomial(link = "logit"),
+                    weights = fungi_abund)
+
+summary(sapro_prich_glm)
+
+
+check_model(sapro_prich_glm)
+augment(sapro_prich_glm)
+
+par(mfrow = c(2,2))
+plot(sapro_prich_glm)
+
+
+loocv_saglm_gfi <- map_dbl(seq_len(nrow(sapro_resto)), function(i){
+  exp(coef(glm(sapro_prop ~ fungi_mass_lc + pl_rich,
+               data = sapro_resto[-i, ],
+               family = quasibinomial(link = "logit"),
+               weights = fungi_abund))["pl_rich"])
+})
+
+summary(loocv_saglm_gfi)
+(cv_saglm <- (sd(loocv_saglm_gfi) / mean(loocv_saglm_gfi) * 100) %>% round(., 1))
+
+
+loocv_saglm_fma <- map_dbl(seq_len(nrow(sapro_resto)), function(i){
+  exp(coef(glm(sapro_prop ~ fungi_mass_lc + pl_rich,
+               data = sapro_resto[-i, ],
+               family = quasibinomial(link = "logit"),
+               weights = fungi_abund))["fungi_mass_lc"])
+})
+
+summary(loocv_saglm_fma)
+(cv_saglm <- (sd(loocv_saglm_fma) / mean(loocv_saglm_fma) * 100) %>% round(., 1))
+
+saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
+check_collinearity(sapro_prich_glm)
+
+
 # #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
-# rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# # New prediction data
-# paglm_med_fungi <- median(patho_resto$fungi_mass_lc, na.rm = TRUE)
-# paglm_med_abund <- median(patho_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
-# paglm_newdat <- tibble(
-#   gf_index = seq(min(patho_resto$gf_index, na.rm = TRUE),
-#                  max(patho_resto$gf_index, na.rm = TRUE),
-#                  length.out = 200),
-#   fungi_mass_lc = paglm_med_fungi,
-#   fungi_abund = paglm_med_abund 
-# )
+rsq.partial(sapro_prich_glm, adj = TRUE)$partial.rsq
+
+
+# New prediction data
+saglm_med_fungi <- median(sapro_resto$fungi_mass_lc, na.rm = TRUE)
+saglm_med_abund <- median(sapro_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
+saglm_newdat <- tibble(
+  pl_rich = seq(min(sapro_resto$pl_rich, na.rm = TRUE),
+                max(sapro_resto$pl_rich, na.rm = TRUE),
+                length.out = 200),
+  fungi_mass_lc = saglm_med_fungi,
+  fungi_abund = saglm_med_abund
+)
 # 
 # # Predict on link scale, back-transform with plogis
 # paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fit = TRUE) %>%
