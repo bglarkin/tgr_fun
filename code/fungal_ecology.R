@@ -372,25 +372,30 @@ its_div <- calc_div(its_avg, sites) %>%
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Sequence depth square root transformed and centered 
-its_rich_lm <- lm(richness ~ depth_csq + field_type, data = its_div)
+#' Sequence depth square root transformed and centered. Negative binomial model used to handle count 
+#' data. Poisson model was overdispersed (not shown). 
+its_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = its_div)
+Anova(its_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
+#' Fit additive model
+its_rich_glm <- glm.nb(richness ~ depth_csq + field_type, data = its_div)
 #' Diagnostics
 #+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(its_rich_lm)
+check_model(its_rich_glm)
+check_overdispersion(its_rich_glm)
+check_collinearity(its_rich_glm)
 #' Long tails, some midrange structure, no leverage points
-distribution_prob(its_rich_lm)
+distribution_prob(its_rich_glm)
 #' residuals distribution normal or long-tailed, response log
 leveneTest(richness ~ field_type, data = its_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(its_rich_lm) ~ its_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(its_rich_glm) ~ its_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals/response distributions do not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
 #' 
-#' Model results, group means, and post-hoc. Use Type II SS for test of variables due to unbalanced design.
-Anova(its_rich_lm, type = 2)
+#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
+Anova(its_rich_glm, type = 2, test.statistic = "LR")
 #' Sequence depth is significant, less so than field type. 
 #' Proceed with means separation by obtaining estimated marginal means for field type.
-#' Arithmetic means calculated in this case.
-its_rich_em <- emmeans(its_rich_lm, ~ field_type, type = "response")
+its_rich_em <- emmeans(its_rich_glm, ~ field_type, type = "response")
 #' Results tables below show the emmeans summary of group means and confidence intervals,
 #' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
 #+ its_rich_em_summary,echo=FALSE
@@ -405,10 +410,10 @@ kable(pairs(its_rich_em),
 #' don't differ. 
 #+ its_richness_fig,fig.width=4,fig.height=4
 its_rich_fig <- 
-  ggplot(summary(its_rich_em), aes(x = field_type, y = emmean)) +
+  ggplot(summary(its_rich_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
+  geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
   labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   lims(y = c(0, 760)) +
   scale_fill_manual(values = ft_pal) +
@@ -812,27 +817,40 @@ amf_div <- calc_div(amf_avg, sites) %>%
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Sequence depth square root transformed and centered 
-amf_rich_lm <- lm(richness ~ depth_csq + field_type, data = amf_div)
-#' Diagnostics
-#+ amf_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(amf_rich_lm)
-#' Long tails, one outlier without significant leverage...mean/variance relationship shows no trend...
-distribution_prob(amf_rich_lm)
-#' Residuals distribution most likely normal, response bimodal
-leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(amf_rich_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-#' Residuals/response distributions do not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+#' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
+#' and failed to converge at default iterations; use poisson glm instead. 
+amf_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = amf_div, family = poisson(link = "log")) 
+Anova(amf_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
+check_overdispersion(amf_rich_glm_i) # not overdispersed
+augment(amf_rich_glm_i) # corn site has cooks >0.9
+check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
+#' An interaction was detected, but including it in the model leads to very poor diagnostics.
+#' It's driven by one site in corn with high leverage, and it introduces high 
+#' multicollinearity. Further, the outlier point would tend to lead to a Type II
+#' error of inference, making it a conservative choice to stick with the additive model. 
 #' 
-#' Model results, group means, and post-hoc
-Anova(amf_rich_lm, type = 2)
+#' Fit additive model
+amf_rich_glm <- glm(richness ~ depth_csq + field_type, data = amf_div, family = poisson(link = "log")) 
+#' Diagnostics
+#+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(amf_rich_glm)
+check_overdispersion(amf_rich_glm)
+check_collinearity(amf_rich_glm)
+#' Long tails, some midrange structure, no leverage points, overdispersion, or multicollinearity
+distribution_prob(amf_rich_glm)
+#' residuals distribution normal or long-tailed, response count-distributed
+leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(amf_rich_glm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals/response distributions do not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
+#' 
+#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
+Anova(amf_rich_glm, type = 2, test.statistic = "LR")
 #' Sequencing depth not a significant predictor of amf richness
-amf_rich_em <- emmeans(amf_rich_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group arithmetic means and confidence intervals, 
+amf_rich_em <- emmeans(amf_rich_glm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of estimated marginal means and confidence intervals, 
 #' and the post hoc contrast of richness among field types. 
-#' Main effect in model significant after p value adjustment (see summary section): pairwise
-#' contrast warranted.
+#' Main effect in model significant; pairwise contrast warranted.
 #+ amf_rich_em_summary,echo=FALSE
 kable(summary(amf_rich_em), 
       format = "pandoc", 
@@ -845,10 +863,10 @@ kable(pairs(amf_rich_em),
 #' don't differ. Plot the results
 #+ amf_richness_fig,fig.width=4,fig.height=4,fig.align='center'
 amf_rich_fig <- 
-  ggplot(summary(amf_rich_em), aes(x = field_type, y = emmean)) +
+  ggplot(summary(amf_rich_em), aes(x = field_type, y = rate)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
+  geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
   labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   lims(y = c(0, 75)) +
   scale_fill_manual(values = ft_pal) +
@@ -924,11 +942,12 @@ fa %>%
   kable(format = "pandoc", caption = "Mean and CV relationship in groups")
 #' CV increases with mean, suggesting > proportional mean/variance relationship. 
 #' Determine best model choice of log-transformed response or gamma glm.
-nlfa_lm_log   <- lm(log(amf) ~ field_type, data = fa)
+#' Log:
+nlfa_lm_log <- lm(log(amf) ~ field_type, data = fa)
 par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
-
+#' Gamma glm:
 nlfa_glm  <- glm(amf ~ field_type, family = Gamma(link = "log"), data = fa)
 nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
@@ -1372,24 +1391,29 @@ patho_div <- calc_div(patho, sites) %>%
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Sequence depth square root transformed and centered 
-patho_rich_lm <- lm(richness ~ depth_csq + field_type, data = patho_div)
+#' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
+#' and failed to converge at default iterations; use poisson glm instead. 
+patho_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = patho_div, family = poisson(link = "log")) 
+Anova(patho_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
+#' Fit additive model
+patho_rich_glm <- glm(richness ~ depth_csq + field_type, data = patho_div, family = poisson(link = "log")) 
 #' Diagnostics
-#+ patho_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(patho_rich_lm)
-distribution_prob(patho_rich_lm)
-#' Residuals distribution normal or close, response showing group divisions
-leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% 
-  kable(format = "pandoc", caption = "Response var in groups")
-leveneTest(residuals(patho_rich_lm) ~ patho_div$field_type) %>% as.data.frame() %>% 
-  kable(format = "pandoc", caption = "Residuals var in groups")
+#+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(patho_rich_glm)
+check_overdispersion(patho_rich_glm)
+check_collinearity(patho_rich_glm)
+#' Some midrange structure, no leverage points, overdispersion, or multicollinearity
+distribution_prob(patho_rich_glm)
+#' residuals distribution normal or long-tailed, response count-distributed
+leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(patho_rich_glm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals/response distributions do not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
 #' 
-#' Model results, group means, and post-hoc
-Anova(patho_rich_lm, type = 2)
+#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
+Anova(patho_rich_glm, type = 2, test.statistic = "LR")
 #' Sequence depth is highly significant; richness doesn't vary in groups. 
-#' patho_depth_ft
+#+ patho_depth_ft_cor
 patho_div %>% 
   group_by(field_type) %>% 
   summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
@@ -1400,7 +1424,7 @@ patho_div %>%
 #' 
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case.
-patho_rich_em <- emmeans(patho_rich_lm, ~ field_type, type = "response")
+patho_rich_em <- emmeans(patho_rich_glm, ~ field_type, type = "response")
 #+ patho_rich_em_summary,echo=FALSE
 kable(summary(patho_rich_em), 
       format = "pandoc", 
@@ -1411,9 +1435,9 @@ kable(pairs(patho_rich_em),
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #+ patho_richness_fig,fig.width=4,fig.height=4
 patho_rich_fig <- 
-  ggplot(summary(patho_rich_em), aes(x = field_type, y = emmean)) +
+  ggplot(summary(patho_rich_em), aes(x = field_type, y = rate)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
   labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -1807,7 +1831,7 @@ paglm_newdat <- tibble(
 # Predict on link scale, back-transform with plogis
 paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fit = TRUE) %>%
   as_tibble() %>%
-  bind_cols(newdat) %>%
+  bind_cols(paglm_newdat) %>%
   mutate(
     fit_prob = plogis(fit),
     lwr_prob = plogis(fit - 1.96 * se.fit),
@@ -1856,7 +1880,7 @@ fig7b <-
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
   scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(patho_resto$fungi_mass)), 
-                     labels = breaks_raw) +
+                     labels = c(2.7, 3.8, 5.3, 7.5)) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -1927,26 +1951,44 @@ sapro <- guildseq(its_avg, its_meta, "saprotroph")
 sapro_div <- calc_div(sapro, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
+
+
+
+
+
 #' ### Richness
-#' Sequence depth square root transformed and centered 
-sapro_rich_lm <- lm(richness ~ depth_csq + field_type, data = sapro_div)
+#' Sequence depth square root transformed and centered. Poisson model was overdispersed (not shown), 
+#' use negative binomial instead.  
+sapro_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = sapro_div) 
+Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
+check_model(sapro_rich_glm_i)
+check_overdispersion(sapro_rich_glm_i) # not overdispersed
+augment(sapro_rich_glm_i) # corn site has cooks >0.9
+check_collinearity(sapro_rich_glm_i) # depth and interaction VIF > 6
+#' An interaction was detected, but including it in the model leads to very poor diagnostics.
+#' It's driven by one site in corn with high leverage, and it introduces high 
+#' multicollinearity.  
+#' 
+#' Fit additive model
+sapro_rich_glm <- glm.nb(richness ~ depth_csq + field_type, data = sapro_div) 
 #' Diagnostics
 #+ sapro_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(sapro_rich_lm)
-distribution_prob(sapro_rich_lm)
-#' residuals distribution normal or close, response showing group divisions and count 
-#' overdispersion (binomial family)
-leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>% 
-  kable(format = "pandoc", caption = "Response var in groups")
-leveneTest(residuals(sapro_rich_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% 
-  kable(format = "pandoc", caption = "Residuals var in groups")
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+check_model(sapro_rich_glm)
+check_overdispersion(sapro_rich_glm)
+check_collinearity(sapro_rich_glm)
+#' Long tails, some structure throughout, no leverage points, overdispersion, or multicollinearity
+distribution_prob(sapro_rich_glm)
+#' residuals distribution normal or long-tailed, response count-distributed
+leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(sapro_rich_glm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals/response distributions do not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
 #' 
-#' Model results, group means, and post-hoc
-Anova(sapro_rich_lm, type = 2)
-#' Richness and field type aren't significantly related. Calculate confidence intervals for figure.
-#' Arithmetic means calculated in this case, back-transformed.
-sapro_rich_em <- emmeans(sapro_rich_lm, ~ field_type, type = "response")
+#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
+Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
+#' Differences in richness are very close to significance. Calculate confidence intervals for figure.
+#' Estimated marginal means calculated in this case
+sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
 #+ sapro_rich_em_summary,echo=FALSE
 kable(summary(sapro_rich_em), 
       format = "pandoc", 
@@ -1954,9 +1996,9 @@ kable(summary(sapro_rich_em),
 #' Model NS; no post hoc comparison...
 #+ sapro_richness_fig,fig.width=4,fig.height=4
 sapro_rich_fig <- 
-  ggplot(summary(sapro_rich_em), aes(x = field_type, y = emmean)) +
+  ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
   labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -2374,7 +2416,7 @@ sapro_resto <- its_guild %>%
   ) %>% 
   select(-patho_abund, -c(annual:shrubTree))
 #' 
-#' ### Plant richness and pathogen biomass
+#' ### Plant richness and saprotroph biomass
 #' Is plant richness related to saprotroph mass?
 saprofa_prich_lm <- lm(sapro_mass ~ pl_rich, data = sapro_resto)
 summary(saprofa_prich_lm)
@@ -2383,11 +2425,7 @@ summary(saprofa_prich_lm)
 #' KORP site appears to have some leverage (not shown), conduct logistic model 
 #' and diagnostics as before.
 #' 
-#' Is plant diversity related to saprotroph mass?
-saprofa_pshan_lm <- lm(sapro_mass ~ pl_shan, data = sapro_resto)
-summary(saprofa_pshan_lm)
-#' Saprotroph mass and plant diversity may also deserve further examination.
-#' 
+
 
 
 
@@ -2445,215 +2483,31 @@ saglm_newdat <- tibble(
   fungi_mass_lc = saglm_med_fungi,
   fungi_abund = saglm_med_abund
 )
-# 
-# # Predict on link scale, back-transform with plogis
-# paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fit = TRUE) %>%
-#   as_tibble() %>%
-#   bind_cols(newdat) %>%
-#   mutate(
-#     fit_prob = plogis(fit),
-#     lwr_prob = plogis(fit - 1.96 * se.fit),
-#     upr_prob = plogis(fit + 1.96 * se.fit)
-#   )
-# 
-# 
-# 
-# #+ fig7a,warning=FALSE
-# fig7a <- 
-#   ggplot(paglm_pred, aes(x = gf_index, y = fit_prob)) +
-#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-#   geom_line(color = "black", linewidth = lw) +
-#   geom_point(data = patho_resto, aes(x = gf_index, y = patho_prop, fill = field_type),
-#              size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(data = patho_resto, aes(x = gf_index, y = patho_prop, label = yr_since), 
-#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(
-#     x = "Grass–forb index",
-#     y = "Pathogen proportion (share of total sequences)",
-#     tag = "A"
-#   ) +
-#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-#   theme_cor +
-#   theme(legend.position = c(0.03, 1),
-#         legend.justification = c(0, 1),
-#         legend.title = element_text(size = 9, face = 1),
-#         legend.text = element_text(size = 8, face = 1),
-#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-#         legend.key = element_rect(fill = "white"),
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0, 1))
-# 
-# 
-# 
-# 
-# 
-# #+ fig7b,warning=FALSE
-# fig7b <- 
-#   cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
-#   ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.patho_prop)) +
-#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
-#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), y = NULL, tag = "B") +
-#   scale_fill_manual(values = ft_pal[2:3]) +
-#   scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
-#   scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(patho_resto$fungi_mass)), 
-#                      labels = breaks_raw) +
-#   theme_cor +
-#   theme(legend.position = "none",
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0.175, 1))
-# 
-# 
-# 
-# 
-# #+ fig7c,warning=FALSE
-# fig7c <- 
-#   cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
-#   ggplot(aes(x = gf_index.gf_index, y = gf_index.patho_prop)) +
-#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
-#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(x = "Grass–forb index", y = NULL, tag = "C") +
-#   scale_fill_manual(values = ft_pal[2:3]) +
-#   scale_y_continuous(breaks = c(-1, 0, 1)) +
-#   theme_cor +
-#   theme(legend.position = "none",
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0.175, 1))
-# 
-# 
-# 
-# fig7yax_grob <- textGrob(
-#   "Pathogen proportion (partial residuals, logit scale)",
-#   x = 0.5,
-#   y = 0.5,
-#   hjust = 0.5,
-#   vjust = 0.5,
-#   rot = 90,
-#   gp = gpar(cex = 9/12)
-# )
-# 
-# #+ fig7_patchwork
-# fig7rh <- (fig7b / plot_spacer() / fig7c) +
-#   plot_layout(heights = c(0.5, 0.01,0.5))
-# fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
-#   plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
-# #+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
-# fig7
-# #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
-# ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = "svg",
-#        width = 18, height = 11, units = "cm")
 
-
-
-
-
-
-
-
-#' 
-#' #### Saprotrophs & plant richness: model selection
-#' Inspect simple linear relationship. Naïve model.
-sapro_pltrich <- sapro_resto %>% left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name))
-saplr_m_raw <- lm(sapro_mass ~ pl_rich, data = sapro_pltrich)
-#+ cm_saplr_m_raw,warning=FALSE,fig.width=7,fig.height=9
-check_model(saplr_m_raw)
-shapiro.test(saplr_m_raw$residuals)
-summary(saplr_m_raw)
-#' The naïve model shows an inverse relationship that is significant but with a 
-#' rather small slope. Conduct model selection as before with pathogens in log-log space.
-saplr_m_logy <- lm(log(sapro_mass) ~ fungi_mass + pl_rich, data = sapro_pltrich)
-saplr_m_logx <- lm(sapro_mass ~ log(fungi_mass) + pl_rich, data = sapro_pltrich)
-saplr_m_both <- lm(log(sapro_mass) ~ log(fungi_mass) + pl_rich, data = sapro_pltrich)
-compare_performance(saplr_m_raw, saplr_m_logy, saplr_m_logx, saplr_m_both, 
-                    metrics = c("AIC", "RMSE","R2"), rank = TRUE)
-#' Log-log model selected 
-saplr_m_abs <- lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich, data = sapro_pltrich) # centered log of fungi_mass
-augment(saplr_m_abs, data = sapro_pltrich %>% select(field_name)) 
-#' Max cooks of 0.4 is FGREM1. Lower saprotrophs than expected. 
-#' Check leave-one-out slopes.
-slopes_sma <- map_dbl(seq_len(nrow(sapro_pltrich)), function(i){
-  coef(lm(log(sapro_mass) ~ fungi_mass_lc + pl_rich, data = sapro_pltrich[-i, ]))["pl_rich"]
-})
-summary(slopes_sma); slopes_sma[which.min(slopes_sma)]; slopes_sma[which.max(slopes_sma)]
-#' LOOCV test doesn't suggest that inference would change
-distribution_prob(saplr_m_abs)
-shapiro.test(saplr_m_abs$residuals)
-#' Residuals distribution difference from normal rejected by shapiro test and machine learning approach. 
-#' This is almost certainly driven by the large outlier FGREM1
-par(mfrow = c(2,2))
-plot(saplr_m_abs)
-crPlots(saplr_m_abs)
-#' FGREM1 is mid-fitted value so has little leverage. Structure to model residuals likely doesn't 
-#' affect inference.  
-saplr_m_abs_av <- avPlots(saplr_m_abs)
-c(R2.adj = summary(saplr_m_abs)$adj.r.squared)
-#' Relationships appear monotonic and both appear relatively clean with FGREM1 not overly dictating fit (in log-log space). 
-ncvTest(saplr_m_abs)
-#' Diagnostics (NCV p=0.801; HC3 and LOOCV stable) support the additive log–log model. Shapiro test
-#' of log-log resids failed (p<0.01), but was strong in the raw model (p=0.73). 
-#' Did adding total biomass indeed improve inference of the relationship? Check RMSE
-#' between naïve and log-log models, using Duan's smearing and back-transformation to 
-#' compare models on the same scale, using custom function `rmse()`.
-saplr_m_rmse <- list(
-  pred_log_raw = exp(fitted(saplr_m_abs)) * mean(exp(residuals(saplr_m_abs))), # smearing factor
-  rmse_naive   = rmse(sapro_pltrich$sapro_mass, fitted(saplr_m_raw)),
-  rmse_log     = rmse(sapro_pltrich$sapro_mass, pred_log_raw)
-)
-saplr_m_rmse[2:3]
-#' RMSE increases, nearly doubles, on the raw scale
-saplr_m_rmse_on_log <- list(
-  rmse_naive_log = rmse(log(sapro_pltrich$sapro_mass), log(fitted(saplr_m_raw))),
-  rmse_log  = rmse(log(sapro_pltrich$sapro_mass), fitted(saplr_m_abs))
-)
-saplr_m_rmse_on_log
-
-#' On the log scale, however, RMSE decreases by
-#' `r round((saplr_m_rmse_on_log$rmse_log-saplr_m_rmse_on_log$rmse_naive_log) / saplr_m_rmse_on_log$rmse_naive_log * 100, 1)`%,
-#' suggesting that for inference, this model is superior. 
-#' 
-#' Results:
-(saplr_m_abs_wald <- coeftest(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3"))) # Robust Wald t test
-(saplr_m_abs_ci <- coefci(saplr_m_abs, vcov. = vcovHC(saplr_m_abs, type = "HC3")))
-#+ saplr_m_abs_rsq,warning=FALSE,message=FALSE
-rsq.partial(saplr_m_abs, adj=TRUE)$partial.rsq
-#' Elasticity of saprotroph mass to fungal biomass: a 1% increase in fungal biomass = `r round(saplr_m_abs_wald[2, 1], 2)`% 
-#' increase in saprotroph mass while holding plant richness constant (± 0.454 to 1.131%).
-#' Plant richness is multiplicative on the original scale. 
-#+ saplr_exp_wald_result
--1+c(plant_richness = saplr_m_abs_wald[3,1], ci = saplr_m_abs_ci[3, ]) %>% map_dbl(\(x) round(exp(x), 3))
-#' An increase in 1 in plant species richness equals a 1.3% decrease in saprotroph
-#' mass (± 0.2 to 2.3% decrease).
-#' 
-#' Produce objects for plotting
-#' Median fungal biomass on the original scale and model prediction for figure.
-saplr_med_fungi <- median(sapro_pltrich$fungi_mass_lc, na.rm = TRUE)
-saplr_newdat <- tibble(
-  pl_rich   = seq(min(sapro_pltrich$pl_rich, na.rm = TRUE),
-                   max(sapro_pltrich$pl_rich, na.rm = TRUE),
-                   length.out = 200),
-  fungi_mass_lc = saplr_med_fungi
-)
-# Predict on the log scale, then back-transform to the original scale
-saplr_pred <- augment(saplr_m_abs, newdata = saplr_newdat, se_fit = TRUE) %>%
+# Predict on link scale, back-transform with plogis
+saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se.fit = TRUE) %>%
+  as_tibble() %>%
+  bind_cols(saglm_newdat) %>%
   mutate(
-    fit_med = exp(.fitted),                       # median on raw scale
-    lwr_med = exp(.fitted - 1.96 * .se.fit),
-    upr_med = exp(.fitted + 1.96 * .se.fit)
+    fit_prob = plogis(fit),
+    lwr_prob = plogis(fit - 1.96 * se.fit),
+    upr_prob = plogis(fit + 1.96 * se.fit)
   )
+
+
+
 #+ fig8a,warning=FALSE
-fig8a <- 
-  ggplot(saplr_pred, aes(x = pl_rich, y = fit_med)) +
+fig8a <-
+  ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
   geom_line(color = "black", linewidth = lw) +
-  geom_point(data = sapro_pltrich, aes(x = pl_rich, y = sapro_mass, fill = field_type),
+  geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
              size = sm_size, stroke = lw, shape = 21) +
-  geom_text(data = sapro_pltrich, aes(x = pl_rich, y = sapro_mass, label = yr_since), 
+  geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = "Plant richness",
-    y = expression(atop("Saprotroph biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`))))),
+    x = expression(paste("Plant richness (", italic(n), " species)")),
+    y = "Saprotroph proportion (share of total sequences)",
     tag = "A"
   ) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
@@ -2666,53 +2520,102 @@ fig8a <-
         legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
+
+
+
+
+
 #+ fig8b,warning=FALSE
-fig8b <- 
-  cbind(saplr_m_abs_av$fungi_mass_lc, sapro_pltrich %>% select(field_name:region)) %>% 
-  ggplot(aes(x = fungi_mass_lc, y = `log(sapro_mass)`)) +
-  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+fig8b <-
+  cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
+  ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.sapro_prop)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = expression(atop("Residual fungal biomass", paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")"))), y = NULL, tag = "B") +
+  labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), 
+       y = NULL, 
+       tag = "B") +
   scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
+  scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(sapro_resto$fungi_mass)),
+  labels = c(2.7, 3.8, 5.3, 7.5)) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.125, 1))
+        plot.tag.position = c(0.175, 1))
+
+
+
+
 #+ fig8c,warning=FALSE
-fig8c <- 
-  cbind(saplr_m_abs_av$pl_rich, sapro_pltrich %>% select(field_name:region)) %>% 
-  ggplot(aes(x = pl_rich, y = `log(sapro_mass)`)) +
-  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+fig8c <-
+  cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
+  ggplot(aes(x = pl_rich.pl_rich, y = pl_rich.sapro_prop)) +
+  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = "Residual plant richness", y = NULL, tag = "C") +
+  labs(x = expression(paste("Plant richness (", italic(n), " species)")), 
+       y = NULL, tag = "C") +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.125, 1))
+        plot.tag.position = c(0.175, 1))
+
+
+
 fig8yax_grob <- textGrob(
-  expression(atop("Residual saprotroph biomass (scaled, log)", paste(bold(`(`), "log((", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund))", bold(`)`))))),
+  "Saprotroph proportion (partial residuals, logit scale)",
   x = 0.5,
   y = 0.5,
   hjust = 0.5,
   vjust = 0.5,
   rot = 90,
-  gp = gpar(cex = 10/12)
+  gp = gpar(cex = 9/12)
 )
+
 #+ fig8_patchwork
 fig8rh <- (fig8b / plot_spacer() / fig8c) +
   plot_layout(heights = c(0.5, 0.01,0.5))
 fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plot.tag = element_blank())) | fig8rh) +
-  plot_layout(widths = c(0.62, 0.005, 0.06, 0.38))
+  plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
 #+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig8
-#+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
+#+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = "svg",
        width = 18, height = 11, units = "cm")
+
+
+
+
+
+
+#' ### Plant diversity and saprotroph biomass
+#' Is plant diversity related to saprotroph mass?
+saprofa_pshan_lm <- lm(sapro_mass ~ pl_shan, data = sapro_resto)
+summary(saprofa_pshan_lm)
+#' Saprotroph mass and plant diversity may also deserve further examination.
+#' 
+
+
+
+sapro_pshan_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_shan,
+                       data = sapro_resto, family = quasibinomial(link = "logit"),
+                       weights = fungi_abund)
+
+summary(sapro_pshan_glm)
+#' NS
+
+check_model(sapro_prich_glm)
+augment(sapro_prich_glm)
+
+
+
+
+
+
+
 #' 
 #' ### Saprotroph biomass and grass/forb composition
 sama_rest_m <- lm(sapro_mass ~ gf_index, data = sapro_resto)
