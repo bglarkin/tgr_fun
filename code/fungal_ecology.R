@@ -784,7 +784,9 @@ fungi_resto <- its_div %>%
 #' Is plant richness related to pathogen mass?
 fa_prich_lm <- lm(fungi_mass ~ pl_rich, data = fungi_resto)
 summary(fa_prich_lm)
-#' Fungal mass and plant richness are weakly correlated. but driven by a high-leverage point (not shown). 
+#' Fungal mass and plant richness are weakly correlated but driven by a high-leverage point (not shown).
+#' When seq abund is a response and log(mass) included as a covariate, no relationship 
+#' is detected (not shown).  
 #' 
 #' Is plant diversity related to fungal mass?
 fa_pshan_lm <- lm(fungi_mass ~ pl_shan, data = fungi_resto)
