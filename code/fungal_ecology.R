@@ -832,7 +832,7 @@ check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
 #' Fit additive model
 amf_rich_glm <- glm(richness ~ depth_csq + field_type, data = amf_div, family = poisson(link = "log")) 
 #' Diagnostics
-#+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+#+ amf_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(amf_rich_glm)
 check_overdispersion(amf_rich_glm)
 check_collinearity(amf_rich_glm)
@@ -1398,7 +1398,7 @@ Anova(patho_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detect
 #' Fit additive model
 patho_rich_glm <- glm(richness ~ depth_csq + field_type, data = patho_div, family = poisson(link = "log")) 
 #' Diagnostics
-#+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+#+ patho_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(patho_rich_glm)
 check_overdispersion(patho_rich_glm)
 check_collinearity(patho_rich_glm)
@@ -1751,73 +1751,49 @@ summary(patho_gf_lm)
 #' Diagnostic reveals noisy fit and lots of structure. Decompose biomass and 
 #' sequence abundance in a model to test changes in each given the other. 
 #' 
-
-
-
-# Notes for the ms:
-# Weighted Multiple Quasibinomial GLM
-#' "We employed a multiple logistic 
-#' regression within a Generalized Linear Model (GLM) framework, using a 
-#' quasibinomial error distribution to account for 
-#' overdispersion in the pathogen proportions. The model was weighted to account for sequence depth."
-#' 
-#' "The multiple quasibinomial model revealed that the grass-forb 
-#' index was a strong, positive predictor of 
-#' pathogen share (β=1.91,p<0.001), even after adjusting for total fungal biomass."
-
+#' Multiple, weighted logistic glm
 patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_index,
                     data = patho_resto, family = quasibinomial(link = "logit"),
                     weights = fungi_abund)
-
-summary(patho_gf_glm)
-
-
+summary(patho_gf_glm) # dispersion parameter >117 justifies quasibinomial
+#' Diagnostics
 check_model(patho_gf_glm)
+check_collinearity(patho_gf_glm)
 augment(patho_gf_glm)
-
-par(mfrow = c(2,2))
-plot(patho_gf_glm)
-
-
+#' Long tails and low n showing structure. Moderate leverage at LPRP1: high 
+#' pathogens, high gf_index but very low biomass...this is evidence of the noise that 
+#' caused the naïve model to fail. 
+distribution_prob(patho_gf_glm)
+#' Residuals distribution normal
 loocv_paglm_gfi <- map_dbl(seq_len(nrow(patho_resto)), function(i){
   exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
            data = patho_resto[-i, ], 
            family = quasibinomial(link = "logit"),
            weights = fungi_abund))["gf_index"])
 })
-
 summary(loocv_paglm_gfi)
 (cv_paglm <- (sd(loocv_paglm_gfi) / mean(loocv_paglm_gfi) * 100) %>% round(., 1))
-
-
+#' Grass-forb index LOOCV variation of 12.6% on the back-transformed scale shows that the influential 
+#' points (LPRP1) and three other potential outliers from the qq plot do not 
+#' significantly affect fit. Sign and magnitude of LOO slopes wouldn't change inference. 
 loocv_paglm_fma <- map_dbl(seq_len(nrow(patho_resto)), function(i){
   exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
                data = patho_resto[-i, ], 
                family = quasibinomial(link = "logit"),
                weights = fungi_abund))["fungi_mass_lc"])
 })
-
 summary(loocv_paglm_fma)
 (cv_paglm <- (sd(loocv_paglm_fma) / mean(loocv_paglm_fma) * 100) %>% round(., 1))
-
+#' Similarly, fungal mass LOOCV variation of 12.9% on the back-transformed scale shows that the influential 
+#' points (LPRP1) and three other potential outliers from the qq plot do not 
+#' significantly affect fit. Sign and magnitude of LOO slopes wouldn't change inference. 
+#' The higher variability here shows that the noise of PLFA variation is substantial.
+#' View partial regression plots for consistency and save data for plotting.
 paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
-check_collinearity(patho_gf_glm)
-
-avPlots(patho_gf_glm)
-
-
-coeftest(patho_gf_glm, vcov. = vcovHC(patho_gf_glm, type = "HC3")) # Robust Wald t test
-coefci(patho_gf_glm, vcov. = vcovHC(patho_gf_glm, type = "HC3"))
+#' Noise in fungal mass data is obvious here. Fit of partial gf_index is clean.
 #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
 rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
-
-
-
-
-
-
-
-# New prediction data
+#' Create objects for plotting
 paglm_med_fungi <- median(patho_resto$fungi_mass_lc, na.rm = TRUE)
 paglm_med_abund <- median(patho_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
 paglm_newdat <- tibble(
@@ -1827,8 +1803,7 @@ paglm_newdat <- tibble(
   fungi_mass_lc = paglm_med_fungi,
   fungi_abund = paglm_med_abund 
 )
-
-# Predict on link scale, back-transform with plogis
+#' Predict on link scale, back-transform with plogis
 paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fit = TRUE) %>%
   as_tibble() %>%
   bind_cols(paglm_newdat) %>%
@@ -1837,9 +1812,6 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-
-
-
 #+ fig7a,warning=FALSE
 fig7a <- 
   ggplot(paglm_pred, aes(x = gf_index, y = fit_prob)) +
@@ -1864,11 +1836,6 @@ fig7a <-
         legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
-
-
-
-
 #+ fig7b,warning=FALSE
 fig7b <- 
   cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
@@ -1885,10 +1852,6 @@ fig7b <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.175, 1))
-
-
-
-
 #+ fig7c,warning=FALSE
 fig7c <- 
   cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
@@ -1903,9 +1866,6 @@ fig7c <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.175, 1))
-
-
-
 fig7yax_grob <- textGrob(
   "Pathogen proportion (partial residuals, logit scale)",
   x = 0.5,
@@ -1915,7 +1875,6 @@ fig7yax_grob <- textGrob(
   rot = 90,
   gp = gpar(cex = 9/12)
 )
-
 #+ fig7_patchwork
 fig7rh <- (fig7b / plot_spacer() / fig7c) +
   plot_layout(heights = c(0.5, 0.01,0.5))
@@ -1926,18 +1885,6 @@ fig7
 #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = "svg",
        width = 18, height = 11, units = "cm")
-
-
-
-
-
-
-
-
-
-
-
-
 
 #' 
 #' # Putative saprotrophs
@@ -1951,11 +1898,6 @@ sapro <- guildseq(its_avg, its_meta, "saprotroph")
 sapro_div <- calc_div(sapro, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
-
-
-
-
-
 #' ### Richness
 #' Sequence depth square root transformed and centered. Poisson model was overdispersed (not shown), 
 #' use negative binomial instead.  
@@ -2430,50 +2372,43 @@ summary(saprofa_prich_lm)
 
 
 
+#' Multiple, weighted logistic glm
 sapro_prich_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_rich,
-                    data = sapro_resto, family = quasibinomial(link = "logit"),
-                    weights = fungi_abund)
-
-summary(sapro_prich_glm)
-
-
+                       data = sapro_resto, family = quasibinomial(link = "logit"),
+                       weights = fungi_abund)
+summary(sapro_prich_glm) # dispersion parameter >62 justifies quasibinomial
+#' Diagnostics
 check_model(sapro_prich_glm)
+check_collinearity(sapro_prich_glm)
 augment(sapro_prich_glm)
-
-par(mfrow = c(2,2))
-plot(sapro_prich_glm)
-
-
+#' Long tails and low n showing moderate structure. 
+distribution_prob(sapro_prich_glm)
+#' Residuals distribution long-tailed / normal
 loocv_saglm_gfi <- map_dbl(seq_len(nrow(sapro_resto)), function(i){
   exp(coef(glm(sapro_prop ~ fungi_mass_lc + pl_rich,
                data = sapro_resto[-i, ],
                family = quasibinomial(link = "logit"),
                weights = fungi_abund))["pl_rich"])
 })
-
 summary(loocv_saglm_gfi)
 (cv_saglm <- (sd(loocv_saglm_gfi) / mean(loocv_saglm_gfi) * 100) %>% round(., 1))
-
-
+#' Grass-forb index LOOCV variation of 0.1% on the back-transformed scale shows 
+#' remarkably consistent prediction. 
 loocv_saglm_fma <- map_dbl(seq_len(nrow(sapro_resto)), function(i){
   exp(coef(glm(sapro_prop ~ fungi_mass_lc + pl_rich,
                data = sapro_resto[-i, ],
                family = quasibinomial(link = "logit"),
                weights = fungi_abund))["fungi_mass_lc"])
 })
-
 summary(loocv_saglm_fma)
 (cv_saglm <- (sd(loocv_saglm_fma) / mean(loocv_saglm_fma) * 100) %>% round(., 1))
-
+#' Slope CV on fungal mass of 4.6% is low but shows greater noise with the covariate
+#' than the test variable. 
 saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
-check_collinearity(sapro_prich_glm)
-
-
-# #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
+#' Noise in fungal mass data is obvious here. Fit of partial gf_index is clean.
+#+ parest_m_abs_rsq,warning=FALSE,message=FALSE
 rsq.partial(sapro_prich_glm, adj = TRUE)$partial.rsq
-
-
-# New prediction data
+#' Create objects for plotting
 saglm_med_fungi <- median(sapro_resto$fungi_mass_lc, na.rm = TRUE)
 saglm_med_abund <- median(sapro_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
 saglm_newdat <- tibble(
@@ -2483,8 +2418,7 @@ saglm_newdat <- tibble(
   fungi_mass_lc = saglm_med_fungi,
   fungi_abund = saglm_med_abund
 )
-
-# Predict on link scale, back-transform with plogis
+#' Predict on link scale, back-transform with plogis
 saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se.fit = TRUE) %>%
   as_tibble() %>%
   bind_cols(saglm_newdat) %>%
@@ -2493,9 +2427,6 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-
-
-
 #+ fig8a,warning=FALSE
 fig8a <-
   ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
@@ -2512,7 +2443,7 @@ fig8a <-
   ) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
-  theme(legend.position = c(0.03, 0.13),
+  theme(legend.position = c(0.03, 0.16),
         legend.justification = c(0, 1),
         legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1),
@@ -2520,11 +2451,6 @@ fig8a <-
         legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
-
-
-
-
-
 #+ fig8b,warning=FALSE
 fig8b <-
   cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
@@ -2543,10 +2469,6 @@ fig8b <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.175, 1))
-
-
-
-
 #+ fig8c,warning=FALSE
 fig8c <-
   cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
@@ -2562,9 +2484,6 @@ fig8c <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.175, 1))
-
-
-
 fig8yax_grob <- textGrob(
   "Saprotroph proportion (partial residuals, logit scale)",
   x = 0.5,
@@ -2574,7 +2493,6 @@ fig8yax_grob <- textGrob(
   rot = 90,
   gp = gpar(cex = 9/12)
 )
-
 #+ fig8_patchwork
 fig8rh <- (fig8b / plot_spacer() / fig8c) +
   plot_layout(heights = c(0.5, 0.01,0.5))
@@ -2585,37 +2503,18 @@ fig8
 #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = "svg",
        width = 18, height = 11, units = "cm")
-
-
-
-
-
-
+#' 
 #' ### Plant diversity and saprotroph biomass
 #' Is plant diversity related to saprotroph mass?
 saprofa_pshan_lm <- lm(sapro_mass ~ pl_shan, data = sapro_resto)
 summary(saprofa_pshan_lm)
 #' Saprotroph mass and plant diversity may also deserve further examination.
 #' 
-
-
-
 sapro_pshan_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_shan,
                        data = sapro_resto, family = quasibinomial(link = "logit"),
                        weights = fungi_abund)
-
 summary(sapro_pshan_glm)
 #' NS
-
-check_model(sapro_prich_glm)
-augment(sapro_prich_glm)
-
-
-
-
-
-
-
 #' 
 #' ### Saprotroph biomass and grass/forb composition
 sama_rest_m <- lm(sapro_mass ~ gf_index, data = sapro_resto)
