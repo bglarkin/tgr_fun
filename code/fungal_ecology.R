@@ -2443,7 +2443,7 @@ fig8a <-
   ) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
-  theme(legend.position = c(0.03, 0.16),
+  theme(legend.position = c(0.03, 0.25),
         legend.justification = c(0, 1),
         legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1),
@@ -2468,7 +2468,7 @@ fig8b <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.175, 1))
+        plot.tag.position = c(0.025, 1))
 #+ fig8c,warning=FALSE
 fig8c <-
   cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
@@ -2483,7 +2483,7 @@ fig8c <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.175, 1))
+        plot.tag.position = c(0.025, 1))
 fig8yax_grob <- textGrob(
   "Saprotroph proportion (partial residuals, logit scale)",
   x = 0.5,
