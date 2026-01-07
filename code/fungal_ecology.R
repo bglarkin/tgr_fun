@@ -2406,7 +2406,7 @@ summary(loocv_saglm_fma)
 #' than the test variable. 
 saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
 #' Noise in fungal mass data is obvious here. Fit of partial gf_index is clean.
-#+ parest_m_abs_rsq,warning=FALSE,message=FALSE
+#+ sarest_m_abs_rsq,warning=FALSE,message=FALSE
 rsq.partial(sapro_prich_glm, adj = TRUE)$partial.rsq
 #' Create objects for plotting
 saglm_med_fungi <- median(sapro_resto$fungi_mass_lc, na.rm = TRUE)
@@ -2500,7 +2500,7 @@ fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plo
   plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
 #+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig8
-#+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
+#+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = "svg",
        width = 18, height = 11, units = "cm")
 #' 
