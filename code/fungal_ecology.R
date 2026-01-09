@@ -31,7 +31,7 @@ packages_needed <- c(
   # Analysis
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
   "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot", 
-  "indicspecies", "MASS", "DHARMa", "broom", 
+  "indicspecies", "MASS", "DHARMa", "broom",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
@@ -1995,7 +1995,7 @@ leveneTest(residuals(sapro_ma_lm) ~ sapro_div$field_type) %>% as.data.frame() %>
 #' by group).
 #' 
 #' Produce model results, group means, and post-hoc, with arithmetic means from emmeans
-Anova(sapro_ma_lm)
+anova(sapro_ma_lm)
 sapro_ma_em <- emmeans(sapro_ma_lm, ~ field_type, type = "response")
 #+ sapro_ab_em_summary,echo=FALSE
 kable(summary(sapro_ma_em),
@@ -2229,122 +2229,6 @@ sapro_mod_scor_bp <- bind_rows(
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
-#' #### All groups constrained figure
-#' All soil fungi
-#+ fig6a
-fig6a <- 
-  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-  geom_segment(data = mod_scor_bp, 
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20", "gray20")) +
-  geom_text(data = mod_scor_bp, 
-            aes(x = labx, y = laby, label = envlabs), 
-            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
-            size = 3, color = "black", fontface = 2) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
-  lims(x = c(-0.95,1.6)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' AMF
-#+ fig6b
-fig6b <-
-  ggplot(amf_mod_scor_site, aes(x = -1 * (dbRDA1), y = dbRDA2)) +
-  geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = -1 * (dbRDA1), y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
-  geom_text(data = amf_mod_scor_bp,
-            aes(x = -1 * (labx), y = laby, label = envlabs),
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20", fontface = 2) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
-  lims(x = c(-1.2,1.2)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' Pathogens, PCoA fig
-#+ fig6c
-fig6c <-
-  ggplot(patho_mod_scor_site, aes(x = (MDS1), y = MDS2)) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("PCoA 1 (", patho_mod_eig[1], "%)"),
-    y = paste0("PCoA 2 (", patho_mod_eig[2], "%)")) +
-  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' Saprotrophs
-#+ fig6d
-fig6d <-
-  ggplot(sapro_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
-  geom_segment(data = sapro_mod_scor_bp,
-               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "gray20", "darkblue", "darkblue", "gray20")) +
-  geom_text(data = sapro_mod_scor_bp,
-            aes(x = (labx), y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20") +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
-  lims(x = c(-0.9,1.7)) +
-  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = c(0.98, 0.03),
-        legend.justification = c(1, 0),
-        legend.title = element_text(size = 9, face = 1),
-        legend.text = element_text(size = 8, face = 1),
-        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-        legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Unified figure
-#' Display results of constrained analyses
-#+ fig6_patchwork,warning=FALSE
-fig6up <- (fig6a | plot_spacer() | fig6b) +
-  plot_layout(widths = c(0.50, 0.01, 0.50))
-fig6dn <- (fig6c | plot_spacer() | fig6d) +
-  plot_layout(widths = c(0.50, 0.01, 0.50))
-fig6 <- (fig6up / fig6dn) +
-  plot_layout(widths = c(0.50, 0.50)) +
-  plot_annotation(tag_levels = 'A')
-#+ fig6,warning=FALSE,fig.height=7,fig.width=7
-fig6
-#' Fungal community ordinations which are constrained or unconstrained by explanatory variables. 
-#' Panels show results for all soil fungi **a**, amf **b**, pathogens **c**, and saprotrophs **d**.
-#' Percent of constrained (db-RDA) and unconstrained (PCoA) variation explained is shown with axis labels.
-#' For explanatory variables with significant community correlations, blue arrows show the grass-forb index 
-#' with labels indicating the direction of relative increase in 
-#' C4 grasses or forbs, respectively, along the index. The black arrows show other significant constraining
-#' variables. Points show locations of restored fields (green) and remnant fields (blue) in Wisconsin. 
-#+ fig6_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = "svg",
-       width = 18, height = 18, units = "cm")
-#' 
 #' ## Saprotroph and plant community correlations
 #' Data for these tests
 sapro_resto <- its_guild %>% 
@@ -2367,11 +2251,6 @@ summary(saprofa_prich_lm)
 #' KORP site appears to have some leverage (not shown), conduct logistic model 
 #' and diagnostics as before.
 #' 
-
-
-
-
-
 #' Multiple, weighted logistic glm
 sapro_prich_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_rich,
                        data = sapro_resto, family = quasibinomial(link = "logit"),
@@ -2526,3 +2405,183 @@ sapro_gf_glm <- glm(sapro_prop ~ fungi_mass_lc + gf_index,
                     weights = fungi_abund)
 summary(sapro_gf_glm)
 #' NS
+
+#' 
+#' # Summary results
+#' The following outputs display unified summary reports where needed for tables, etc.
+#' 
+#' ## Richness summary
+list(
+  its_rich_nb     = Anova(its_rich_glm, type = 2, test.statistic = "LR"),
+  amf_rich_pois   = Anova(amf_rich_glm, type = 2, test.statistic = "LR"),
+  patho_rich_pois = Anova(patho_rich_glm, type = 2, test.statistic = "LR"),
+  sapro_rich_nb   = Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
+) %>% map(\(df) tidy(df)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         LRchisq_df = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, LRchisq_df, p.value, p.adj) %>% 
+  kable(format = "pandoc", caption = "Fungal OTU richness differences across field types accounting for sequencing depth.\nField type effects were evaluated using Type II Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+#' 
+#' ## Shannon diversity summary
+list(
+  its_shan_lm   = Anova(its_shan_lm, type = 2),
+  amf_shan_lm   = Anova(amf_shan_lm, type = 2),
+  patho_shan_lm = Anova(patho_shan_lm, type = 2),
+  sapro_shan_lm = Anova(sapro_shan_lm, type = 2)
+) %>% map(\(df) tidy(df)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, `F`, p.value, p.adj) %>% 
+  kable(format = "pandoc", caption = "Fungal OTU Shannon Diversity differences across field types accounting for sequencing depth.\nField type effects were evaluated using Type II Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+#' 
+#' ## Biomass (abundance) summary
+list(
+  its_ma_lm   = anova(plfa_lm), 
+  amf_ma_glm  = Anova(nlfa_glm, test.statistic = "LR"), 
+  patho_ma_lm = anova(patho_ma_lm), 
+  sapro_ma_lm = anova(sapro_ma_lm)
+) %>% map(\(df) tidy(df) %>% select(term, statistic, df, p.value)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, `F`, p.value, p.adj) %>% 
+  kable(format = "pandoc", caption = "Fungal biomass differences differences across field types.\nField type effects were evaluated using ANOVA or Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+#' 
+#' ## Permanova summary
+#+ permanova_summary,warning=FALSE,message=FALSE
+list(
+  its_ma   = mva_its_ma$permanova,
+  amf_ma   = mva_amf_ma$permanova,
+  patho_ma = mva_patho_ma$permanova,
+  sapro_ma = mva_sapro_ma$permanova
+) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+  bind_rows(.id = "guild") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_)) %>% 
+  kable(format = "pandoc", caption = "Fungal community differences differences among field types.\nField type effects were evaluated using Permanova.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+#' 
+#' ## db-RDA summary and figure
+
+#' unified tables???
+
+
+#' All soil fungi
+#+ fig6a
+fig6a <- 
+  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_segment(data = mod_scor_bp, 
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20", "gray20")) +
+  geom_text(data = mod_scor_bp, 
+            aes(x = labx, y = laby, label = envlabs), 
+            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
+            size = 3, color = "black", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
+  lims(x = c(-0.95,1.6)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' AMF
+#+ fig6b
+fig6b <-
+  ggplot(amf_mod_scor_site, aes(x = -1 * (dbRDA1), y = dbRDA2)) +
+  geom_segment(data = amf_mod_scor_bp,
+               aes(x = origin, xend = -1 * (dbRDA1), y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20")) +
+  geom_text(data = amf_mod_scor_bp,
+            aes(x = -1 * (labx), y = laby, label = envlabs),
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
+  lims(x = c(-1.2,1.2)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' Pathogens, PCoA fig
+#+ fig6c
+fig6c <-
+  ggplot(patho_mod_scor_site, aes(x = (MDS1), y = MDS2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("PCoA 1 (", patho_mod_eig[1], "%)"),
+    y = paste0("PCoA 2 (", patho_mod_eig[2], "%)")) +
+  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' Saprotrophs
+#+ fig6d
+fig6d <-
+  ggplot(sapro_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
+  geom_segment(data = sapro_mod_scor_bp,
+               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("gray20", "gray20", "darkblue", "darkblue", "gray20")) +
+  geom_text(data = sapro_mod_scor_bp,
+            aes(x = (labx), y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20") +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
+  lims(x = c(-0.9,1.7)) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = c(0.98, 0.03),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' 
+#' #### Unified figure
+#' Display results of constrained analyses
+#+ fig6_patchwork,warning=FALSE
+fig6up <- (fig6a | plot_spacer() | fig6b) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6dn <- (fig6c | plot_spacer() | fig6d) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6 <- (fig6up / fig6dn) +
+  plot_layout(widths = c(0.50, 0.50)) +
+  plot_annotation(tag_levels = 'A')
+#+ fig6,warning=FALSE,fig.height=7,fig.width=7
+fig6
+#' Fungal community ordinations which are constrained or unconstrained by explanatory variables. 
+#' Panels show results for all soil fungi **a**, amf **b**, pathogens **c**, and saprotrophs **d**.
+#' Percent of constrained (db-RDA) and unconstrained (PCoA) variation explained is shown with axis labels.
+#' For explanatory variables with significant community correlations, blue arrows show the grass-forb index 
+#' with labels indicating the direction of relative increase in 
+#' C4 grasses or forbs, respectively, along the index. The black arrows show other significant constraining
+#' variables. Points show locations of restored fields (green) and remnant fields (blue) in Wisconsin. 
+#+ fig6_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = "svg",
+       width = 18, height = 18, units = "cm")
+
+
