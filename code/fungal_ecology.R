@@ -2513,7 +2513,7 @@ list(
 ) %>% map(\(val) tibble(r2 = round(val, 3))) %>% 
   bind_rows(.id = "guild") %>% 
   kable(format = "pandoc")
-#+ dbrda_summary
+#+ dbrda_var_summary
 list(
   all_fungi = mod_step$anova %>% 
     as.data.frame() %>% 
@@ -2534,7 +2534,7 @@ list(
   map(\(df) df %>% select(`F_(df)`, P=`Pr(>F)`, P_adj = p.adj)) %>% 
   kable(format = "pandoc")
   
-
+#+ dbrda_axis_summary,message=FALSE,warning=FALSE
 tidy(mod_inax)
 
 
