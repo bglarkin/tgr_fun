@@ -2535,7 +2535,11 @@ list(
   kable(format = "pandoc")
   
 #+ dbrda_axis_summary,message=FALSE,warning=FALSE
-tidy(mod_inax)
+list(
+  all_fungi = tidy(mod_inax),
+  amf = tidy(amf_mod_inax),
+  saprotrophs = tidy(sapro_mod_inax)
+) %>% 
 
 
 #' All soil fungi
