@@ -2425,6 +2425,10 @@ list(
   kable(format = "pandoc", caption = "Fungal OTU richness differences across field types accounting for sequencing depth.\nField type effects were evaluated using Type II Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
 #' 
 #' ## Shannon diversity summary
+#' Fungal OTU Shannon Diversity differences across field types accounting for sequencing depth.
+#' Field type effects were evaluated using Type II Analysis of Deviance.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure.
 list(
   its_shan_lm   = Anova(its_shan_lm, type = 2),
   amf_shan_lm   = Anova(amf_shan_lm, type = 2),
@@ -2436,9 +2440,13 @@ list(
          across(where(is.numeric), ~ round(.x, 3)),
          `F` = paste0(statistic, " (", df, ", 21)")) %>% 
   select(guild_test, term, `F`, p.value, p.adj) %>% 
-  kable(format = "pandoc", caption = "Fungal OTU Shannon Diversity differences across field types accounting for sequencing depth.\nField type effects were evaluated using Type II Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+  kable(format = "pandoc")
 #' 
 #' ## Biomass (abundance) summary
+#' Fungal biomass differences differences across field types.
+#' Field type effects were evaluated using ANOVA or Analysis of Deviance.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure."
 list(
   its_ma_lm   = anova(plfa_lm), 
   amf_ma_glm  = Anova(nlfa_glm, test.statistic = "LR"), 
@@ -2450,9 +2458,14 @@ list(
          across(where(is.numeric), ~ round(.x, 3)),
          `F` = paste0(statistic, " (", df, ", 21)")) %>% 
   select(guild_test, term, `F`, p.value, p.adj) %>% 
-  kable(format = "pandoc", caption = "Fungal biomass differences differences across field types.\nField type effects were evaluated using ANOVA or Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+  kable(format = "pandoc")
 #' 
-#' ## Permanova summary
+#' ## Beta diversity summary
+#' ### Using abundance-scaled biomass
+#' Fungal community differences differences among field types.
+#' Field type effects were evaluated using Permanova.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure."
 #+ permanova_summary,warning=FALSE,message=FALSE
 list(
   its_ma   = mva_its_ma$permanova,
@@ -2461,12 +2474,68 @@ list(
   sapro_ma = mva_sapro_ma$permanova
 ) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
   bind_rows(.id = "guild") %>% 
-  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_)) %>% 
-  kable(format = "pandoc", caption = "Fungal community differences differences among field types.\nField type effects were evaluated using Permanova.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
+  kable(format = "pandoc")
 #' 
-#' ## db-RDA summary and figure
+#' #' ### Using relative sequence abundance
+#' Fungal community differences differences among field types.
+#' Field type effects were evaluated using Permanova.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure."
+#+ permanova_summary,warning=FALSE,message=FALSE
+list(
+  its_ma   = mva_its$permanova,
+  amf_ma   = mva_amf$permanova,
+  patho_ma = mva_patho$permanova,
+  sapro_ma = mva_sapro$permanova
+) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+  bind_rows(.id = "guild") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' ## Constrained analysis summary
+#' Environmental drivers were identified via partial distance-based Redundancy Analysis (db-RDA) 
+#' using forward selection. 
+#' Geographic distance (PCoA Axis 1) was included as a conditional term to partial out spatial effects. 
+#' Radj2 represents the cumulative variance explained by the final selected model. 
+#' P-values are based on 1,999 permutations; Padj reflects FDR correction within the guild.
+#= dbrda_r2
+list(
+  all_fungi = mod_r2$adj.r.squared,
+  amf = amf_mod_r2$adj.r.squared,
+  saprotrophs = sapro_mod_r2$adj.r.squared
+) %>% map(\(val) tibble(r2 = round(val, 3))) %>% 
+  bind_rows(.id = "guild") %>% 
+  kable(format = "pandoc")
+#+ dbrda_summary
+list(
+  all_fungi = mod_step$anova %>% 
+    as.data.frame() %>% 
+    mutate(p.adj = p.adjust(`Pr(>F)`, "fdr"),
+           across(where(is.numeric), ~ round(.x, 3)), 
+           `F_(df)` = paste0(F, " (", Df, ", ", mod_inax["Residual", "Df"], ")")),
+  amf = amf_mod_step$anova %>% 
+    as.data.frame() %>% 
+    mutate(p.adj = p.adjust(`Pr(>F)`, "fdr"),
+           across(where(is.numeric), ~ round(.x, 3)), 
+           `F_(df)` = paste0(F, " (", Df, ", ", amf_mod_inax["Residual", "Df"], ")")),
+  saprotrophs = sapro_mod_step$anova %>% 
+    as.data.frame() %>% 
+    mutate(p.adj = p.adjust(`Pr(>F)`, "fdr"),
+           across(where(is.numeric), ~ round(.x, 3)), 
+           `F_(df)` = paste0(F, " (", Df, ", ", sapro_mod_inax["Residual", "Df"], ")"))
+) %>% 
+  map(\(df) df %>% select(`F_(df)`, P=`Pr(>F)`, P_adj = p.adj)) %>% 
+  kable(format = "pandoc")
+  
 
-#' unified tables???
+tidy(mod_inax)
 
 
 #' All soil fungi
