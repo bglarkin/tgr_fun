@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 07 January, 2026
+Last updated: 13 January, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -52,6 +52,12 @@ Last updated: 07 January, 2026
   - [Constrained Analysis](#constrained-analysis-3)
   - [Saprotroph and plant community
     correlations](#saprotroph-and-plant-community-correlations)
+- [Summary results](#summary-results)
+  - [Richness summary](#richness-summary)
+  - [Shannon diversity summary](#shannon-diversity-summary)
+  - [Biomass (abundance) summary](#biomass-abundance-summary)
+  - [Beta diversity summary](#beta-diversity-summary)
+  - [Constrained analysis summary](#constrained-analysis-summary)
 
 # Description
 
@@ -84,7 +90,7 @@ packages_needed <- c(
   # Analysis
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
   "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot", 
-  "indicspecies", "MASS", "DHARMa", "broom", 
+  "indicspecies", "MASS", "DHARMa", "broom",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
@@ -4514,6 +4520,10 @@ check_overdispersion(sapro_rich_glm_i) # not overdispersed
 augment(sapro_rich_glm_i) # corn site has cooks >0.9
 ```
 
+    ## Warning: The `augment()` method for objects of class `negbin` is not maintained by the broom team, and is only supported through the `glm` tidier method. Please be cautious in interpreting and reporting broom output.
+    ## 
+    ## This warning is displayed once per session.
+
     ## # A tibble: 25 × 9
     ##    richness depth_csq field_type .fitted  .resid   .hat .sigma  .cooksd .std.resid
     ##       <int>     <dbl> <fct>        <dbl>   <dbl>  <dbl>  <dbl>    <dbl>      <dbl>
@@ -4831,15 +4841,15 @@ Produce model results, group means, and post-hoc, with arithmetic means
 from emmeans
 
 ``` r
-Anova(sapro_ma_lm)
+anova(sapro_ma_lm)
 ```
 
-    ## Anova Table (Type II tests)
+    ## Analysis of Variance Table
     ## 
     ## Response: sapro_mass
-    ##            Sum Sq Df F value Pr(>F)
-    ## field_type 0.1960  2  0.3756 0.6912
-    ## Residuals  5.7401 22
+    ##            Df Sum Sq Mean Sq F value Pr(>F)
+    ## field_type  2 0.1960 0.09799  0.3756 0.6912
+    ## Residuals  22 5.7401 0.26091
 
 ``` r
 sapro_ma_em <- emmeans(sapro_ma_lm, ~ field_type, type = "response")
@@ -5331,142 +5341,6 @@ sapro_mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
 
-#### All groups constrained figure
-
-All soil fungi
-
-``` r
-fig6a <- 
-  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-  geom_segment(data = mod_scor_bp, 
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20", "gray20")) +
-  geom_text(data = mod_scor_bp, 
-            aes(x = labx, y = laby, label = envlabs), 
-            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
-            size = 3, color = "black", fontface = 2) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
-  lims(x = c(-0.95,1.6)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-```
-
-AMF
-
-``` r
-fig6b <-
-  ggplot(amf_mod_scor_site, aes(x = -1 * (dbRDA1), y = dbRDA2)) +
-  geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = -1 * (dbRDA1), y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
-  geom_text(data = amf_mod_scor_bp,
-            aes(x = -1 * (labx), y = laby, label = envlabs),
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20", fontface = 2) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
-  lims(x = c(-1.2,1.2)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-```
-
-Pathogens, PCoA fig
-
-``` r
-fig6c <-
-  ggplot(patho_mod_scor_site, aes(x = (MDS1), y = MDS2)) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("PCoA 1 (", patho_mod_eig[1], "%)"),
-    y = paste0("PCoA 2 (", patho_mod_eig[2], "%)")) +
-  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-```
-
-Saprotrophs
-
-``` r
-fig6d <-
-  ggplot(sapro_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
-  geom_segment(data = sapro_mod_scor_bp,
-               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "gray20", "darkblue", "darkblue", "gray20")) +
-  geom_text(data = sapro_mod_scor_bp,
-            aes(x = (labx), y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20") +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
-  lims(x = c(-0.9,1.7)) +
-  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = c(0.98, 0.03),
-        legend.justification = c(1, 0),
-        legend.title = element_text(size = 9, face = 1),
-        legend.text = element_text(size = 8, face = 1),
-        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-        legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-```
-
-#### Unified figure
-
-Display results of constrained analyses
-
-``` r
-fig6up <- (fig6a | plot_spacer() | fig6b) +
-  plot_layout(widths = c(0.50, 0.01, 0.50))
-fig6dn <- (fig6c | plot_spacer() | fig6d) +
-  plot_layout(widths = c(0.50, 0.01, 0.50))
-fig6 <- (fig6up / fig6dn) +
-  plot_layout(widths = c(0.50, 0.50)) +
-  plot_annotation(tag_levels = 'A')
-```
-
-``` r
-fig6
-```
-
-![](resources/fungal_ecology_files/figure-gfm/fig6-1.png)<!-- -->
-
-Fungal community ordinations which are constrained or unconstrained by
-explanatory variables. Panels show results for all soil fungi **a**, amf
-**b**, pathogens **c**, and saprotrophs **d**. Percent of constrained
-(db-RDA) and unconstrained (PCoA) variation explained is shown with axis
-labels. For explanatory variables with significant community
-correlations, blue arrows show the grass-forb index with labels
-indicating the direction of relative increase in C4 grasses or forbs,
-respectively, along the index. The black arrows show other significant
-constraining variables. Points show locations of restored fields (green)
-and remnant fields (blue) in Wisconsin.
-
 ## Saprotroph and plant community correlations
 
 Data for these tests
@@ -5713,7 +5587,7 @@ fig8a <-
   ) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
-  theme(legend.position = c(0.03, 0.16),
+  theme(legend.position = c(0.03, 0.25),
         legend.justification = c(0, 1),
         legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1),
@@ -5740,7 +5614,7 @@ fig8b <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.175, 1))
+        plot.tag.position = c(0.025, 1))
 ```
 
 ``` r
@@ -5757,7 +5631,7 @@ fig8c <-
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.175, 1))
+        plot.tag.position = c(0.025, 1))
 fig8yax_grob <- textGrob(
   "Saprotroph proportion (partial residuals, logit scale)",
   x = 0.5,
@@ -5901,3 +5775,424 @@ summary(sapro_gf_glm)
     ## Number of Fisher Scoring iterations: 4
 
 NS
+
+# Summary results
+
+The following outputs display unified summary reports where needed for
+tables, etc.
+
+## Richness summary
+
+``` r
+list(
+  its_rich_nb     = Anova(its_rich_glm, type = 2, test.statistic = "LR"),
+  amf_rich_pois   = Anova(amf_rich_glm, type = 2, test.statistic = "LR"),
+  patho_rich_pois = Anova(patho_rich_glm, type = 2, test.statistic = "LR"),
+  sapro_rich_nb   = Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
+) %>% map(\(df) tidy(df)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         LRchisq_df = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, LRchisq_df, p.value, p.adj) %>% 
+  kable(format = "pandoc", caption = "Fungal OTU richness differences across field types accounting for sequencing depth.\nField type effects were evaluated using Type II Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
+```
+
+| guild_test      | term       | LRchisq_df     | p.value | p.adj |
+|:----------------|:-----------|:---------------|--------:|------:|
+| its_rich_nb     | depth_csq  | 8.128 (1, 21)  |   0.004 |    NA |
+| its_rich_nb     | field_type | 40.506 (2, 21) |   0.000 | 0.000 |
+| amf_rich_pois   | depth_csq  | 0.273 (1, 21)  |   0.601 |    NA |
+| amf_rich_pois   | field_type | 10.219 (2, 21) |   0.006 | 0.012 |
+| patho_rich_pois | depth_csq  | 11.541 (1, 21) |   0.001 |    NA |
+| patho_rich_pois | field_type | 1.535 (2, 21)  |   0.464 | 0.530 |
+| sapro_rich_nb   | depth_csq  | 5.801 (1, 21)  |   0.016 |    NA |
+| sapro_rich_nb   | field_type | 5.948 (2, 21)  |   0.051 | 0.068 |
+
+Fungal OTU richness differences across field types accounting for
+sequencing depth. Field type effects were evaluated using Type II
+Analysis of Deviance. P-values for field type were adjusted for multiple
+comparisons across fungal groups using the Benjamini-Hochberg procedure.
+
+## Shannon diversity summary
+
+Fungal OTU Shannon Diversity differences across field types accounting
+for sequencing depth. Field type effects were evaluated using Type II
+Analysis of Deviance. P-values for field type were adjusted for multiple
+comparisons across fungal groups using the Benjamini-Hochberg procedure.
+
+``` r
+list(
+  its_shan_lm   = Anova(its_shan_lm, type = 2),
+  amf_shan_lm   = Anova(amf_shan_lm, type = 2),
+  patho_shan_lm = Anova(patho_shan_lm, type = 2),
+  sapro_shan_lm = Anova(sapro_shan_lm, type = 2)
+) %>% map(\(df) tidy(df)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, `F`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+```
+
+| guild_test    | term       | F              | p.value | p.adj |
+|:--------------|:-----------|:---------------|--------:|------:|
+| its_shan_lm   | depth_csq  | 0.866 (1, 21)  |   0.363 |    NA |
+| its_shan_lm   | field_type | 6.549 (2, 21)  |   0.006 | 0.025 |
+| its_shan_lm   | Residuals  | NA (21, 21)    |      NA |    NA |
+| amf_shan_lm   | depth_csq  | 0.013 (1, 21)  |   0.911 |    NA |
+| amf_shan_lm   | field_type | 13.269 (2, 21) |   0.000 | 0.002 |
+| amf_shan_lm   | Residuals  | NA (21, 21)    |      NA |    NA |
+| patho_shan_lm | depth_csq  | 3.799 (1, 21)  |   0.065 |    NA |
+| patho_shan_lm | field_type | 1.355 (2, 21)  |   0.280 | 0.537 |
+| patho_shan_lm | Residuals  | NA (21, 21)    |      NA |    NA |
+| sapro_shan_lm | depth_csq  | 0.174 (1, 21)  |   0.680 |    NA |
+| sapro_shan_lm | field_type | 0.95 (2, 21)   |   0.403 | 0.537 |
+| sapro_shan_lm | Residuals  | NA (21, 21)    |      NA |    NA |
+
+## Biomass (abundance) summary
+
+Fungal biomass differences differences across field types. Field type
+effects were evaluated using ANOVA or Analysis of Deviance. P-values for
+field type were adjusted for multiple comparisons across fungal groups
+using the Benjamini-Hochberg procedure.”
+
+``` r
+list(
+  its_ma_lm   = anova(plfa_lm), 
+  amf_ma_glm  = Anova(nlfa_glm, test.statistic = "LR"), 
+  patho_ma_lm = anova(patho_ma_lm), 
+  sapro_ma_lm = anova(sapro_ma_lm)
+) %>% map(\(df) tidy(df) %>% select(term, statistic, df, p.value)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, `F`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+```
+
+| guild_test  | term       | F              | p.value | p.adj |
+|:------------|:-----------|:---------------|--------:|------:|
+| its_ma_lm   | field_type | 2.343 (2, 21)  |   0.120 | 0.239 |
+| its_ma_lm   | Residuals  | NA (22, 21)    |      NA |    NA |
+| amf_ma_glm  | field_type | 46.369 (2, 21) |   0.000 | 0.000 |
+| patho_ma_lm | field_type | 1.712 (2, 21)  |   0.204 | 0.272 |
+| patho_ma_lm | Residuals  | NA (22, 21)    |      NA |    NA |
+| sapro_ma_lm | field_type | 0.376 (2, 21)  |   0.691 | 0.691 |
+| sapro_ma_lm | Residuals  | NA (22, 21)    |      NA |    NA |
+
+## Beta diversity summary
+
+### Using abundance-scaled biomass
+
+Fungal community differences differences among field types. Field type
+effects were evaluated using Permanova. P-values for field type were
+adjusted for multiple comparisons across fungal groups using the
+Benjamini-Hochberg procedure.”
+
+``` r
+list(
+  its_ma   = mva_its_ma$permanova,
+  amf_ma   = mva_amf_ma$permanova,
+  patho_ma = mva_patho_ma$permanova,
+  sapro_ma = mva_sapro_ma$permanova
+) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+  bind_rows(.id = "guild") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+```
+
+| guild    | term        | Pseudo_F\_(df) |    R2 | p.value | p.adj |
+|:---------|:------------|:---------------|------:|--------:|------:|
+| its_ma   | dist_axis_1 | 1.717 (1, 21)  | 0.062 |   0.027 |    NA |
+| its_ma   | field_type  | 2.433 (2, 21)  | 0.176 |   0.000 | 0.001 |
+| its_ma   | Residual    | NA (21, 21)    | 0.761 |      NA |    NA |
+| its_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+| amf_ma   | dist_axis_1 | 1.303 (1, 21)  | 0.040 |   0.222 |    NA |
+| amf_ma   | field_type  | 5.198 (2, 21)  | 0.318 |   0.000 | 0.001 |
+| amf_ma   | Residual    | NA (21, 21)    | 0.642 |      NA |    NA |
+| amf_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+| patho_ma | dist_axis_1 | 1.794 (1, 21)  | 0.062 |   0.088 |    NA |
+| patho_ma | field_type  | 2.994 (2, 21)  | 0.208 |   0.002 | 0.003 |
+| patho_ma | Residual    | NA (21, 21)    | 0.730 |      NA |    NA |
+| patho_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+| sapro_ma | dist_axis_1 | 2.023 (1, 21)  | 0.075 |   0.004 |    NA |
+| sapro_ma | field_type  | 2.056 (2, 21)  | 0.152 |   0.000 | 0.001 |
+| sapro_ma | Residual    | NA (21, 21)    | 0.774 |      NA |    NA |
+| sapro_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+
+\#’ \### Using relative sequence abundance Fungal community differences
+differences among field types. Field type effects were evaluated using
+Permanova. P-values for field type were adjusted for multiple
+comparisons across fungal groups using the Benjamini-Hochberg
+procedure.”
+
+``` r
+list(
+  its_ma   = mva_its$permanova,
+  amf_ma   = mva_amf$permanova,
+  patho_ma = mva_patho$permanova,
+  sapro_ma = mva_sapro$permanova
+) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+  bind_rows(.id = "guild") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+```
+
+| guild    | term        | Pseudo_F\_(df) |    R2 | p.value | p.adj |
+|:---------|:------------|:---------------|------:|--------:|------:|
+| its_ma   | dist_axis_1 | 1.739 (1, 21)  | 0.063 |   0.027 |    NA |
+| its_ma   | field_type  | 2.536 (2, 21)  | 0.182 |   0.000 | 0.001 |
+| its_ma   | Residual    | NA (21, 21)    | 0.755 |      NA |    NA |
+| its_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+| amf_ma   | dist_axis_1 | 1.678 (1, 21)  | 0.056 |   0.114 |    NA |
+| amf_ma   | field_type  | 3.731 (2, 21)  | 0.248 |   0.000 | 0.001 |
+| amf_ma   | Residual    | NA (21, 21)    | 0.697 |      NA |    NA |
+| amf_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+| patho_ma | dist_axis_1 | 1.607 (1, 21)  | 0.053 |   0.134 |    NA |
+| patho_ma | field_type  | 3.887 (2, 21)  | 0.256 |   0.000 | 0.001 |
+| patho_ma | Residual    | NA (21, 21)    | 0.691 |      NA |    NA |
+| patho_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+| sapro_ma | dist_axis_1 | 2.165 (1, 21)  | 0.079 |   0.003 |    NA |
+| sapro_ma | field_type  | 2.169 (2, 21)  | 0.158 |   0.000 | 0.001 |
+| sapro_ma | Residual    | NA (21, 21)    | 0.764 |      NA |    NA |
+| sapro_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
+
+## Constrained analysis summary
+
+Environmental drivers were identified via partial distance-based
+Redundancy Analysis (db-RDA) using forward selection. Geographic
+distance (PCoA Axis 1) was included as a conditional term to partial out
+spatial effects. Radj2 represents the cumulative variance explained by
+the final selected model. P-values are based on 1,999 permutations; Padj
+reflects FDR correction within the guild.
+
+Adjusted R2
+
+``` r
+#= dbrda_r2
+data.frame(
+  guild = c("all_fungi", "amf", "saprotrophs"),
+  r2    = round(c(mod_r2$adj.r.squared, amf_mod_r2$adj.r.squared, sapro_mod_r2$adj.r.squared), 3)
+) %>% 
+  kable(format = "pandoc")
+```
+
+| guild       |    r2 |
+|:------------|------:|
+| all_fungi   | 0.236 |
+| amf         | 0.351 |
+| saprotrophs | 0.260 |
+
+``` r
+rdf <- data.frame(
+  guild = c("all_fungi", "amf", "saprotrophs"),
+  rdf   = c(mod_inax["Residual", "Df"], amf_mod_inax["Residual", "Df"], sapro_mod_inax["Residual", "Df"])
+)
+```
+
+Selected constraining variables
+
+``` r
+list(
+  all_fungi   = mod_step$anova,
+  amf         = amf_mod_step$anova,
+  saprotrophs = sapro_mod_step$anova
+) %>% 
+  map(\(df) df %>% 
+        tidy() %>% 
+        mutate(p.adj = p.adjust(p.value, "fdr"),
+               across(where(is.numeric), ~ round(.x, 3)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ ")) %>% 
+  select(term, `F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+```
+
+| term     | F\_(df)      | p.value | p.adj |
+|:---------|:-------------|--------:|------:|
+| gf_index | 2.077 (1, 8) |   0.006 | 0.013 |
+| pH       | 2.049 (1, 8) |   0.009 | 0.013 |
+| pl_rich  | 1.748 (1, 8) |   0.028 | 0.028 |
+| gf_index | 4.028 (1, 9) |   0.002 | 0.004 |
+| pH       | 3.133 (1, 9) |   0.009 | 0.009 |
+| OM       | 1.793 (1, 7) |   0.011 | 0.015 |
+| gf_index | 1.865 (1, 7) |   0.008 | 0.015 |
+| pl_rich  | 1.826 (1, 7) |   0.009 | 0.015 |
+| NO3      | 1.56 (1, 7)  |   0.041 | 0.041 |
+
+Component axes
+
+``` r
+list(
+  all_fungi   = mod_inax,
+  amf         = amf_mod_inax,
+  saprotrophs = sapro_mod_inax
+) %>% map(\(df) df %>% 
+            tidy() %>% 
+            filter(term != "Residual") %>% 
+            mutate(p.adj = p.adjust(p.value, "fdr"),
+                   across(where(is.numeric), ~ round(.x, 3)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ ")) %>% 
+  select(guild, term, `F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+```
+
+| guild       | term   | F\_(df)      | p.value | p.adj |
+|:------------|:-------|:-------------|--------:|------:|
+| all_fungi   | dbRDA1 | 2.991 (1, 8) |   0.001 | 0.003 |
+| all_fungi   | dbRDA2 | 2.13 (1, 8)  |   0.004 | 0.004 |
+| all_fungi   | dbRDA3 | 1.96 (1, 8)  |   0.004 | 0.004 |
+| amf         | dbRDA1 | 5.546 (1, 9) |   0.000 | 0.001 |
+| amf         | dbRDA2 | 2.749 (1, 9) |   0.002 | 0.002 |
+| saprotrophs | dbRDA1 | 2.844 (1, 7) |   0.000 | 0.002 |
+| saprotrophs | dbRDA2 | 2.396 (1, 7) |   0.002 | 0.002 |
+| saprotrophs | dbRDA3 | 2.297 (1, 7) |   0.002 | 0.002 |
+| saprotrophs | dbRDA4 | 1.774 (1, 7) |   0.018 | 0.018 |
+
+All soil fungi
+
+``` r
+fig6a <- 
+  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_segment(data = mod_scor_bp, 
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20", "gray20")) +
+  geom_text(data = mod_scor_bp, 
+            aes(x = labx, y = laby, label = envlabs), 
+            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
+            size = 3, color = "black", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
+  lims(x = c(-0.95,1.6)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+AMF
+
+``` r
+fig6b <-
+  ggplot(amf_mod_scor_site, aes(x = -1 * (dbRDA1), y = dbRDA2)) +
+  geom_segment(data = amf_mod_scor_bp,
+               aes(x = origin, xend = -1 * (dbRDA1), y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20")) +
+  geom_text(data = amf_mod_scor_bp,
+            aes(x = -1 * (labx), y = laby, label = envlabs),
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
+  lims(x = c(-1.2,1.2)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+Pathogens, PCoA fig
+
+``` r
+fig6c <-
+  ggplot(patho_mod_scor_site, aes(x = (MDS1), y = MDS2)) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("PCoA 1 (", patho_mod_eig[1], "%)"),
+    y = paste0("PCoA 2 (", patho_mod_eig[2], "%)")) +
+  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+Saprotrophs
+
+``` r
+fig6d <-
+  ggplot(sapro_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
+  geom_segment(data = sapro_mod_scor_bp,
+               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("gray20", "gray20", "darkblue", "darkblue", "gray20")) +
+  geom_text(data = sapro_mod_scor_bp,
+            aes(x = (labx), y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20") +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
+  lims(x = c(-0.9,1.7)) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = c(0.98, 0.03),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+```
+
+#### Unified figure
+
+Display results of constrained analyses
+
+``` r
+fig6up <- (fig6a | plot_spacer() | fig6b) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6dn <- (fig6c | plot_spacer() | fig6d) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig6 <- (fig6up / fig6dn) +
+  plot_layout(widths = c(0.50, 0.50)) +
+  plot_annotation(tag_levels = 'A')
+```
+
+``` r
+fig6
+```
+
+![](resources/fungal_ecology_files/figure-gfm/fig6-1.png)<!-- -->
+
+Fungal community ordinations which are constrained or unconstrained by
+explanatory variables. Panels show results for all soil fungi **a**, amf
+**b**, pathogens **c**, and saprotrophs **d**. Percent of constrained
+(db-RDA) and unconstrained (PCoA) variation explained is shown with axis
+labels. For explanatory variables with significant community
+correlations, blue arrows show the grass-forb index with labels
+indicating the direction of relative increase in C4 grasses or forbs,
+respectively, along the index. The black arrows show other significant
+constraining variables. Points show locations of restored fields (green)
+and remnant fields (blue) in Wisconsin.

@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 07 January, 2026
+Last updated: 13 January, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -38,6 +38,28 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
+
+    ## Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
+
+    ## Loading required package: ggpp
+
+    ## Registered S3 methods overwritten by 'ggpp':
+    ##   method                  from   
+    ##   heightDetails.titleGrob ggplot2
+    ##   widthDetails.titleGrob  ggplot2
+
+    ## 
+    ## Attaching package: 'ggpp'
+
+    ## The following objects are masked from 'package:ggpubr':
+    ## 
+    ##     as_npc, as_npcx, as_npcy
+
+    ## The following object is masked from 'package:ggplot2':
+    ## 
+    ##     annotate
+
+    ## Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
 
 ## Root path function
 
@@ -249,6 +271,8 @@ cont_box <- st_bbox(c(
 ), crs = 4326)
 sf_use_s2(FALSE)
 ```
+
+    ## Spherical geometry (s2) switched off
 
 ``` r
 cont_crop <- st_crop(cont, cont_box)
