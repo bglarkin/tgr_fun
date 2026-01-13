@@ -2485,7 +2485,7 @@ list(
 #' Field type effects were evaluated using Permanova.
 #' P-values for field type were adjusted for multiple comparisons
 #' across fungal groups using the Benjamini-Hochberg procedure."
-#+ permanova_summary,warning=FALSE,message=FALSE
+#+ unified_permanova_summary,warning=FALSE,message=FALSE
 list(
   its_ma   = mva_its$permanova,
   amf_ma   = mva_amf$permanova,
