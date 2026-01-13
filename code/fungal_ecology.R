@@ -35,7 +35,7 @@ packages_needed <- c(
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
-  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork" 
+  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork", "svglite"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -292,7 +292,7 @@ pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = "svg",
+ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = svglite,
        width = 7.5, height = 7, units = "in")
 #' 
 #' ## Whole soil fungi
@@ -374,6 +374,8 @@ its_div <- calc_div(its_avg, sites) %>%
 #' ### Richness
 #' Sequence depth square root transformed and centered. Negative binomial model used to handle count 
 #' data. Poisson model was overdispersed (not shown). 
+#' 
+#' Test interaction
 its_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = its_div)
 Anova(its_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
 #' Fit additive model
@@ -819,6 +821,8 @@ amf_div <- calc_div(amf_avg, sites) %>%
 #' ### Richness
 #' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
 #' and failed to converge at default iterations; use poisson glm instead. 
+#' 
+#' Test interaction
 amf_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = amf_div, family = poisson(link = "log")) 
 Anova(amf_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_overdispersion(amf_rich_glm_i) # not overdispersed
@@ -1393,6 +1397,8 @@ patho_div <- calc_div(patho, sites) %>%
 #' ### Richness
 #' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
 #' and failed to converge at default iterations; use poisson glm instead. 
+#' 
+#' Test interaction
 patho_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = patho_div, family = poisson(link = "log")) 
 Anova(patho_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
 #' Fit additive model
@@ -1901,6 +1907,8 @@ sapro_div <- calc_div(sapro, sites) %>%
 #' ### Richness
 #' Sequence depth square root transformed and centered. Poisson model was overdispersed (not shown), 
 #' use negative binomial instead.  
+#' 
+#' Test interaction
 sapro_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = sapro_div) 
 Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_model(sapro_rich_glm_i)
@@ -2477,6 +2485,7 @@ list(
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
          `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  filter(term %in% c("dist_axis_1", "field_type")) %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
@@ -2496,6 +2505,7 @@ list(
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
          `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  filter(term %in% c("dist_axis_1", "field_type")) %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
@@ -2532,9 +2542,26 @@ list(
                across(where(is.numeric), ~ round(.x, 3)))) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ ")) %>% 
-  select(term, `F_(df)`, p.value, p.adj) %>% 
+  select(term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' ### Global tests
+#+ dbrda_global_summary,message=FALSE,warning=FALSE
+list(
+  all_fungi   = mod_glax,
+  amf         = amf_mod_glax,
+  saprotrophs = sapro_mod_glax
+) %>% map(\(df) df %>% 
+            tidy() %>% 
+            filter(term != "Residual") %>% 
+            mutate(p.adj = p.adjust(p.value, "fdr"),
+                   across(where(is.numeric), ~ round(.x, 3)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")")) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
 #' ### Component axes
@@ -2550,9 +2577,9 @@ list(
                    across(where(is.numeric), ~ round(.x, 3)))) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ ")) %>% 
-  select(guild, term, `F_(df)`, p.value, p.adj) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
 #' ### Biplot panels
