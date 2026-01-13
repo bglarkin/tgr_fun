@@ -2505,43 +2505,55 @@ list(
 #' Geographic distance (PCoA Axis 1) was included as a conditional term to partial out spatial effects. 
 #' Radj2 represents the cumulative variance explained by the final selected model. 
 #' P-values are based on 1,999 permutations; Padj reflects FDR correction within the guild.
+#' 
+#' Adjusted R2
 #= dbrda_r2
-list(
-  all_fungi = mod_r2$adj.r.squared,
-  amf = amf_mod_r2$adj.r.squared,
-  saprotrophs = sapro_mod_r2$adj.r.squared
-) %>% map(\(val) tibble(r2 = round(val, 3))) %>% 
-  bind_rows(.id = "guild") %>% 
+data.frame(
+  guild = c("all_fungi", "amf", "saprotrophs"),
+  r2    = round(c(mod_r2$adj.r.squared, amf_mod_r2$adj.r.squared, sapro_mod_r2$adj.r.squared), 3)
+) %>% 
   kable(format = "pandoc")
+#+ rdf
+rdf <- data.frame(
+  guild = c("all_fungi", "amf", "saprotrophs"),
+  rdf   = c(mod_inax["Residual", "Df"], amf_mod_inax["Residual", "Df"], sapro_mod_inax["Residual", "Df"])
+)
+#' 
+#' Selected constraining variables
 #+ dbrda_var_summary
 list(
-  all_fungi = mod_step$anova %>% 
-    as.data.frame() %>% 
-    mutate(p.adj = p.adjust(`Pr(>F)`, "fdr"),
-           across(where(is.numeric), ~ round(.x, 3)), 
-           `F_(df)` = paste0(F, " (", Df, ", ", mod_inax["Residual", "Df"], ")")),
-  amf = amf_mod_step$anova %>% 
-    as.data.frame() %>% 
-    mutate(p.adj = p.adjust(`Pr(>F)`, "fdr"),
-           across(where(is.numeric), ~ round(.x, 3)), 
-           `F_(df)` = paste0(F, " (", Df, ", ", amf_mod_inax["Residual", "Df"], ")")),
-  saprotrophs = sapro_mod_step$anova %>% 
-    as.data.frame() %>% 
-    mutate(p.adj = p.adjust(`Pr(>F)`, "fdr"),
-           across(where(is.numeric), ~ round(.x, 3)), 
-           `F_(df)` = paste0(F, " (", Df, ", ", sapro_mod_inax["Residual", "Df"], ")"))
+  all_fungi   = mod_step$anova,
+  amf         = amf_mod_step$anova,
+  saprotrophs = sapro_mod_step$anova
 ) %>% 
-  map(\(df) df %>% select(`F_(df)`, P=`Pr(>F)`, P_adj = p.adj)) %>% 
+  map(\(df) df %>% 
+        tidy() %>% 
+        mutate(p.adj = p.adjust(p.value, "fdr"),
+               across(where(is.numeric), ~ round(.x, 3)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ ")) %>% 
+  select(term, `F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
-  
+#' 
+#' Component axes
 #+ dbrda_axis_summary,message=FALSE,warning=FALSE
 list(
-  all_fungi = tidy(mod_inax),
-  amf = tidy(amf_mod_inax),
-  saprotrophs = tidy(sapro_mod_inax)
-) %>% 
-
-
+  all_fungi   = mod_inax,
+  amf         = amf_mod_inax,
+  saprotrophs = sapro_mod_inax
+) %>% map(\(df) df %>% 
+            tidy() %>% 
+            filter(term != "Residual") %>% 
+            mutate(p.adj = p.adjust(p.value, "fdr"),
+                   across(where(is.numeric), ~ round(.x, 3)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ ")) %>% 
+  select(guild, term, `F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
 #' All soil fungi
 #+ fig6a
 fig6a <- 
