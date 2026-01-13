@@ -2480,7 +2480,7 @@ list(
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
-#' #' ### Using relative sequence abundance
+#' ### Using relative sequence abundance
 #' Fungal community differences differences among field types.
 #' Field type effects were evaluated using Permanova.
 #' P-values for field type were adjusted for multiple comparisons
@@ -2506,7 +2506,7 @@ list(
 #' Radj2 represents the cumulative variance explained by the final selected model. 
 #' P-values are based on 1,999 permutations; Padj reflects FDR correction within the guild.
 #' 
-#' Adjusted R2
+#' ### Adjusted R2
 #= dbrda_r2
 data.frame(
   guild = c("all_fungi", "amf", "saprotrophs"),
@@ -2519,7 +2519,7 @@ rdf <- data.frame(
   rdf   = c(mod_inax["Residual", "Df"], amf_mod_inax["Residual", "Df"], sapro_mod_inax["Residual", "Df"])
 )
 #' 
-#' Selected constraining variables
+#' ### Selected constraining variables
 #+ dbrda_var_summary
 list(
   all_fungi   = mod_step$anova,
@@ -2537,7 +2537,7 @@ list(
   select(term, `F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
-#' Component axes
+#' ### Component axes
 #+ dbrda_axis_summary,message=FALSE,warning=FALSE
 list(
   all_fungi   = mod_inax,
@@ -2554,6 +2554,8 @@ list(
          term = str_remove(term, "\\+ ")) %>% 
   select(guild, term, `F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
+#' 
+#' ### Biplot panels
 #' All soil fungi
 #+ fig6a
 fig6a <- 
