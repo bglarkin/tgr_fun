@@ -35,7 +35,7 @@ packages_needed <- c(
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
-  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork", "svglite"
+  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -292,7 +292,7 @@ pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = svglite,
+ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = "svg",
        width = 7.5, height = 7, units = "in")
 #' 
 #' ## Whole soil fungi
