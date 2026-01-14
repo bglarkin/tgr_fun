@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 13 January, 2026
+Last updated: 14 January, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -399,7 +399,7 @@ plt_div <-
   geom_col(aes(fill = var), position = position_dodge()) +
   labs(x = NULL, y = expression(atop("Alpha diversity", paste("(", italic(n), " species)")))) +
   scale_fill_discrete_qualitative(name = "Diversity index", palette = "Dynamic", 
-                                  labels = c(expression("richness"), expression(paste("Shannon (", italic(e)^italic(H), ")")))) +
+                                  labels = c(expression("richness"), expression(paste("Shannon (", italic(e)^{italic(H)*"\u2032"}, ")")))) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -4195,7 +4195,11 @@ Diagnostic reveals noisy fit and lots of structure. Decompose biomass
 and sequence abundance in a model to test changes in each given the
 other.
 
-Multiple, weighted logistic glm
+Multiple, weighted logistic glm Note on interpretation: exponentiated
+coefficients are interpreted as odds ratios for pathogen dominance
+within the fungal community. Sequence abundances are used as analytic
+weights so that sites with higher sequencing depth contributed
+proportionally more information to the likelihood.
 
 ``` r
 patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_index,
