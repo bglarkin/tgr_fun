@@ -4155,7 +4155,7 @@ NS
 
 ### Pathogen biomass and grass/forb composition
 
-Inspect simple linear relationship. Naïve model.
+#### Inspect simple linear relationship. Naïve model.
 
 ``` r
 patho_gf_lm <- lm(patho_mass ~ gf_index, data = patho_resto)
@@ -4191,15 +4191,25 @@ summary(patho_gf_lm)
     ## F-statistic: 3.157 on 1 and 11 DF,  p-value: 0.1032
 
 The naïve model shows a positive relationship that isn’t significant.
-Diagnostic reveals noisy fit and lots of structure. Decompose biomass
-and sequence abundance in a model to test changes in each given the
-other.
+Diagnostic reveals noisy fit and lots of structure. How much does fungal
+mass vary across sites?
 
-Multiple, weighted logistic glm Note on interpretation: exponentiated
-coefficients are interpreted as odds ratios for pathogen dominance
-within the fungal community. Sequence abundances are used as analytic
-weights so that sites with higher sequencing depth contributed
-proportionally more information to the likelihood.
+``` r
+(fma_cv <- sd(patho_resto$fungi_mass) / mean(patho_resto$fungi_mass) * 100)
+```
+
+    ## [1] 33.02084
+
+Decompose biomass and sequence abundance in a model to test changes in
+each given the other.
+
+#### Multiple, weighted logistic glm
+
+Note on interpretation: exponentiated coefficients are interpreted as
+odds ratios for pathogen dominance within the fungal community. Sequence
+abundances are used as analytic weights so that sites with higher
+sequencing depth contributed proportionally more information to the
+likelihood.
 
 ``` r
 patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_index,
@@ -4235,7 +4245,7 @@ Diagnostics
 check_model(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-132-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
 
 ``` r
 check_collinearity(patho_gf_glm)
@@ -4350,16 +4360,73 @@ plotting.
 paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-136-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-137-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_index is
 clean.
 
+Partial R2 values
+
 ``` r
-rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
+data.frame(
+  term = c("fungal_mass", "gf_index"),
+  partial_R2 = rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
+) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "Partial R2 from weighted logistic regression")
 ```
 
-    ## [1] 0.2196173 0.7130771
+| term        | partial_R2 |
+|:------------|-----------:|
+| fungal_mass |      0.220 |
+| gf_index    |      0.713 |
+
+Partial R2 from weighted logistic regression
+
+Model summary
+
+``` r
+tidy(patho_gf_glm) %>% 
+  mutate(odds_ratio = exp(estimate), exp_std.error = exp(std.error),
+         across(where(is.numeric), ~ round(.x, 3))) %>% 
+  select(term, estimate, odds_ratio, std.error, exp_std.error, statistic, p.value) %>% 
+  kable(format = "pandoc", caption = "Summary of terms from weighted logistic regression")
+```
+
+| term          | estimate | odds_ratio | std.error | exp_std.error | statistic | p.value |
+|:--------------|---------:|-----------:|----------:|--------------:|----------:|--------:|
+| (Intercept)   |   -1.607 |      0.200 |     0.093 |         1.097 |   -17.310 |   0.000 |
+| fungi_mass_lc |    0.574 |      1.776 |     0.294 |         1.342 |     1.950 |   0.080 |
+| gf_index      |    1.908 |      6.739 |     0.384 |         1.469 |     4.962 |   0.001 |
+
+Summary of terms from weighted logistic regression
+
+``` r
+(patho_or_pct <- round((exp(coef(patho_gf_glm)[3])^0.1)-1, 3))
+```
+
+    ## gf_index 
+    ##     0.21
+
+Confidence intervals on the prediction scale, results on the increment
+of 0.1 increase in grass-forb index desired due to scale of that
+variable. Note: in the following output, percent predicted changes are
+calculated *in excess* of 100% (e.g., 1.124 = 12.4%).
+
+``` r
+((exp(confint(patho_gf_glm))^0.1)-1) %>%
+  as.data.frame() %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "95% confidence intervals, back transformed from the log-scale")
+```
+
+|               |  2.5 % | 97.5 % |
+|---------------|-------:|-------:|
+| (Intercept)   | -0.164 | -0.133 |
+| fungi_mass_lc |  0.001 |  0.123 |
+| gf_index      |  0.124 |  0.307 |
+
+95% confidence intervals, back transformed from the log-scale
 
 Create objects for plotting
 
@@ -4515,7 +4582,7 @@ Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_model(sapro_rich_glm_i)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-141-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
 
 ``` r
 check_overdispersion(sapro_rich_glm_i) # not overdispersed
@@ -4806,7 +4873,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-151-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-152-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -5435,7 +5502,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-165-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-166-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5541,16 +5608,72 @@ covariate than the test variable.
 saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-169-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-170-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_index is
 clean.
 
+Partial R2 values
+
 ``` r
-rsq.partial(sapro_prich_glm, adj = TRUE)$partial.rsq
+data.frame(
+  term = c("fungal_mass", "pl_rich"),
+  partial_R2 = rsq.partial(sapro_prich_glm, adj = TRUE)$partial.rsq
+) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "Partial R2 from weighted logistic regression")
 ```
 
-    ## [1] 0.1227912 0.4549229
+| term        | partial_R2 |
+|:------------|-----------:|
+| fungal_mass |      0.123 |
+| pl_rich     |      0.455 |
+
+Partial R2 from weighted logistic regression
+
+Model summary Odds ratio prediction and confidence intervals on the
+prediction scale, results on the increment of an increase of 10 plant
+species desired due to scale of that variable. Note: in the following
+output, percent predicted changes are calculated *in excess* of 100%
+(e.g., 0.085 = -15%).
+
+``` r
+tidy(sapro_prich_glm) %>% 
+  mutate(odds_ratio = exp(estimate), exp_std.error = exp(std.error),
+         across(where(is.numeric), ~ round(.x, 3))) %>% 
+  select(term, estimate, odds_ratio, std.error, exp_std.error, statistic, p.value) %>% 
+  kable(format = "pandoc", caption = "Summary of terms from weighted logistic regression")
+```
+
+| term          | estimate | odds_ratio | std.error | exp_std.error | statistic | p.value |
+|:--------------|---------:|-----------:|----------:|--------------:|----------:|--------:|
+| (Intercept)   |   -0.518 |      0.596 |     0.218 |         1.244 |    -2.373 |   0.039 |
+| fungi_mass_lc |   -0.217 |      0.805 |     0.187 |         1.205 |    -1.160 |   0.273 |
+| pl_rich       |   -0.016 |      0.984 |     0.005 |         1.005 |    -2.890 |   0.016 |
+
+Summary of terms from weighted logistic regression
+
+``` r
+(sapro_or_pct <- round(1-(exp(coef(sapro_prich_glm)[3])^10), 3))
+```
+
+    ## pl_rich 
+    ##   0.145
+
+``` r
+(1-(exp(confint(sapro_prich_glm))^10)) %>%
+  as.data.frame() %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "95% confidence intervals, back transformed from the log-scale")
+```
+
+|               | 2.5 % | 97.5 % |
+|---------------|------:|-------:|
+| (Intercept)   | 1.000 |  0.603 |
+| fungi_mass_lc | 0.997 | -3.547 |
+| pl_rich       | 0.231 |  0.049 |
+
+95% confidence intervals, back transformed from the log-scale
 
 Create objects for plotting
 
@@ -5783,6 +5906,61 @@ summary(sapro_gf_glm)
     ## Number of Fisher Scoring iterations: 4
 
 NS
+
+### Plant species and saprotroph abundance
+
+Field age and restored vs. remnant status don’t appear to relate with
+saprotroph abundance. Do any particular plant species associate with
+high or low saprotroph sites? Try an indicator species analysis to find
+out.
+
+``` r
+sapro_groups <- setNames(ifelse(sapro_resto$sapro_prop > median(sapro_resto$sapro_prop), "hsap", "lsap"), 
+                         sapro_resto$field_name)
+plantsap_ind <- multipatt(
+  x = plant %>% filter(SITE %in% names(sapro_groups)) %>% 
+    column_to_rownames("SITE") %>% select(-BARESOIL, -LITTER, -ROSA, -SALIX),
+  cluster = sapro_groups, 
+  func = "IndVal.g", max.order = 1, control = how(nperm = 1999)
+)
+sapro_sig_codes <- plantsap_ind$sign %>%
+  filter(p.value < 0.1) %>%
+  rownames_to_column("CODE") %>%
+  mutate(group = c("hsap", "lsap")[index]) %>%
+  select(CODE, group, stat, p.value)
+```
+
+``` r
+sapro_plant_summary <- plant %>%
+  pivot_longer(-SITE, names_to = "CODE", values_to = "pct") %>%
+  filter(SITE %in% names(sapro_groups), CODE %in% sapro_sig_codes$CODE) %>%
+  mutate(grp = sapro_groups[SITE]) %>%
+  group_by(grp, CODE) %>%
+  summarize(mean_pct = mean(pct), .groups = "drop") %>%
+  pivot_wider(names_from = grp, values_from = mean_pct, values_fill = 0) %>%
+  left_join(sapro_sig_codes, by = "CODE") %>%
+  left_join(read_csv(root_path("clean_data/plant_meta.csv"), show_col_types = FALSE), by = "CODE") %>%
+  select(species = NAME, family = FAMILY, life_hist = LIFEHIST, plcvr_hsap = hsap, plcvr_lsap = lsap, stat, p.value) %>%
+  mutate(p.adj = p.adjust(p.value, "fdr"), across(where(is.numeric), ~ round(.x, 3))) %>% 
+  arrange(desc(plcvr_hsap)) # Sort by high-sapro indicators first
+kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low or high saprotroph sites")
+```
+
+| species | family | life_hist | plcvr_hsap | plcvr_lsap | stat | p.value | p.adj |
+|:---|:---|:---|---:|---:|---:|---:|---:|
+| Solidago canadensis | Asteraceae | perennial | 6.483 | 2.657 | 0.842 | 0.028 | 0.078 |
+| Artemisia ludoviciana | Asteraceae | perennial | 6.117 | 0.000 | 0.707 | 0.076 | 0.078 |
+| Echinacea purpurea | Asteraceae | perennial | 3.750 | 0.000 | 0.707 | 0.064 | 0.078 |
+| Symphyotrichum novae-angliae | Asteraceae | perennial | 3.083 | 0.729 | 0.821 | 0.061 | 0.078 |
+| Heliopsis helianthoides | Asteraceae | perennial | 2.867 | 0.171 | 0.971 | 0.003 | 0.033 |
+| Symphyotrichum laevis | Asteraceae | perennial | 2.100 | 0.200 | 0.872 | 0.060 | 0.078 |
+| Cirsium arvense | Asteraceae | perennial | 2.067 | 0.000 | 0.707 | 0.068 | 0.078 |
+| Elymus canadensis | Poaceae | perennial | 1.617 | 0.000 | 0.816 | 0.025 | 0.078 |
+| Ambrosia artemisiifolia | Asteraceae | annual | 0.000 | 8.457 | 0.756 | 0.072 | 0.078 |
+| Medicago lupulina | Fabaceae | biennial | 0.000 | 0.186 | 0.756 | 0.074 | 0.078 |
+| Schizachyrium scoparium | Poaceae | perennial | 0.000 | 1.043 | 0.756 | 0.078 | 0.078 |
+
+Plant indicators in low or high saprotroph sites
 
 # Summary results
 
