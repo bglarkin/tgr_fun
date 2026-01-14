@@ -349,6 +349,6 @@ figS4
 ![](resources/edaphic_files/figure-gfm/figS4-1.png)<!-- -->
 
 ``` r
-ggsave(root_path("figs", "figS4.svg"), plot = figS4, device = "svg",
+ggsave(root_path("figs", "figS4.svg"), plot = figS4, device = svglite::svglite,
        width = 7.5, height = 4.25, units = "in")
 ```

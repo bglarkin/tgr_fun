@@ -94,7 +94,7 @@ packages_needed <- c(
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
-  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork" 
+  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -399,7 +399,7 @@ plt_div <-
   geom_col(aes(fill = var), position = position_dodge()) +
   labs(x = NULL, y = expression(atop("Alpha diversity", paste("(", italic(n), " species)")))) +
   scale_fill_discrete_qualitative(name = "Diversity index", palette = "Dynamic", 
-                                  labels = c(expression("Richness"), expression(paste("Shannon (", italic(e)^italic(H), ")")))) +
+                                  labels = c(expression("richness"), expression(paste("Shannon (", italic(e)^italic(H), ")")))) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -440,7 +440,7 @@ pfg_pct <-
   left_join(fs8_xlab, by = join_by(field_name))
 gf_pct_fig <- 
   ggplot(pfg_pct, aes(x = fct_reorder(xlab, gf_index), y = pct_cvr, group = pfg)) +
-  geom_step(aes(color = pfg)) +
+  geom_step(aes(color = pfg), linejoin = "round", lineend = "round") +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   scale_color_manual(name = "Functional group", values = pfg_col[4:5], 
                      labels = c(expression("grass ("*C[4]*")"), expression("forb"))) +
@@ -578,6 +578,8 @@ its_div <- calc_div(its_avg, sites) %>%
 Sequence depth square root transformed and centered. Negative binomial
 model used to handle count data. Poisson model was overdispersed (not
 shown).
+
+Test interaction
 
 ``` r
 its_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = its_div)
@@ -1635,6 +1637,8 @@ amf_div <- calc_div(amf_avg, sites) %>%
 Sequence depth square root transformed and centered. Negative binomial
 model was underdispersed and failed to converge at default iterations;
 use poisson glm instead.
+
+Test interaction
 
 ``` r
 amf_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = amf_div, family = poisson(link = "log")) 
@@ -3279,6 +3283,8 @@ Sequence depth square root transformed and centered. Negative binomial
 model was underdispersed and failed to converge at default iterations;
 use poisson glm instead.
 
+Test interaction
+
 ``` r
 patho_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = patho_div, family = poisson(link = "log")) 
 Anova(patho_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
@@ -4484,6 +4490,8 @@ sapro_div <- calc_div(sapro, sites) %>%
 Sequence depth square root transformed and centered. Poisson model was
 overdispersed (not shown), use negative binomial instead.
 
+Test interaction
+
 ``` r
 sapro_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = sapro_div) 
 Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
@@ -4519,10 +4527,6 @@ check_overdispersion(sapro_rich_glm_i) # not overdispersed
 ``` r
 augment(sapro_rich_glm_i) # corn site has cooks >0.9
 ```
-
-    ## Warning: The `augment()` method for objects of class `negbin` is not maintained by the broom team, and is only supported through the `glm` tidier method. Please be cautious in interpreting and reporting broom output.
-    ## 
-    ## This warning is displayed once per session.
 
     ## # A tibble: 25 × 9
     ##    richness depth_csq field_type .fitted  .resid   .hat .sigma  .cooksd .std.resid
@@ -5903,6 +5907,7 @@ list(
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
          `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  filter(term %in% c("dist_axis_1", "field_type")) %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
 ```
@@ -5911,26 +5916,19 @@ list(
 |:---------|:------------|:---------------|------:|--------:|------:|
 | its_ma   | dist_axis_1 | 1.717 (1, 21)  | 0.062 |   0.027 |    NA |
 | its_ma   | field_type  | 2.433 (2, 21)  | 0.176 |   0.000 | 0.001 |
-| its_ma   | Residual    | NA (21, 21)    | 0.761 |      NA |    NA |
-| its_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 | amf_ma   | dist_axis_1 | 1.303 (1, 21)  | 0.040 |   0.222 |    NA |
 | amf_ma   | field_type  | 5.198 (2, 21)  | 0.318 |   0.000 | 0.001 |
-| amf_ma   | Residual    | NA (21, 21)    | 0.642 |      NA |    NA |
-| amf_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 | patho_ma | dist_axis_1 | 1.794 (1, 21)  | 0.062 |   0.088 |    NA |
 | patho_ma | field_type  | 2.994 (2, 21)  | 0.208 |   0.002 | 0.003 |
-| patho_ma | Residual    | NA (21, 21)    | 0.730 |      NA |    NA |
-| patho_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 | sapro_ma | dist_axis_1 | 2.023 (1, 21)  | 0.075 |   0.004 |    NA |
 | sapro_ma | field_type  | 2.056 (2, 21)  | 0.152 |   0.000 | 0.001 |
-| sapro_ma | Residual    | NA (21, 21)    | 0.774 |      NA |    NA |
-| sapro_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 
-\#’ \### Using relative sequence abundance Fungal community differences
-differences among field types. Field type effects were evaluated using
-Permanova. P-values for field type were adjusted for multiple
-comparisons across fungal groups using the Benjamini-Hochberg
-procedure.”
+### Using relative sequence abundance
+
+Fungal community differences differences among field types. Field type
+effects were evaluated using Permanova. P-values for field type were
+adjusted for multiple comparisons across fungal groups using the
+Benjamini-Hochberg procedure.”
 
 ``` r
 list(
@@ -5943,6 +5941,7 @@ list(
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
          `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  filter(term %in% c("dist_axis_1", "field_type")) %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
 ```
@@ -5951,20 +5950,12 @@ list(
 |:---------|:------------|:---------------|------:|--------:|------:|
 | its_ma   | dist_axis_1 | 1.739 (1, 21)  | 0.063 |   0.027 |    NA |
 | its_ma   | field_type  | 2.536 (2, 21)  | 0.182 |   0.000 | 0.001 |
-| its_ma   | Residual    | NA (21, 21)    | 0.755 |      NA |    NA |
-| its_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 | amf_ma   | dist_axis_1 | 1.678 (1, 21)  | 0.056 |   0.114 |    NA |
 | amf_ma   | field_type  | 3.731 (2, 21)  | 0.248 |   0.000 | 0.001 |
-| amf_ma   | Residual    | NA (21, 21)    | 0.697 |      NA |    NA |
-| amf_ma   | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 | patho_ma | dist_axis_1 | 1.607 (1, 21)  | 0.053 |   0.134 |    NA |
 | patho_ma | field_type  | 3.887 (2, 21)  | 0.256 |   0.000 | 0.001 |
-| patho_ma | Residual    | NA (21, 21)    | 0.691 |      NA |    NA |
-| patho_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 | sapro_ma | dist_axis_1 | 2.165 (1, 21)  | 0.079 |   0.003 |    NA |
 | sapro_ma | field_type  | 2.169 (2, 21)  | 0.158 |   0.000 | 0.001 |
-| sapro_ma | Residual    | NA (21, 21)    | 0.764 |      NA |    NA |
-| sapro_ma | Total       | NA (24, 21)    | 1.000 |      NA |    NA |
 
 ## Constrained analysis summary
 
@@ -5975,7 +5966,7 @@ spatial effects. Radj2 represents the cumulative variance explained by
 the final selected model. P-values are based on 1,999 permutations; Padj
 reflects FDR correction within the guild.
 
-Adjusted R2
+### Adjusted R2
 
 ``` r
 #= dbrda_r2
@@ -5999,7 +5990,7 @@ rdf <- data.frame(
 )
 ```
 
-Selected constraining variables
+### Selected constraining variables
 
 ``` r
 list(
@@ -6013,25 +6004,50 @@ list(
                across(where(is.numeric), ~ round(.x, 3)))) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ ")) %>% 
-  select(term, `F_(df)`, p.value, p.adj) %>% 
+  select(term, `pseudo_F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
 ```
 
-| term     | F\_(df)      | p.value | p.adj |
-|:---------|:-------------|--------:|------:|
-| gf_index | 2.077 (1, 8) |   0.006 | 0.013 |
-| pH       | 2.049 (1, 8) |   0.009 | 0.013 |
-| pl_rich  | 1.748 (1, 8) |   0.028 | 0.028 |
-| gf_index | 4.028 (1, 9) |   0.002 | 0.004 |
-| pH       | 3.133 (1, 9) |   0.009 | 0.009 |
-| OM       | 1.793 (1, 7) |   0.011 | 0.015 |
-| gf_index | 1.865 (1, 7) |   0.008 | 0.015 |
-| pl_rich  | 1.826 (1, 7) |   0.009 | 0.015 |
-| NO3      | 1.56 (1, 7)  |   0.041 | 0.041 |
+| term     | pseudo_F\_(df) | p.value | p.adj |
+|:---------|:---------------|--------:|------:|
+| gf_index | 2.077 (1, 8)   |   0.006 | 0.013 |
+| pH       | 2.049 (1, 8)   |   0.009 | 0.013 |
+| pl_rich  | 1.748 (1, 8)   |   0.028 | 0.028 |
+| gf_index | 4.028 (1, 9)   |   0.002 | 0.004 |
+| pH       | 3.133 (1, 9)   |   0.009 | 0.009 |
+| OM       | 1.793 (1, 7)   |   0.011 | 0.015 |
+| gf_index | 1.865 (1, 7)   |   0.008 | 0.015 |
+| pl_rich  | 1.826 (1, 7)   |   0.009 | 0.015 |
+| NO3      | 1.56 (1, 7)    |   0.041 | 0.041 |
 
-Component axes
+### Global tests
+
+``` r
+list(
+  all_fungi   = mod_glax,
+  amf         = amf_mod_glax,
+  saprotrophs = sapro_mod_glax
+) %>% map(\(df) df %>% 
+            tidy() %>% 
+            filter(term != "Residual") %>% 
+            mutate(p.adj = p.adjust(p.value, "fdr"),
+                   across(where(is.numeric), ~ round(.x, 3)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")")) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+```
+
+| guild       | term  | pseudo_F\_(df) | p.value | p.adj |
+|:------------|:------|:---------------|--------:|------:|
+| all_fungi   | Model | 2.151 (3, 8)   |       0 |     0 |
+| amf         | Model | 4.01 (2, 9)    |       0 |     0 |
+| saprotrophs | Model | 1.992 (4, 7)   |       0 |     0 |
+
+### Component axes
 
 ``` r
 list(
@@ -6045,23 +6061,25 @@ list(
                    across(where(is.numeric), ~ round(.x, 3)))) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ ")) %>% 
-  select(guild, term, `F_(df)`, p.value, p.adj) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
 ```
 
-| guild       | term   | F\_(df)      | p.value | p.adj |
-|:------------|:-------|:-------------|--------:|------:|
-| all_fungi   | dbRDA1 | 2.991 (1, 8) |   0.001 | 0.003 |
-| all_fungi   | dbRDA2 | 2.13 (1, 8)  |   0.004 | 0.004 |
-| all_fungi   | dbRDA3 | 1.96 (1, 8)  |   0.004 | 0.004 |
-| amf         | dbRDA1 | 5.546 (1, 9) |   0.000 | 0.001 |
-| amf         | dbRDA2 | 2.749 (1, 9) |   0.002 | 0.002 |
-| saprotrophs | dbRDA1 | 2.844 (1, 7) |   0.000 | 0.002 |
-| saprotrophs | dbRDA2 | 2.396 (1, 7) |   0.002 | 0.002 |
-| saprotrophs | dbRDA3 | 2.297 (1, 7) |   0.002 | 0.002 |
-| saprotrophs | dbRDA4 | 1.774 (1, 7) |   0.018 | 0.018 |
+| guild       | term   | pseudo_F\_(df) | p.value | p.adj |
+|:------------|:-------|:---------------|--------:|------:|
+| all_fungi   | dbRDA1 | 2.991 (1, 8)   |   0.001 | 0.003 |
+| all_fungi   | dbRDA2 | 2.13 (1, 8)    |   0.004 | 0.004 |
+| all_fungi   | dbRDA3 | 1.96 (1, 8)    |   0.004 | 0.004 |
+| amf         | dbRDA1 | 5.546 (1, 9)   |   0.000 | 0.001 |
+| amf         | dbRDA2 | 2.749 (1, 9)   |   0.002 | 0.002 |
+| saprotrophs | dbRDA1 | 2.844 (1, 7)   |   0.000 | 0.002 |
+| saprotrophs | dbRDA2 | 2.396 (1, 7)   |   0.002 | 0.002 |
+| saprotrophs | dbRDA3 | 2.297 (1, 7)   |   0.002 | 0.002 |
+| saprotrophs | dbRDA4 | 1.774 (1, 7)   |   0.018 | 0.018 |
+
+### Biplot panels
 
 All soil fungi
 

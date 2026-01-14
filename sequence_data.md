@@ -316,7 +316,7 @@ rare_fig
 ![](resources/sequence_data_files/figure-gfm/rarefaction_fig-1.png)<!-- -->
 
 ``` r
-ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = "svg",
+ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = svglite::svglite,
        height = 4.24,width = 7.5, units = "in")
 ```
 
@@ -335,6 +335,6 @@ accum_fig <-
 ```
 
 ``` r
-ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = "svg",
+ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = svglite::svglite,
        height = 4.25, width = 7.5, units = "in")
 ```
