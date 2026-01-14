@@ -1748,16 +1748,19 @@ summary(pathofa_pshan_lm)
 #' NS  
 #' 
 #' ### Pathogen biomass and grass/forb composition
-#' Inspect simple linear relationship. Naïve model.
+#' #### Inspect simple linear relationship. Naïve model.
 patho_gf_lm <- lm(patho_mass ~ gf_index, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
 check_model(patho_gf_lm)
 summary(patho_gf_lm)
 #' The naïve model shows a positive relationship that isn't significant. 
-#' Diagnostic reveals noisy fit and lots of structure. Decompose biomass and 
-#' sequence abundance in a model to test changes in each given the other. 
+#' Diagnostic reveals noisy fit and lots of structure. How much does fungal mass vary 
+#' across sites?
+(fma_cv <- sd(patho_resto$fungi_mass) / mean(patho_resto$fungi_mass) * 100)
 #' 
-#' Multiple, weighted logistic glm
+#' Decompose biomass and sequence abundance in a model to test changes in each given the other. 
+#' 
+#' #### Multiple, weighted logistic glm
 #' Note on interpretation: exponentiated coefficients are interpreted as odds ratios 
 #' for pathogen dominance within the fungal community. Sequence abundances are used as 
 #' analytic weights so that sites with higher sequencing depth contributed proportionally 
@@ -1801,8 +1804,31 @@ summary(loocv_paglm_fma)
 #' View partial regression plots for consistency and save data for plotting.
 paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
 #' Noise in fungal mass data is obvious here. Fit of partial gf_index is clean.
+#' 
+#' Partial R2 values
 #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
-rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
+data.frame(
+  term = c("fungal_mass", "gf_index"),
+  partial_R2 = rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
+) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "Partial R2 from weighted logistic regression")
+#' Model summary
+#+ parest_m_abs_summary
+tidy(patho_gf_glm) %>% 
+  mutate(odds_ratio = exp(estimate), exp_std.error = exp(std.error),
+         across(where(is.numeric), ~ round(.x, 3))) %>% 
+  select(term, estimate, odds_ratio, std.error, exp_std.error, statistic, p.value) %>% 
+  kable(format = "pandoc", caption = "Summary of terms from weighted logistic regression")
+(patho_or_pct <- round((exp(coef(patho_gf_glm)[3])^0.1)-1, 3))
+#' Confidence intervals on the prediction scale, results on the increment of 0.1 increase
+#' in grass-forb index desired due to scale of that variable. Note: in the following output,
+#' percent predicted changes are calculated *in excess* of 100% (e.g., 1.124 = 12.4%).
+#+ parest_m_abs_confint,warning=FALSE,message=FALSE
+((exp(confint(patho_gf_glm))^0.1)-1) %>%
+  as.data.frame() %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "95% confidence intervals, back transformed from the log-scale")
 #' Create objects for plotting
 paglm_med_fungi <- median(patho_resto$fungi_mass_lc, na.rm = TRUE)
 paglm_med_abund <- median(patho_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
@@ -2297,8 +2323,31 @@ summary(loocv_saglm_fma)
 #' than the test variable. 
 saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
 #' Noise in fungal mass data is obvious here. Fit of partial gf_index is clean.
+#' 
+#' Partial R2 values
 #+ sarest_m_abs_rsq,warning=FALSE,message=FALSE
-rsq.partial(sapro_prich_glm, adj = TRUE)$partial.rsq
+data.frame(
+  term = c("fungal_mass", "pl_rich"),
+  partial_R2 = rsq.partial(sapro_prich_glm, adj = TRUE)$partial.rsq
+) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "Partial R2 from weighted logistic regression")
+#' Model summary
+#' Odds ratio prediction and confidence intervals on the prediction scale, results on the increment of an increase
+#' of 10 plant species desired due to scale of that variable. Note: in the following output,
+#' percent predicted changes are calculated *in excess* of 100% (e.g., 0.085 = -15%).
+#+ sarest_m_abs_summary
+tidy(sapro_prich_glm) %>% 
+  mutate(odds_ratio = exp(estimate), exp_std.error = exp(std.error),
+         across(where(is.numeric), ~ round(.x, 3))) %>% 
+  select(term, estimate, odds_ratio, std.error, exp_std.error, statistic, p.value) %>% 
+  kable(format = "pandoc", caption = "Summary of terms from weighted logistic regression")
+(sapro_or_pct <- round(1-(exp(coef(sapro_prich_glm)[3])^10), 3))
+#+ sarest_m_abs_confint,warning=FALSE,message=FALSE
+(1-(exp(confint(sapro_prich_glm))^10)) %>%
+  as.data.frame() %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  kable(format = "pandoc", caption = "95% confidence intervals, back transformed from the log-scale")
 #' Create objects for plotting
 saglm_med_fungi <- median(sapro_resto$fungi_mass_lc, na.rm = TRUE)
 saglm_med_abund <- median(sapro_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
@@ -2417,6 +2466,39 @@ sapro_gf_glm <- glm(sapro_prop ~ fungi_mass_lc + gf_index,
                     weights = fungi_abund)
 summary(sapro_gf_glm)
 #' NS
+#' 
+#' ### Plant species and saprotroph abundance
+#' Field age and restored vs. remnant status don't appear to relate with 
+#' saprotroph abundance. 
+#' Do any particular plant species associate with high or low saprotroph sites?
+#' Try an indicator species analysis to find out. 
+sapro_groups <- setNames(ifelse(sapro_resto$sapro_prop > median(sapro_resto$sapro_prop), "hsap", "lsap"), 
+                         sapro_resto$field_name)
+plantsap_ind <- multipatt(
+  x = plant %>% filter(SITE %in% names(sapro_groups)) %>% 
+    column_to_rownames("SITE") %>% select(-BARESOIL, -LITTER, -ROSA, -SALIX),
+  cluster = sapro_groups, 
+  func = "IndVal.g", max.order = 1, control = how(nperm = 1999)
+)
+sapro_sig_codes <- plantsap_ind$sign %>%
+  filter(p.value < 0.1) %>%
+  rownames_to_column("CODE") %>%
+  mutate(group = c("hsap", "lsap")[index]) %>%
+  select(CODE, group, stat, p.value)
+#+ sapro_plant_summary
+sapro_plant_summary <- plant %>%
+  pivot_longer(-SITE, names_to = "CODE", values_to = "pct") %>%
+  filter(SITE %in% names(sapro_groups), CODE %in% sapro_sig_codes$CODE) %>%
+  mutate(grp = sapro_groups[SITE]) %>%
+  group_by(grp, CODE) %>%
+  summarize(mean_pct = mean(pct), .groups = "drop") %>%
+  pivot_wider(names_from = grp, values_from = mean_pct, values_fill = 0) %>%
+  left_join(sapro_sig_codes, by = "CODE") %>%
+  left_join(read_csv(root_path("clean_data/plant_meta.csv"), show_col_types = FALSE), by = "CODE") %>%
+  select(species = NAME, family = FAMILY, life_hist = LIFEHIST, plcvr_hsap = hsap, plcvr_lsap = lsap, stat, p.value) %>%
+  mutate(p.adj = p.adjust(p.value, "fdr"), across(where(is.numeric), ~ round(.x, 3))) %>% 
+  arrange(desc(plcvr_hsap)) # Sort by high-sapro indicators first
+kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low or high saprotroph sites")
 
 #' 
 #' # Summary results
