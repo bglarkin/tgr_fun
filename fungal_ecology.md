@@ -4386,6 +4386,33 @@ Partial R2 from weighted logistic regression
 Model summary
 
 ``` r
+patho_null_glm <- glm(patho_prop ~ 1,
+                  data = patho_resto, family = quasibinomial(link = "logit"),
+                  weights = fungi_abund)
+anova(patho_null_glm, patho_gf_glm, test = "F")
+```
+
+    ## Analysis of Deviance Table
+    ## 
+    ## Model 1: patho_prop ~ 1
+    ## Model 2: patho_prop ~ fungi_mass_lc + gf_index
+    ##   Resid. Df Resid. Dev Df Deviance      F   Pr(>F)   
+    ## 1        12     4421.9                               
+    ## 2        10     1201.0  2   3220.9 13.675 0.001376 **
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Deviance explained
+
+``` r
+(patho_gf_glm_pr2 <- round(1-(summary(patho_gf_glm)$deviance / summary(patho_gf_glm)$null.deviance), 3))
+```
+
+    ## [1] 0.728
+
+Summary of terms
+
+``` r
 tidy(patho_gf_glm) %>% 
   mutate(odds_ratio = exp(estimate), exp_std.error = exp(std.error),
          across(where(is.numeric), ~ round(.x, 3))) %>% 
@@ -4582,7 +4609,7 @@ Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_model(sapro_rich_glm_i)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-142-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
 
 ``` r
 check_overdispersion(sapro_rich_glm_i) # not overdispersed
@@ -4873,7 +4900,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-152-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -5502,7 +5529,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-166-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-167-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5608,7 +5635,7 @@ covariate than the test variable.
 saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-170-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-171-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_index is
 clean.
@@ -5631,7 +5658,34 @@ data.frame(
 
 Partial R2 from weighted logistic regression
 
-Model summary Odds ratio prediction and confidence intervals on the
+Model summary
+
+``` r
+sapro_null_glm <- glm(sapro_prop ~ 1,
+                      data = sapro_resto, family = quasibinomial(link = "logit"),
+                      weights = fungi_abund)
+anova(sapro_null_glm, sapro_prich_glm, test = "F")
+```
+
+    ## Analysis of Deviance Table
+    ## 
+    ## Model 1: sapro_prop ~ 1
+    ## Model 2: sapro_prop ~ fungi_mass_lc + pl_rich
+    ##   Resid. Df Resid. Dev Df Deviance      F  Pr(>F)  
+    ## 1        12    1187.92                             
+    ## 2        10     663.24  2   524.68 4.1998 0.04742 *
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Deviance explained
+
+``` r
+(sapro_prich_glm_pr2 <- round(1-(summary(sapro_prich_glm)$deviance / summary(sapro_prich_glm)$null.deviance), 3))
+```
+
+    ## [1] 0.442
+
+Summary of terms Odds ratio prediction and confidence intervals on the
 prediction scale, results on the increment of an increase of 10 plant
 species desired due to scale of that variable. Note: in the following
 output, percent predicted changes are calculated *in excess* of 100%

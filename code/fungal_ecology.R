@@ -2352,7 +2352,7 @@ anova(sapro_null_glm, sapro_prich_glm, test = "F")
 #' Odds ratio prediction and confidence intervals on the prediction scale, results on the increment of an increase
 #' of 10 plant species desired due to scale of that variable. Note: in the following output,
 #' percent predicted changes are calculated *in excess* of 100% (e.g., 0.085 = -15%).
-#+ sarest_m_abs_summary
+#+ sarest_m_abs_terms
 tidy(sapro_prich_glm) %>% 
   mutate(odds_ratio = exp(estimate), exp_std.error = exp(std.error),
          across(where(is.numeric), ~ round(.x, 3))) %>% 
