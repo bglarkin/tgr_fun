@@ -1758,6 +1758,10 @@ summary(patho_gf_lm)
 #' sequence abundance in a model to test changes in each given the other. 
 #' 
 #' Multiple, weighted logistic glm
+#' Note on interpretation: exponentiated coefficients are interpreted as odds ratios 
+#' for pathogen dominance within the fungal community. Sequence abundances are used as 
+#' analytic weights so that sites with higher sequencing depth contributed proportionally 
+#' more information to the likelihood.
 patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_index,
                     data = patho_resto, family = quasibinomial(link = "logit"),
                     weights = fungi_abund)
