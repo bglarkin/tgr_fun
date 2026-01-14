@@ -43,7 +43,8 @@ theme_ord <-
     panel.grid = element_blank(),
     legend.title = element_blank(),
     legend.background = element_blank(),
-    legend.box.background = element_blank()
+    legend.box.background = element_blank(),
+    text = element_text(family = "Helvetica")
   )
 
 # Correlation plots
@@ -71,7 +72,8 @@ theme_cor <-
     axis.ticks.length.x = unit(0, "mm"),
     legend.title = element_text(size = 9, face = 1),
     legend.text = element_text(size = 8, face = 1),
-    panel.grid = element_blank()
+    panel.grid = element_blank(),
+    text = element_text(family = "Helvetica")
   )
 
 # Correlation plots in facets
@@ -99,5 +101,6 @@ theme_corf <-
     panel.grid = element_blank(),
     legend.title = element_blank(),
     strip.background = element_blank(),
-    strip.text = element_text(size = 10, face = 1)
+    strip.text = element_text(size = 10, face = 1),
+    text = element_text(family = "Helvetica")
   )

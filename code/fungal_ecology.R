@@ -263,7 +263,7 @@ pfg_pct <-
   left_join(fs8_xlab, by = join_by(field_name))
 gf_pct_fig <- 
   ggplot(pfg_pct, aes(x = fct_reorder(xlab, gf_index), y = pct_cvr, group = pfg)) +
-  geom_step(aes(color = pfg)) +
+  geom_step(aes(color = pfg), linejoin = "round", lineend = "round") +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   scale_color_manual(name = "Functional group", values = pfg_col[4:5], 
                      labels = c(expression("grass ("*C[4]*")"), expression("forb"))) +
@@ -292,7 +292,7 @@ pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = "svg",
+ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = svglite::svglite,
        width = 7.5, height = 7, units = "in")
 #' 
 #' ## Whole soil fungi
@@ -589,7 +589,7 @@ fig2
 #' Numbers in circles give years since restoration. Axis labels show the
 #' percent variation explained. 
 #+ fig2_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig2.svg"), plot = fig2, device = "svg",
+ggsave(root_path("figs", "fig2.svg"), plot = fig2, device = svglite::svglite,
        width = 18, height = 10.5, units = "cm")
 #' 
 #' ### Sequence-based relative abundance
@@ -647,7 +647,7 @@ its_shan_ord_sup <- (its_shan_fig | plot_spacer() | its_ord) +
 #+ its_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 its_shan_ord_sup
 #+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS3.svg"), plot = its_shan_ord_sup, device = "svg",
+ggsave(root_path("figs", "figS3.svg"), plot = its_shan_ord_sup, device = svglite::svglite,
        width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
@@ -1053,7 +1053,7 @@ fig3
 #' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
 #' prairie types. 
 #+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = "svg",
+ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
        width = 18, height = 10.5, units = "cm")
 #' 
 #' ### Sequence-based relative abundance, unifrac distance
@@ -1109,7 +1109,7 @@ amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
 #+ amf_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 amf_shan_ord_sup
 #+ amf_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS5.svg"), plot = amf_shan_ord_sup, device = "svg",
+ggsave(root_path("figs", "figS5.svg"), plot = amf_shan_ord_sup, device = svglite::svglite,
        width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
@@ -1597,7 +1597,7 @@ fig4
 #' percent variation explained. 
 #' 
 #+ fig4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = "svg",
+ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = svglite::svglite,
        width = 18, height = 10.5, units = "cm")
 #' 
 #' ### Sequence-based relative abundance
@@ -1653,7 +1653,7 @@ patho_shan_ord_sup <- (patho_shan_fig | plot_spacer() | patho_ord) +
 #+ patho_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 patho_shan_ord_sup
 #+ patho_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS6.svg"), plot = patho_shan_ord_sup, device = "svg",
+ggsave(root_path("figs", "figS6.svg"), plot = patho_shan_ord_sup, device = svglite::svglite,
        width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
@@ -1889,7 +1889,7 @@ fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plo
 #+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig7
 #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = "svg",
+ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
        width = 18, height = 11, units = "cm")
 
 #' 
@@ -2090,7 +2090,7 @@ fig5
 #' percent variation explained. Colours/shading: corn = grey, restored = black,
 #' remnant = white.
 #+ fig5_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig5.svg"), plot = fig5, device = "svg",
+ggsave(root_path("figs", "fig5.svg"), plot = fig5, device = svglite::svglite,
        width = 18, height = 10.5, units = "cm")
 #' 
 #' ### Sequence-based relative abundance
@@ -2146,7 +2146,7 @@ sapro_shan_ord_sup <- (sapro_shan_fig | plot_spacer() | sapro_ord) +
 #+ sapro_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
 sapro_shan_ord_sup
 #+ sapro_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS7.svg"), plot = sapro_shan_ord_sup, device = "svg",
+ggsave(root_path("figs", "figS7.svg"), plot = sapro_shan_ord_sup, device = svglite::svglite,
        width = 7.5, height = 4, units = "in")
 #' 
 #' #### Contrast community metrics
@@ -2388,7 +2388,7 @@ fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plo
 #+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig8
 #+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = "svg",
+ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = svglite::svglite,
        width = 18, height = 11, units = "cm")
 #' 
 #' ### Plant diversity and saprotroph biomass
@@ -2695,7 +2695,7 @@ fig6
 #' C4 grasses or forbs, respectively, along the index. The black arrows show other significant constraining
 #' variables. Points show locations of restored fields (green) and remnant fields (blue) in Wisconsin. 
 #+ fig6_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = "svg",
+ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = svglite::svglite,
        width = 18, height = 18, units = "cm")
 
 
