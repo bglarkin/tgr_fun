@@ -68,6 +68,28 @@ its <- etl(spe = its_otu, taxa = its_taxa, traits = traits, varname = "otu_num",
 amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
            colname_prefix = "18S_TGP_", folder = "clean_data")
 
+#' # Summary stats
+#' ## Sequencing depth
+list(
+  its = its$spe_samps,
+  amf = amf$spe_samps
+) %>% map(\(df) df %>% 
+            rowwise() %>% 
+            mutate(seq_depth = sum(c_across(starts_with("otu")))) %>% 
+            ungroup() %>% 
+            summarize(mean = mean(seq_depth),
+                      min  = min(seq_depth),
+                      max  = max(seq_depth)) %>% 
+            kable(format = "pandoc", caption = "Sequencing depth statistics across all individual samples"))
+#' 
+#' ## OTU recovery 
+list(
+  its = its$spe_samps,
+  amf = amf$spe_samps
+) %>% map(\(df) df %>% 
+            select(starts_with("otu")) %>% 
+            colnames() %>% length())
+
 #' # Sampling depth and coverage
 #' Script running `rarecurve()` is commented out because it takes so long to execute.
 #' Data were saved to the wd and are used for making figures. These files are too large
