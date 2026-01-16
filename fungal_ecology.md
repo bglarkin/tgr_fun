@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 14 January, 2026
+Last updated: 15 January, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -18,17 +18,19 @@ Last updated: 14 January, 2026
   metadata](#species-environment-and-metadata)
   - [Plant communities](#plant-communities)
   - [Plant functional groups](#plant-functional-groups)
-  - [Whole soil fungi](#whole-soil-fungi)
+  - [ITS-detectable fungi](#its-detectable-fungi)
 - [Functions](#functions)
-- [Whole Soil Fungi](#whole-soil-fungi-1)
-  - [Diversity Indices](#diversity-indices)
+- [ITS-detectable fungi](#its-detectable-fungi-1)
+  - [Guild composition](#guild-composition)
+  - [Alpha diversity](#alpha-diversity)
   - [Abundance (PLFA biomass)](#abundance-plfa-biomass)
   - [Beta Diversity](#beta-diversity)
   - [Constrained Analysis](#constrained-analysis)
   - [Soil fungi and plant community
     correlations](#soil-fungi-and-plant-community-correlations)
 - [Arbuscular mycorrhizal fungi](#arbuscular-mycorrhizal-fungi)
-  - [Diversity Indices](#diversity-indices-1)
+  - [Family composition](#family-composition)
+  - [Diversity indices](#diversity-indices)
   - [Abundance (NLFA biomass)](#abundance-nlfa-biomass)
   - [Beta Diversity](#beta-diversity-1)
   - [AMF abundance in families](#amf-abundance-in-families)
@@ -37,7 +39,7 @@ Last updated: 14 January, 2026
   - [AM fungi and plant community
     correlations](#am-fungi-and-plant-community-correlations)
 - [Putative plant pathogens](#putative-plant-pathogens)
-  - [Diversity Indices](#diversity-indices-2)
+  - [Diversity Indices](#diversity-indices-1)
   - [Abundance](#abundance)
   - [Beta Diversity](#beta-diversity-2)
   - [Pathogen Indicator Species](#pathogen-indicator-species)
@@ -45,7 +47,7 @@ Last updated: 14 January, 2026
   - [Pathogen and plant community
     correlations](#pathogen-and-plant-community-correlations)
 - [Putative saprotrophs](#putative-saprotrophs)
-  - [Diversity Indices](#diversity-indices-3)
+  - [Diversity Indices](#diversity-indices-2)
   - [Abundance](#abundance-1)
   - [Beta Diversity](#beta-diversity-3)
   - [Saprotroph Indicator Species](#saprotroph-indicator-species)
@@ -190,6 +192,7 @@ amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types =
 ``` r
 its_meta = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
   mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph",
+                                       str_detect(primary_lifestyle, "unspecified_path") ~ "unidentified",
                                        TRUE ~ primary_lifestyle),
          across(everything(), ~ replace_na(., "unidentified")))
 amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
@@ -476,7 +479,7 @@ pfg_pct_fig
 
 ![](resources/fungal_ecology_files/figure-gfm/pfg_fig-1.png)<!-- -->
 
-## Whole soil fungi
+## ITS-detectable fungi
 
 Wrangle data to produce proportional biomass in guilds for its and
 families for amf
@@ -560,13 +563,41 @@ dir of the repo.
 source(root_path("code", "functions.R"))
 ```
 
-# Whole Soil Fungi
+# ITS-detectable fungi
 
 ``` r
-# Whole soil fungi ———————— ####
+# ITS-detectable fungi ———————— ####
 ```
 
-## Diversity Indices
+## Guild composition
+
+``` r
+its_meta %>% 
+  count(primary_lifestyle) %>% 
+  mutate(composition = round(n / sum(n) * 100, 1)) %>% 
+  arrange(-composition) %>% 
+  kable(format = "pandoc", caption = "ITS-detectable fungi: composition in guilds")
+```
+
+| primary_lifestyle      |    n | composition |
+|:-----------------------|-----:|------------:|
+| unidentified           | 2036 |        64.1 |
+| saprotroph             |  720 |        22.7 |
+| plant_pathogen         |  183 |         5.8 |
+| arbuscular_mycorrhizal |   81 |         2.6 |
+| animal_parasite        |   65 |         2.0 |
+| ectomycorrhizal        |   31 |         1.0 |
+| mycoparasite           |   27 |         0.9 |
+| root_endophyte         |   18 |         0.6 |
+| algal_parasite         |    3 |         0.1 |
+| epiphyte               |    2 |         0.1 |
+| foliar_endophyte       |    3 |         0.1 |
+| lichen_parasite        |    4 |         0.1 |
+| lichenized             |    2 |         0.1 |
+
+ITS-detectable fungi: composition in guilds
+
+## Alpha diversity
 
 ``` r
 its_div <- calc_div(its_avg, sites) %>% 
@@ -900,7 +931,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
 
 variance differs slightly in groups. Tails on qq plot diverge, lots of
 groups structure visible.
@@ -1376,7 +1407,8 @@ mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH + pl_rich, data = env_expl, distance = "bray")
+    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH + pl_rich, data = env_expl, distance =
+    ## "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.3581     1.0000     
@@ -1622,10 +1654,33 @@ The relationship is poor and needs no further analysis
 # Arbuscular mycorrhizal fungi
 
 ``` r
-# AMF ———————— ####
+# AM fungi ———————— ####
 ```
 
-## Diversity Indices
+## Family composition
+
+``` r
+amf_meta %>% 
+  count(family) %>% 
+  mutate(composition = round(n / sum(n) * 100, 1)) %>% 
+  arrange(-composition) %>% 
+  kable(format = "pandoc", caption = "AM fungi: composition in families")
+```
+
+| family               |   n | composition |
+|:---------------------|----:|------------:|
+| Glomeraceae          | 105 |        69.1 |
+| Claroideoglomeraceae |  17 |        11.2 |
+| Diversisporaceae     |   8 |         5.3 |
+| Archaeosporaceae     |   7 |         4.6 |
+| Paraglomeraceae      |   6 |         3.9 |
+| Acaulosporaceae      |   4 |         2.6 |
+| Gigasporaceae        |   4 |         2.6 |
+| Ambisporaceae        |   1 |         0.7 |
+
+AM fungi: composition in families
+
+## Diversity indices
 
 ``` r
 amf_div <- calc_div(amf_avg, sites) %>% 
@@ -1691,7 +1746,8 @@ check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
 ```
 
     ## Model has interaction terms. VIFs might be inflated.
-    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction terms.
+    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model
+    ##   without interaction terms.
 
     ## # Check for Multicollinearity
     ## 
@@ -1996,7 +2052,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-65-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -2061,7 +2117,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-69-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -2079,7 +2135,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-68-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2450,7 +2506,7 @@ par(mfrow = c(2,2))
 plot(glom_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-72-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
 
 ``` r
 distribution_prob(glom_lm)
@@ -2514,7 +2570,7 @@ par(mfrow = c(2,2))
 plot(glom_lm_log) # some improvement, leverage point still exists
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-75-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-77-1.png)<!-- -->
 
 ``` r
 ncvTest(glom_lm_log) # p=0.29, null of constant variance not rejected, model fit is improved
@@ -2537,7 +2593,7 @@ glom_glm_diag <- glm.diag(glom_glm)
 glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-77-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
 
 ``` r
 check_model(glom_glm) # corroborates
@@ -2591,7 +2647,7 @@ par(mfrow = c(2,2))
 plot(clar_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-81-1.png)<!-- -->
 
 ``` r
 distribution_prob(clar_lm)
@@ -2637,7 +2693,7 @@ clar_glm_diag <- glm.diag(clar_glm)
 glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-82-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-84-1.png)<!-- -->
 
 ``` r
 check_model(clar_glm) # corroborates
@@ -2691,7 +2747,7 @@ par(mfrow = c(2,2))
 plot(para_lm) # variance non-constant among groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-84-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-86-1.png)<!-- -->
 
 ``` r
 distribution_prob(para_lm)
@@ -2737,7 +2793,7 @@ para_glm_diag <- glm.diag(para_glm)
 glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-87-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-89-1.png)<!-- -->
 
 ``` r
 check_model(para_glm) # corroborates
@@ -2796,7 +2852,7 @@ diver_glm_diag <- glm.diag(diver_glm)
 glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-90-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
 
 ``` r
 check_model(diver_glm) # corroborates
@@ -3579,7 +3635,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-115-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-117-1.png)<!-- -->
 
 no serious violations observed
 
@@ -4245,7 +4301,7 @@ Diagnostics
 check_model(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-133-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-135-1.png)<!-- -->
 
 ``` r
 check_collinearity(patho_gf_glm)
@@ -4360,7 +4416,7 @@ plotting.
 paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-137-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-139-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_index is
 clean.
@@ -4609,7 +4665,7 @@ Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_model(sapro_rich_glm_i)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-143-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-145-1.png)<!-- -->
 
 ``` r
 check_overdispersion(sapro_rich_glm_i) # not overdispersed
@@ -4900,7 +4956,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-155-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -5316,7 +5372,8 @@ sapro_mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + OM + gf_index + pl_rich + NO3, data = env_expl, distance = "bray")
+    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + OM + gf_index + pl_rich + NO3, data = env_expl,
+    ## distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.6087     1.0000     
@@ -5529,7 +5586,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-167-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-169-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5635,7 +5692,7 @@ covariate than the test variable.
 saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-171-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-173-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_index is
 clean.

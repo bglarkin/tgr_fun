@@ -2,7 +2,7 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 14 January, 2026
+Last updated: 15 January, 2026
 
 - [Description](#description)
 - [Resources](#resources)
@@ -13,6 +13,10 @@ Last updated: 14 January, 2026
 - [Load and process data](#load-and-process-data)
   - [Import data](#import-data)
   - [ETL processing](#etl-processing)
+- [Summary stats](#summary-stats)
+  - [Sequencing depth in samples](#sequencing-depth-in-samples)
+  - [Sequencing depth in sites](#sequencing-depth-in-sites)
+  - [OTU recovery](#otu-recovery)
 - [Sampling depth and coverage](#sampling-depth-and-coverage)
   - [Rarefaction: ITS site-averaged](#rarefaction-its-site-averaged)
   - [Rarefaction: AMF sample](#rarefaction-amf-sample)
@@ -96,6 +100,93 @@ its <- etl(spe = its_otu, taxa = its_taxa, traits = traits, varname = "otu_num",
 amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
            colname_prefix = "18S_TGP_", folder = "clean_data")
 ```
+
+# Summary stats
+
+## Sequencing depth in samples
+
+``` r
+list(
+  its = its$spe_samps,
+  amf = amf$spe_samps
+) %>% map(\(df) df %>% 
+            rowwise() %>% 
+            mutate(seq_depth = sum(c_across(starts_with("otu")))) %>% 
+            ungroup() %>% 
+            summarize(mean = mean(seq_depth),
+                      min  = min(seq_depth),
+                      max  = max(seq_depth)) %>% 
+            kable(format = "pandoc", caption = "Sequencing depth statistics across all individual samples"))
+```
+
+    ## $its
+    ## 
+    ## 
+    ## Table: Sequencing depth statistics across all individual samples
+    ## 
+    ##      mean   min     max
+    ## ---------  ----  ------
+    ##  8180.819   793   17552
+    ## 
+    ## $amf
+    ## 
+    ## 
+    ## Table: Sequencing depth statistics across all individual samples
+    ## 
+    ##     mean   min    max
+    ## --------  ----  -----
+    ##  3672.98   163   9252
+
+## Sequencing depth in sites
+
+``` r
+list(
+  its = its$spe_avg,
+  amf = amf$spe_avg
+) %>% map(\(df) df %>% 
+            rowwise() %>% 
+            mutate(seq_depth = sum(c_across(starts_with("otu")))) %>% 
+            ungroup() %>% 
+            summarize(mean = mean(seq_depth),
+                      min  = min(seq_depth),
+                      max  = max(seq_depth)) %>% 
+            kable(format = "pandoc", caption = "Sequencing depth statistics across sites"))
+```
+
+    ## $its
+    ## 
+    ## 
+    ## Table: Sequencing depth statistics across sites
+    ## 
+    ##      mean      min       max
+    ## ---------  -------  --------
+    ##  8181.332   6935.9   10437.4
+    ## 
+    ## $amf
+    ## 
+    ## 
+    ## Table: Sequencing depth statistics across sites
+    ## 
+    ##      mean      min      max
+    ## ---------  -------  -------
+    ##  3662.151   2092.6   4827.4
+
+## OTU recovery
+
+``` r
+list(
+  its = its$spe_samps,
+  amf = amf$spe_samps
+) %>% map(\(df) df %>% 
+            select(starts_with("otu")) %>% 
+            colnames() %>% length())
+```
+
+    ## $its
+    ## [1] 3175
+    ## 
+    ## $amf
+    ## [1] 152
 
 # Sampling depth and coverage
 
