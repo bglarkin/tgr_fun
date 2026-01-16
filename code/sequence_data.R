@@ -274,8 +274,7 @@ rare_fig
 #+ rarefaction_fig_save
 ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = svglite::svglite,
        height = 4.24,width = 7.5, units = "in")
-
-#+ species_accumulation_fig,fig.width=7,fig.height=4
+#' Create OTU accumulation fig
 accum_fig <- 
   ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
   facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free_y") +
@@ -287,6 +286,8 @@ accum_fig <-
     theme_corf +
     theme(legend.position = "none", 
           plot.margin = unit(c(0,2,4,2), "mm"))
+#+ species_accumulation_fig,fig.width=7,fig.height=4
+accum_fig
 #+ accum_fig_save
 ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = svglite::svglite,
        height = 4.25, width = 7.5, units = "in")
