@@ -69,7 +69,7 @@ amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
            colname_prefix = "18S_TGP_", folder = "clean_data")
 
 #' # Summary stats
-#' ## Sequencing depth
+#' ## Sequencing depth in samples
 list(
   its = its$spe_samps,
   amf = amf$spe_samps
@@ -81,6 +81,19 @@ list(
                       min  = min(seq_depth),
                       max  = max(seq_depth)) %>% 
             kable(format = "pandoc", caption = "Sequencing depth statistics across all individual samples"))
+#' 
+#' ## Sequencing depth in sites
+list(
+  its = its$spe_avg,
+  amf = amf$spe_avg
+) %>% map(\(df) df %>% 
+            rowwise() %>% 
+            mutate(seq_depth = sum(c_across(starts_with("otu")))) %>% 
+            ungroup() %>% 
+            summarize(mean = mean(seq_depth),
+                      min  = min(seq_depth),
+                      max  = max(seq_depth)) %>% 
+            kable(format = "pandoc", caption = "Sequencing depth statistics across sites"))
 #' 
 #' ## OTU recovery 
 list(

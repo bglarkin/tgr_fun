@@ -94,6 +94,7 @@ amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types =
 #' ## Microbial species metadata
 its_meta = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
   mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph",
+                                       str_detect(primary_lifestyle, "unspecified_path") ~ "unidentified",
                                        TRUE ~ primary_lifestyle),
          across(everything(), ~ replace_na(., "unidentified")))
 amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
@@ -295,7 +296,7 @@ pfg_pct_fig
 ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = svglite::svglite,
        width = 7.5, height = 7, units = "in")
 #' 
-#' ## Whole soil fungi
+#' ## ITS-detectable fungi
 #' Wrangle data to produce proportional biomass in guilds for its and families for amf
 its_guild_ma <- # guild biomass (proportion of total biomass)
   its_avg_ma %>% 
@@ -363,10 +364,17 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
 source(root_path("code", "functions.R"))
 
 #' 
-#' # Whole Soil Fungi
-# Whole soil fungi ———————— ####
+#' # ITS-detectable fungi
+# ITS-detectable fungi ———————— ####
 #' 
-#' ## Diversity Indices
+#' ## Guild composition
+its_meta %>% 
+  count(primary_lifestyle) %>% 
+  mutate(composition = round(n / sum(n) * 100, 1)) %>% 
+  arrange(-composition) %>% 
+  kable(format = "pandoc", caption = "ITS-detectable fungi: composition in guilds")
+#' 
+#' ## Alpha diversity
 #+ its_diversity
 its_div <- calc_div(its_avg, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
@@ -812,8 +820,16 @@ summary(fuma_rest_m)
 
 #' 
 #' # Arbuscular mycorrhizal fungi
-# AMF ———————— ####
-#' ## Diversity Indices
+# AM fungi ———————— ####
+#' 
+#' ## Family composition
+amf_meta %>% 
+  count(family) %>% 
+  mutate(composition = round(n / sum(n) * 100, 1)) %>% 
+  arrange(-composition) %>% 
+  kable(format = "pandoc", caption = "AM fungi: composition in families")
+#' 
+#' ## Diversity indices
 #+ amf_diversity
 amf_div <- calc_div(amf_avg, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
