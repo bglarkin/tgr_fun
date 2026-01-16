@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 15 January, 2026
+Last updated: 16 January, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -1407,8 +1407,7 @@ mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH + pl_rich, data = env_expl, distance =
-    ## "bray")
+    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_index + pH + pl_rich, data = env_expl, distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.3581     1.0000     
@@ -1746,8 +1745,7 @@ check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
 ```
 
     ## Model has interaction terms. VIFs might be inflated.
-    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model
-    ##   without interaction terms.
+    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction terms.
 
     ## # Check for Multicollinearity
     ## 
@@ -4682,6 +4680,10 @@ check_overdispersion(sapro_rich_glm_i) # not overdispersed
 augment(sapro_rich_glm_i) # corn site has cooks >0.9
 ```
 
+    ## Warning: The `augment()` method for objects of class `negbin` is not maintained by the broom team, and is only supported through the `glm` tidier method. Please be cautious in interpreting and reporting broom output.
+    ## 
+    ## This warning is displayed once per session.
+
     ## # A tibble: 25 × 9
     ##    richness depth_csq field_type .fitted  .resid   .hat .sigma  .cooksd .std.resid
     ##       <int>     <dbl> <fct>        <dbl>   <dbl>  <dbl>  <dbl>    <dbl>      <dbl>
@@ -5372,8 +5374,7 @@ sapro_mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + OM + gf_index + pl_rich + NO3, data = env_expl,
-    ## distance = "bray")
+    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + OM + gf_index + pl_rich + NO3, data = env_expl, distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.6087     1.0000     

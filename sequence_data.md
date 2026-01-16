@@ -2,7 +2,7 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 15 January, 2026
+Last updated: 16 January, 2026
 
 - [Description](#description)
 - [Resources](#resources)
@@ -411,6 +411,8 @@ ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = svglite::svglit
        height = 4.24,width = 7.5, units = "in")
 ```
 
+Create OTU accumulation fig
+
 ``` r
 accum_fig <- 
   ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
@@ -424,6 +426,12 @@ accum_fig <-
     theme(legend.position = "none", 
           plot.margin = unit(c(0,2,4,2), "mm"))
 ```
+
+``` r
+accum_fig
+```
+
+![](resources/sequence_data_files/figure-gfm/species_accumulation_fig-1.png)<!-- -->
 
 ``` r
 ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = svglite::svglite,
