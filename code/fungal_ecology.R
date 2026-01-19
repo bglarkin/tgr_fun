@@ -1900,7 +1900,7 @@ fig7a <-
 fig7b <- 
   cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
   ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.patho_prop)) +
-  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+  geom_smooth(method = "lm", color = "black", linewidth = lw, linetype = "dashed", se = FALSE) + 
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), y = NULL, tag = "B") +
