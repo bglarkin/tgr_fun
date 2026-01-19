@@ -188,16 +188,16 @@ pfg_pca <-
   rda()
 pfg_pca %>% summary() # 92% variation on first axis
 #' Define the grass_forb index
-gf_index = scores(pfg_pca, choices = 1, display = "sites") %>% 
+gf_axis = scores(pfg_pca, choices = 1, display = "sites") %>% 
   data.frame() %>% 
-  rename(gf_index = PC1) %>% 
+  rename(gf_axis = PC1) %>% 
   rownames_to_column(var = "field_name")
 #' 
-#' Are field age and gf_index correlated?
-gfi_yrs <- gf_index %>% 
+#' Are field age and gf_axis correlated?
+gfi_yrs <- gf_axis %>% 
   left_join(sites %>% select(field_name, yr_since), by = join_by(field_name)) %>% 
-  arrange(-gf_index)
-with(gfi_yrs, cor.test(yr_since, gf_index))
+  arrange(-gf_axis)
+with(gfi_yrs, cor.test(yr_since, gf_axis))
 #' The relatively strong correlation suggests that different restoration methods over time
 #' are still reflected in plant composition. Years since restoration is highly related to 
 #' plant community change. 
@@ -215,11 +215,11 @@ fs8_xlab <- pfg %>%
   select(field_name, xlab)
 plt_div <- 
   prich %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(fs8_xlab, by = join_by(field_name)) %>% 
-  select(field_name, xlab, gf_index, pl_rich, pl_shan) %>%
+  select(field_name, xlab, gf_axis, pl_rich, pl_shan) %>%
   pivot_longer(pl_rich:pl_shan, names_to = "var", values_to = "value") %>% 
-  ggplot(aes(x = fct_reorder(xlab, gf_index), y = value, group = var)) +
+  ggplot(aes(x = fct_reorder(xlab, gf_axis), y = value, group = var)) +
   geom_col(aes(fill = var), position = position_dodge()) +
   labs(x = NULL, y = expression(atop("Alpha diversity", paste("(", italic(n), " species)")))) +
   scale_fill_discrete_qualitative(name = "Diversity index", palette = "Dynamic", 
@@ -235,14 +235,14 @@ pfg_comp <-
   ungroup() %>% 
   pivot_longer(C3_grass:shrubTree, names_to = "pfg", values_to = "pct_comp") %>% 
   left_join(sites, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
-  select(field_name, yr_since, gf_index, pfg, pct_comp) %>% 
+  select(field_name, yr_since, gf_axis, pfg, pct_comp) %>% 
   mutate(pfg = factor(pfg, levels = c("shrubTree", "legume", "C3_grass", "C4_grass", "forb"),
                       labels = c("shrub, tree", "legume", "grass (C3)", "grass (C4)", "forb"))) %>% 
   left_join(fs8_xlab, by = join_by(field_name))
 pfg_comp_fig <- 
-  ggplot(pfg_comp, aes(x = fct_reorder(xlab, gf_index), y = pct_comp, group = pfg)) +
+  ggplot(pfg_comp, aes(x = fct_reorder(xlab, gf_axis), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
   labs(x = NULL, y = "Composition (%)") +
   scale_fill_manual(name = "Functional group", values = pfg_col,
@@ -256,14 +256,14 @@ pfg_pct <-
   select(field_name, C4_grass, forb) %>%
   pivot_longer(C4_grass:forb, names_to = "pfg", values_to = "pct_cvr") %>% 
   left_join(sites, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
-  select(field_name, yr_since, gf_index, pfg, pct_cvr)  %>% 
+  select(field_name, yr_since, gf_axis, pfg, pct_cvr)  %>% 
   mutate(pfg = factor(pfg, levels = c("C4_grass", "forb"),
                       labels = c("grass (C4)", "forb"))) %>% 
   left_join(fs8_xlab, by = join_by(field_name))
 gf_pct_fig <- 
-  ggplot(pfg_pct, aes(x = fct_reorder(xlab, gf_index), y = pct_cvr, group = pfg)) +
+  ggplot(pfg_pct, aes(x = fct_reorder(xlab, gf_axis), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg), linejoin = "round", lineend = "round") +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   scale_color_manual(name = "Functional group", values = pfg_col[4:5], 
@@ -275,10 +275,10 @@ gf_pct_fig <-
 gfi_loc_fig <- 
   gfi_yrs %>% 
   left_join(sites, by = join_by(field_name)) %>% 
-  ggplot(aes(x = gf_index, y = rep("PCA 1", nrow(gfi_yrs)))) + 
+  ggplot(aes(x = gf_axis, y = rep("PCA 1", nrow(gfi_yrs)))) + 
   geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
   geom_point(aes(color = field_type), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
-  labs(y = NULL, x = "Grass-forb index") +
+  labs(y = NULL, x = "Grass-forb axis") +
   scale_color_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -307,7 +307,7 @@ its_guild_ma <- # guild biomass (proportion of total biomass)
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
   select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 #' Wrangle a second set to compare raw sequence abundances and proportion of biomass values together
@@ -323,7 +323,7 @@ its_guild <-
   select(field_name, patho_abund = plant_pathogen, sapro_abund = saprotroph, fungi_abund) %>% 
   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything()) %>% 
   ungroup()
@@ -339,7 +339,7 @@ amf_fam <- # sequence abundance in families
   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_ab"),
               Glomeraceae:Ambisporaceae) %>% 
   left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 amf_fam_ma <- # family biomass (proportion of total biomass)
@@ -352,7 +352,7 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_mass"),
               Glomeraceae:Ambisporaceae) %>% 
   left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 
@@ -706,7 +706,7 @@ env_vars <- sites %>%
   select(field_name, dist_axis_1) %>% # 90% on axis 1
   left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
   left_join(soil_macro, by = join_by(field_name)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% # 92% on axis 1
+  left_join(gf_axis, by = join_by(field_name)) %>% # 92% on axis 1
   left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name)) %>% # plant richness
   select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1, K removed based on initial VIF check
   column_to_rownames(var = "field_name") %>% 
@@ -771,9 +771,9 @@ mod_scor_bp <- bind_rows(
     rownames_to_column(var = "envvar") %>% 
     mutate(envlabs = c(">forb", "pH", "plant spp.")),
   data.frame(
-    envvar = "gf_index",
-    dbRDA1 = -mod_scor$biplot["gf_index", 1],
-    dbRDA2 = -mod_scor$biplot["gf_index", 2],
+    envvar = "gf_axis",
+    dbRDA1 = -mod_scor$biplot["gf_axis", 1],
+    dbRDA2 = -mod_scor$biplot["gf_axis", 2],
     envlabs = ">grass")
 ) %>% 
   arrange(envvar, envlabs) %>% 
@@ -790,10 +790,10 @@ mod_scor_bp <- bind_rows(
 fungi_resto <- its_div %>% 
   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, fungi_ab = depth, fungi_mass, gf_index, pl_rich, pl_shan)
+  select(field_name, fungi_ab = depth, fungi_mass, gf_axis, pl_rich, pl_shan)
 #' 
 #' ### Plant alpha diversity and fungal biomass
 #' Is plant richness related to pathogen mass?
@@ -812,7 +812,7 @@ summary(fa_pshan_lm)
 #' 
 #' ### Fungal biomass and grass/forb composition
 #' Inspect simple linear relationship. Naïve model.
-fuma_rest_m <- lm(fungi_mass ~ gf_index, data = fungi_resto)
+fuma_rest_m <- lm(fungi_mass ~ gf_axis, data = fungi_resto)
 #+ cm1,warning=FALSE,fig.width=7,fig.height=9
 check_model(fuma_rest_m)
 summary(fuma_rest_m)
@@ -1348,9 +1348,9 @@ amf_mod_scor_bp <- bind_rows(
     rownames_to_column(var = "envvar") %>%
     mutate(envlabs = c(">forb", "pH")),
   data.frame(
-    envvar = "gf_index",
-    dbRDA1 = -amf_mod_scor$biplot["gf_index", 1],
-    dbRDA2 = -amf_mod_scor$biplot["gf_index", 2],
+    envvar = "gf_axis",
+    dbRDA1 = -amf_mod_scor$biplot["gf_axis", 1],
+    dbRDA2 = -amf_mod_scor$biplot["gf_axis", 2],
     envlabs = ">grass")
 ) %>% 
   arrange(envvar, envlabs) %>% 
@@ -1367,10 +1367,10 @@ amf_mod_scor_bp <- bind_rows(
 amf_resto <- amf_div %>% 
   left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
-  left_join(gf_index, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, amf_ab = depth, amf_mass, gf_index, pl_rich, pl_shan) 
+  select(field_name, amf_ab = depth, amf_mass, gf_axis, pl_rich, pl_shan) 
 #' 
 #' ### Plant richness and fungal biomass
 #' Is plant richness related to am fungal mass?
@@ -1386,16 +1386,16 @@ summary(amfa_pshan_lm)
 #' 
 #' ### AM fungal biomass and grass/forb composition
 #' Inspect simple linear relationship. Naïve model.
-amma_rest_m <- lm(amf_mass ~ gf_index, data = amf_resto)
+amma_rest_m <- lm(amf_mass ~ gf_axis, data = amf_resto)
 #+ cm7,warning=FALSE,fig.width=7,fig.height=9
 check_model(amma_rest_m)
 summary(amma_rest_m)
 #' AM fungal mass increases with grass-forb index slightly with p value just 
-#' above 0.95 alpha cutoff. Account for mass and gf_index as explanatory factors for 
+#' above 0.95 alpha cutoff. Account for mass and gf_axis as explanatory factors for 
 #' sequence abundance.
-summary(lm(amf_ab ~ amf_mass + gf_index, data = amf_resto))
+summary(lm(amf_ab ~ amf_mass + gf_axis, data = amf_resto))
 #' AM fungal mass predicts increase in amf sequences, but after accounting for that, 
-#' gf_index doesn't explain any new variation. 
+#' gf_axis doesn't explain any new variation. 
 #' Logistic regression unavailable as AM fungal sequence abundance aren't proportional of a total. 
 
 #' 
@@ -1765,7 +1765,7 @@ summary(pathofa_pshan_lm)
 #' 
 #' ### Pathogen biomass and grass/forb composition
 #' #### Inspect simple linear relationship. Naïve model.
-patho_gf_lm <- lm(patho_mass ~ gf_index, data = patho_resto)
+patho_gf_lm <- lm(patho_mass ~ gf_axis, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
 check_model(patho_gf_lm)
 summary(patho_gf_lm)
@@ -1781,7 +1781,7 @@ summary(patho_gf_lm)
 #' for pathogen dominance within the fungal community. Sequence abundances are used as 
 #' analytic weights so that sites with higher sequencing depth contributed proportionally 
 #' more information to the likelihood.
-patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_index,
+patho_gf_glm <- glm(patho_prop ~ fungi_mass_lc + gf_axis,
                     data = patho_resto, family = quasibinomial(link = "logit"),
                     weights = fungi_abund)
 summary(patho_gf_glm) # dispersion parameter >117 justifies quasibinomial
@@ -1790,15 +1790,15 @@ check_model(patho_gf_glm)
 check_collinearity(patho_gf_glm)
 augment(patho_gf_glm)
 #' Long tails and low n showing structure. Moderate leverage at LPRP1: high 
-#' pathogens, high gf_index but very low biomass...this is evidence of the noise that 
+#' pathogens, high gf_axis but very low biomass...this is evidence of the noise that 
 #' caused the naïve model to fail. 
 distribution_prob(patho_gf_glm)
 #' Residuals distribution normal
 loocv_paglm_gfi <- map_dbl(seq_len(nrow(patho_resto)), function(i){
-  exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
+  exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_axis, 
            data = patho_resto[-i, ], 
            family = quasibinomial(link = "logit"),
-           weights = fungi_abund))["gf_index"])
+           weights = fungi_abund))["gf_axis"])
 })
 summary(loocv_paglm_gfi)
 (cv_paglm <- (sd(loocv_paglm_gfi) / mean(loocv_paglm_gfi) * 100) %>% round(., 1))
@@ -1806,7 +1806,7 @@ summary(loocv_paglm_gfi)
 #' points (LPRP1) and three other potential outliers from the qq plot do not 
 #' significantly affect fit. Sign and magnitude of LOO slopes wouldn't change inference. 
 loocv_paglm_fma <- map_dbl(seq_len(nrow(patho_resto)), function(i){
-  exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_index, 
+  exp(coef(glm(patho_prop ~ fungi_mass_lc + gf_axis, 
                data = patho_resto[-i, ], 
                family = quasibinomial(link = "logit"),
                weights = fungi_abund))["fungi_mass_lc"])
@@ -1819,12 +1819,12 @@ summary(loocv_paglm_fma)
 #' The higher variability here shows that the noise of PLFA variation is substantial.
 #' View partial regression plots for consistency and save data for plotting.
 paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
-#' Noise in fungal mass data is obvious here. Fit of partial gf_index is clean.
+#' Noise in fungal mass data is obvious here. Fit of partial gf_axis is clean.
 #' 
 #' Partial R2 values
 #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
 data.frame(
-  term = c("fungal_mass", "gf_index"),
+  term = c("fungal_mass", "gf_axis"),
   partial_R2 = rsq.partial(patho_gf_glm, adj = TRUE)$partial.rsq
 ) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
@@ -1857,8 +1857,8 @@ tidy(patho_gf_glm) %>%
 paglm_med_fungi <- median(patho_resto$fungi_mass_lc, na.rm = TRUE)
 paglm_med_abund <- median(patho_resto$fungi_abund, na.rm = TRUE) # Needed for weight context
 paglm_newdat <- tibble(
-  gf_index = seq(min(patho_resto$gf_index, na.rm = TRUE),
-                 max(patho_resto$gf_index, na.rm = TRUE),
+  gf_axis = seq(min(patho_resto$gf_axis, na.rm = TRUE),
+                 max(patho_resto$gf_axis, na.rm = TRUE),
                  length.out = 200),
   fungi_mass_lc = paglm_med_fungi,
   fungi_abund = paglm_med_abund 
@@ -1872,17 +1872,64 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
+
+#+ fig7_gfa_rug
+gfa_fgc <- # grass-forb axis, forb-grass composition
+  pfg_pct %>% 
+  group_by(field_name) %>% 
+  mutate(pct_comp = pct_cvr / sum(pct_cvr)) %>% 
+  filter(pfg == "forb") %>% 
+  select(field_name, gf_axis, forb_comp = pct_comp) %>% 
+  arrange(gf_axis)
+
+# gfa_fgc_polydata <- 
+#   data.frame(
+#     pfg = rep(c("forb", "grass"), each = 26),
+#     x = rep(c(gfa_fgc$gf_axis, rev(gfa_fgc$gf_axis)), 2),
+#     y = c(rep(0, 13), rev(gfa_fgc$forb_comp), rep(1, 13), rev(gfa_fgc$forb_comp))
+#   )
+
+add_fig7_rug <- function(p, comp_df,
+                            y0, h,
+                            forb_fill, grass_fill, v_nudge=0) {
+  comp_df <- comp_df %>%
+    mutate(ymin = y0 + v_nudge,
+           ymid = (y0 + forb_comp * h) + v_nudge,
+           ymax = (y0 + h) + v_nudge)
+  
+  p +
+    geom_ribbon(
+      data = comp_df,
+      aes(x = gf_axis, ymin = ymin, ymax = ymid),
+      inherit.aes = FALSE,
+      fill = forb_fill
+    ) +
+    geom_ribbon(
+      data = comp_df,
+      aes(x = gf_axis, ymin = ymid, ymax = ymax),
+      inherit.aes = FALSE,
+      fill = grass_fill
+    ) +
+    coord_cartesian(clip = "off")
+}
+
+
+
+
+
 #+ fig7a,warning=FALSE
 fig7a <- 
-  ggplot(paglm_pred, aes(x = gf_index, y = fit_prob)) +
+  ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
   geom_line(color = "black", linewidth = lw) +
-  geom_point(data = patho_resto, aes(x = gf_index, y = patho_prop, fill = field_type),
+  geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
              size = sm_size, stroke = lw, shape = 21) +
-  geom_text(data = patho_resto, aes(x = gf_index, y = patho_prop, label = yr_since), 
+  geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since), 
             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(data = data.frame(x = c(0.25, 0.25), y = c(0.08, 0.10), lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
+            aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8) +
   labs(
-    x = "Grass–forb index",
+    x = "Grass–forb axis",
     y = "Pathogen proportion (share of total sequences)",
     tag = "A"
   ) +
@@ -1896,6 +1943,16 @@ fig7a <-
         legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
+#+ fig7a_rug,warning=FALSE
+fig7a_rug <- add_fig7_rug(
+  fig7a,
+  comp_df = gfa_fgc,
+  y0 = 0.05,     
+  h  = 0.010, 
+  forb_fill  = pfg_col[4],
+  grass_fill = pfg_col[5]
+) +
+  expand_limits(y = 0.05)
 #+ fig7b,warning=FALSE
 fig7b <- 
   cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
@@ -1915,17 +1972,28 @@ fig7b <-
 #+ fig7c,warning=FALSE
 fig7c <- 
   cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
-  ggplot(aes(x = gf_index.gf_index, y = gf_index.patho_prop)) +
+  ggplot(aes(x = gf_axis.gf_axis, y = gf_axis.patho_prop)) +
   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = "Grass–forb index", y = NULL, tag = "C") +
+  labs(x = "Grass–forb axis", y = NULL, tag = "C") +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0.175, 1))
+#+ fig7c_rug,warning=FALSE
+fig7c_rug <- add_fig7_rug(
+  fig7c,
+  comp_df = gfa_fgc,
+  y0 = -1.3,    
+  h  = 0.14,      
+  forb_fill  = pfg_col[4],
+  grass_fill = pfg_col[5]
+) +
+  expand_limits(y = -1.3)
+#+ fig7yax_shared
 fig7yax_grob <- textGrob(
   "Pathogen proportion (partial residuals, logit scale)",
   x = 0.5,
@@ -1936,9 +2004,9 @@ fig7yax_grob <- textGrob(
   gp = gpar(cex = 9/12)
 )
 #+ fig7_patchwork
-fig7rh <- (fig7b / plot_spacer() / fig7c) +
+fig7rh <- (fig7b / plot_spacer() / fig7c_rug) +
   plot_layout(heights = c(0.5, 0.01,0.5))
-fig7 <- (fig7a | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
+fig7 <- (fig7a_rug | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
   plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
 #+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
 fig7
@@ -2277,9 +2345,9 @@ sapro_mod_scor_bp <- bind_rows(
     rownames_to_column(var = "envvar") %>%
     mutate(envlabs = c("'OM'", "'>forb'", "plant~spp.", 'NO[3]^"–"')),
   data.frame(
-    envvar = "gf_index",
-    dbRDA1 = -sapro_mod_scor$biplot["gf_index", 1],
-    dbRDA2 = -sapro_mod_scor$biplot["gf_index", 2],
+    envvar = "gf_axis",
+    dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
+    dbRDA2 = -sapro_mod_scor$biplot["gf_axis", 2],
     envlabs = "'>grass'")
 ) %>% 
   arrange(envvar, envlabs) %>% 
@@ -2346,7 +2414,7 @@ summary(loocv_saglm_fma)
 #' Slope CV on fungal mass of 4.6% is low but shows greater noise with the covariate
 #' than the test variable. 
 saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
-#' Noise in fungal mass data is obvious here. Fit of partial gf_index is clean.
+#' Noise in fungal mass data is obvious here. Fit of partial gf_axis is clean.
 #' 
 #' Partial R2 values
 #+ sarest_m_abs_rsq,warning=FALSE,message=FALSE
@@ -2489,11 +2557,11 @@ summary(sapro_pshan_glm)
 #' NS
 #' 
 #' ### Saprotroph biomass and grass/forb composition
-sama_rest_m <- lm(sapro_mass ~ gf_index, data = sapro_resto)
+sama_rest_m <- lm(sapro_mass ~ gf_axis, data = sapro_resto)
 summary(sama_rest_m)
 #' Likely not enough of a relationship to warrant further attention
 #' Examine mass+richness models, similar to pathogen models
-sapro_gf_glm <- glm(sapro_prop ~ fungi_mass_lc + gf_index,
+sapro_gf_glm <- glm(sapro_prop ~ fungi_mass_lc + gf_axis,
                     data = sapro_resto, family = quasibinomial(link = "logit"),
                     weights = fungi_abund)
 summary(sapro_gf_glm)
