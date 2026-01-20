@@ -1873,6 +1873,8 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
 
+#' 
+#' Create multipanel figure, post-production in editing software will be necessary.
 #+ fig7_gfa_rug
 gfa_fgc <- # grass-forb axis, forb-grass composition
   pfg_pct %>% 
@@ -1926,8 +1928,6 @@ fig7a <-
              size = sm_size, stroke = lw, shape = 21) +
   geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since), 
             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  geom_text(data = data.frame(x = c(0.25, 0.25), y = c(0.08, 0.10), lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
-            aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8) +
   labs(
     x = "Grass–forb axis",
     y = "Pathogen proportion (share of total sequences)",
@@ -1952,10 +1952,13 @@ fig7a_rug <- add_fig7_rug(
   forb_fill  = pfg_col[4],
   grass_fill = pfg_col[5]
 ) +
-  expand_limits(y = 0.05)
+  expand_limits(y = 0.05) +
+  geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04), 
+                              lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
+            aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8)
 #+ fig7b,warning=FALSE
 fig7b <- 
-  cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
+  cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
   ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.patho_prop)) +
   geom_smooth(method = "lm", color = "black", linewidth = lw, linetype = "dashed", se = FALSE) + 
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
@@ -1971,7 +1974,7 @@ fig7b <-
         plot.tag.position = c(0.175, 1))
 #+ fig7c,warning=FALSE
 fig7c <- 
-  cbind(paglm_crpldata, patho_resto %>% select(field_type, yr_since)) %>% 
+  cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
   ggplot(aes(x = gf_axis.gf_axis, y = gf_axis.patho_prop)) +
   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
@@ -2013,6 +2016,69 @@ fig7
 #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
        width = 18, height = 11, units = "cm")
+
+
+
+
+
+
+
+
+# 1) Build a prediction grid over the observed ranges
+grid_n_gf   <- 200
+grid_n_mass <- 200
+
+pred_grid <- tidyr::expand_grid(
+  gf_axis = seq(min(patho_resto$gf_axis, na.rm = TRUE),
+                max(patho_resto$gf_axis, na.rm = TRUE),
+                length.out = grid_n_gf),
+  fungi_mass_lc = seq(min(patho_resto$fungi_mass_lc, na.rm = TRUE),
+                      max(patho_resto$fungi_mass_lc, na.rm = TRUE),
+                      length.out = grid_n_mass)
+) %>%
+  # include the weights variable only if needed by your model formula/data structure
+  mutate(fungi_abund = median(patho_resto$fungi_abund, na.rm = TRUE))
+
+# 2) Predict on link scale, then back-transform to probability
+pred_link <- predict(patho_gf_glm, newdata = pred_grid, type = "link", se.fit = TRUE)
+
+pred_surf <- pred_grid %>%
+  mutate(
+    eta = pred_link$fit,
+    se  = pred_link$se.fit,
+    prob = plogis(eta),
+    lwr  = plogis(eta - 1.96 * se),
+    upr  = plogis(eta + 1.96 * se)
+  )
+
+# 3) Heatmap of predicted pathogen proportion (probability scale)
+p_heat <- ggplot(pred_surf, aes(x = gf_axis, y = fungi_mass_lc)) +
+  geom_raster(aes(fill = prob), interpolate = TRUE) +
+  geom_contour(
+    aes(z = prob),
+    breaks = c(0.1, 0.15, 0.2, 0.25, 0.3),
+    color = "black",
+    linewidth = 0.3
+  ) +
+  geom_point(
+    data = patho_resto,
+    aes(x = gf_axis, y = fungi_mass_lc),
+    inherit.aes = FALSE,
+    shape = 21, stroke = 0.25, size = 2
+  ) +
+  labs(
+    x = "Grass–forb axis",
+    y = "Fungal biomass (model scale)",
+    fill = "Predicted\npathogen share"
+  ) +
+  coord_cartesian(expand = FALSE)
+
+p_heat
+
+
+
+
+
 
 #' 
 #' # Putative saprotrophs
