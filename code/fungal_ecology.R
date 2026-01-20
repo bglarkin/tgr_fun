@@ -2060,9 +2060,9 @@ p_heat <- ggplot(pred_surf, aes(x = gf_axis, y = fungi_mass_lc)) +
     color = "black",
     linewidth = 0.3
   ) +
-  geom_point(
+  geom_text(
     data = patho_resto,
-    aes(x = gf_axis, y = fungi_mass_lc),
+    aes(x = gf_axis, y = fungi_mass_lc, label = field_name),
     inherit.aes = FALSE,
     shape = 21, stroke = 0.25, size = 2
   ) +
