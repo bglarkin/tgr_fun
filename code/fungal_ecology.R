@@ -1391,12 +1391,22 @@ amma_rest_m <- lm(amf_mass ~ gf_axis, data = amf_resto)
 check_model(amma_rest_m)
 summary(amma_rest_m)
 #' AM fungal mass increases with grass-forb index slightly with p value just 
-#' above 0.95 alpha cutoff. Account for mass and gf_axis as explanatory factors for 
-#' sequence abundance.
-summary(lm(amf_ab ~ amf_mass + gf_axis, data = amf_resto))
-#' AM fungal mass predicts increase in amf sequences, but after accounting for that, 
-#' gf_axis doesn't explain any new variation. 
-#' Logistic regression unavailable as AM fungal sequence abundance aren't proportional of a total. 
+#' above 0.95 alpha cutoff. 
+
+
+# try with Glomeraceae and Claroideoglomeraceae
+
+
+
+
+
+
+
+
+
+
+
+
 
 #' 
 #' # Putative plant pathogens
@@ -1751,32 +1761,44 @@ patho_resto <- its_guild %>%
   ) %>% 
   select(-sapro_abund, -c(annual:shrubTree)) 
 #' 
-#' ### Plant richness and pathogen biomass
-#' Is plant richness related to pathogen mass?
+#' ### Plant richness and pathogens
+#' Is plant richness related to pathogen mass or proportion?
 pathofa_prich_lm = lm(patho_mass ~ pl_rich, data = patho_resto)
 summary(pathofa_prich_lm)
 #' Pathogen mass and plant richness aren't correlated, though the direction is negative. 
 #' Relationship is weak enough that no further tests are warranted.
 #' 
-#' Is plant diversity related to pathogen mass?
+patho_prich_glm <- glm(patho_prop ~ fungi_mass_lc + pl_rich,
+                    data = patho_resto, family = quasibinomial(link = "logit"),
+                    weights = fungi_abund)
+summary(patho_prich_glm) 
+#' No relationship detected.
+#'  
+#' Is plant diversity related to pathogen mass or porportion?
 pathofa_pshan_lm = lm(patho_mass ~ pl_shan, data = patho_resto)
 summary(pathofa_pshan_lm)
 #' NS  
 #' 
-#' ### Pathogen biomass and grass/forb composition
-#' #### Inspect simple linear relationship. Naïve model.
+patho_pshan_glm <- glm(patho_prop ~ fungi_mass_lc + pl_shan,
+                       data = patho_resto, family = quasibinomial(link = "logit"),
+                       weights = fungi_abund)
+summary(patho_pshan_glm) 
+#' NS
+#'  
+#' ### Plant functional groups and pathogens
+#' #### PFG and pathogen mass
 patho_gf_lm <- lm(patho_mass ~ gf_axis, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
 check_model(patho_gf_lm)
 summary(patho_gf_lm)
-#' The naïve model shows a positive relationship that isn't significant. 
+#' The model shows a positive relationship that isn't significant. 
 #' Diagnostic reveals noisy fit and lots of structure. How much does fungal mass vary 
 #' across sites?
 (fma_cv <- sd(patho_resto$fungi_mass) / mean(patho_resto$fungi_mass) * 100)
 #' 
 #' Decompose biomass and sequence abundance in a model to test changes in each given the other. 
 #' 
-#' #### Multiple, weighted logistic glm
+#' #### PFG and pathogen proportion
 #' Note on interpretation: exponentiated coefficients are interpreted as odds ratios 
 #' for pathogen dominance within the fungal community. Sequence abundances are used as 
 #' analytic weights so that sites with higher sequencing depth contributed proportionally 
@@ -1872,191 +1894,6 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-
-#' 
-#' Create multipanel figure, post-production in editing software will be necessary.
-#+ fig7_gfa_rug
-gfa_fgc <- # grass-forb axis, forb-grass composition
-  pfg_pct %>% 
-  group_by(field_name) %>% 
-  mutate(pct_comp = pct_cvr / sum(pct_cvr)) %>% 
-  filter(pfg == "forb") %>% 
-  select(field_name, gf_axis, forb_comp = pct_comp) %>% 
-  arrange(gf_axis)
-
-# gfa_fgc_polydata <- 
-#   data.frame(
-#     pfg = rep(c("forb", "grass"), each = 26),
-#     x = rep(c(gfa_fgc$gf_axis, rev(gfa_fgc$gf_axis)), 2),
-#     y = c(rep(0, 13), rev(gfa_fgc$forb_comp), rep(1, 13), rev(gfa_fgc$forb_comp))
-#   )
-
-
-
-
-
-
-
-# #+ fig7a,warning=FALSE
-# fig7a <- 
-#   ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
-#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-#   geom_line(color = "black", linewidth = lw) +
-#   geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
-#              size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since), 
-#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(
-#     x = "Grass–forb axis",
-#     y = "Pathogen proportion (share of total sequences)",
-#     tag = "A"
-#   ) +
-#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-#   theme_cor +
-#   theme(legend.position = c(0.03, 1),
-#         legend.justification = c(0, 1),
-#         legend.title = element_text(size = 9, face = 1),
-#         legend.text = element_text(size = 8, face = 1),
-#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-#         legend.key = element_rect(fill = "white"),
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0, 1))
-# #+ fig7a_rug,warning=FALSE
-# fig7a_rug <- add_fig7_rug(
-#   fig7a,
-#   comp_df = gfa_fgc,
-#   y0 = 0.05,     
-#   h  = 0.010, 
-#   forb_fill  = pfg_col[4],
-#   grass_fill = pfg_col[5]
-# ) +
-#   expand_limits(y = 0.05) +
-#   geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04), 
-#                               lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
-#             aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8)
-# #+ fig7b,warning=FALSE
-# fig7b <- 
-#   cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
-#   ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.patho_prop)) +
-#   geom_smooth(method = "lm", color = "black", linewidth = lw, linetype = "dashed", se = FALSE) + 
-#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), y = NULL, tag = "B") +
-#   scale_fill_manual(values = ft_pal[2:3]) +
-#   scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
-#   scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(patho_resto$fungi_mass)), 
-#                      labels = c(2.7, 3.8, 5.3, 7.5)) +
-#   theme_cor +
-#   theme(legend.position = "none",
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0.175, 1))
-# #+ fig7c,warning=FALSE
-# fig7c <- 
-#   cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
-#   ggplot(aes(x = gf_axis.gf_axis, y = gf_axis.patho_prop)) +
-#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
-#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(x = "Grass–forb axis", y = NULL, tag = "C") +
-#   scale_fill_manual(values = ft_pal[2:3]) +
-#   scale_y_continuous(breaks = c(-1, 0, 1)) +
-#   theme_cor +
-#   theme(legend.position = "none",
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0.175, 1))
-# #+ fig7c_rug,warning=FALSE
-# fig7c_rug <- add_fig7_rug(
-#   fig7c,
-#   comp_df = gfa_fgc,
-#   y0 = -1.3,    
-#   h  = 0.14,      
-#   forb_fill  = pfg_col[4],
-#   grass_fill = pfg_col[5]
-# ) +
-#   expand_limits(y = -1.3)
-# #+ fig7yax_shared
-# fig7yax_grob <- textGrob(
-#   "Pathogen proportion (partial residuals, logit scale)",
-#   x = 0.5,
-#   y = 0.5,
-#   hjust = 0.5,
-#   vjust = 0.5,
-#   rot = 90,
-#   gp = gpar(cex = 9/12)
-# )
-# #+ fig7_patchwork
-# fig7rh <- (fig7b / plot_spacer() / fig7c_rug) +
-#   plot_layout(heights = c(0.5, 0.01,0.5))
-# fig7 <- (fig7a_rug | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
-#   plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
-# #+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
-# fig7
-# #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
-# ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
-#        width = 18, height = 11, units = "cm")
-
-
-
-
-
-
-
-
-# 1) Build a prediction grid over the observed ranges
-grid_n_gf   <- 200
-grid_n_mass <- 200
-
-pred_grid <- tidyr::expand_grid(
-  gf_axis = seq(min(patho_resto$gf_axis, na.rm = TRUE),
-                max(patho_resto$gf_axis, na.rm = TRUE),
-                length.out = grid_n_gf),
-  fungi_mass_lc = seq(min(patho_resto$fungi_mass_lc, na.rm = TRUE),
-                      max(patho_resto$fungi_mass_lc, na.rm = TRUE),
-                      length.out = grid_n_mass)
-) %>%
-  # include the weights variable only if needed by your model formula/data structure
-  mutate(fungi_abund = median(patho_resto$fungi_abund, na.rm = TRUE))
-
-# 2) Predict on link scale, then back-transform to probability
-pred_link <- predict(patho_gf_glm, newdata = pred_grid, type = "link", se.fit = TRUE)
-
-pred_surf <- pred_grid %>%
-  mutate(
-    eta = pred_link$fit,
-    se  = pred_link$se.fit,
-    prob = plogis(eta),
-    lwr  = plogis(eta - 1.96 * se),
-    upr  = plogis(eta + 1.96 * se)
-  )
-
-# 3) Heatmap of predicted pathogen proportion (probability scale)
-p_heat <- ggplot(pred_surf, aes(x = gf_axis, y = fungi_mass_lc)) +
-  geom_raster(aes(fill = prob), interpolate = TRUE) +
-  geom_contour(
-    aes(z = prob),
-    breaks = c(0.1, 0.15, 0.2, 0.25, 0.3),
-    color = "black",
-    linewidth = 0.3
-  ) +
-  geom_text(
-    data = patho_resto,
-    aes(x = gf_axis, y = fungi_mass_lc, label = field_name),
-    inherit.aes = FALSE,
-    shape = 21, stroke = 0.25, size = 2
-  ) +
-  labs(
-    x = "Grass–forb axis",
-    y = "Fungal biomass (model scale)",
-    fill = "Predicted\npathogen share"
-  ) +
-  coord_cartesian(expand = FALSE)
-
-p_heat
-
-
-
-
-
 
 #' 
 #' # Putative saprotrophs
@@ -2416,16 +2253,15 @@ sapro_resto <- its_guild %>%
   ) %>% 
   select(-patho_abund, -c(annual:shrubTree))
 #' 
-#' ### Plant richness and saprotroph biomass
+#' ### Plant richness and saprotrophs
 #' Is plant richness related to saprotroph mass?
 saprofa_prich_lm <- lm(sapro_mass ~ pl_rich, data = sapro_resto)
 summary(saprofa_prich_lm)
 #' Strong negative relationship worthy of closer examination. It isn't driven by 
 #' grass-forb index (see below), so this isn't a confounding with C4 grass abundance...
-#' KORP site appears to have some leverage (not shown), conduct logistic model 
-#' and diagnostics as before.
+#' KORP site appears to have some leverage (not shown).
 #' 
-#' Multiple, weighted logistic glm
+#' Is plant richness related to saprotroph proportion?
 sapro_prich_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_rich,
                        data = sapro_resto, family = quasibinomial(link = "logit"),
                        weights = fungi_abund)
@@ -2511,104 +2347,21 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-
-
-
-
-# #+ fig8a,warning=FALSE
-# fig8a <-
-#   ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
-#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-#   geom_line(color = "black", linewidth = lw) +
-#   geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
-#              size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
-#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(
-#     x = expression(paste("Plant richness (", italic(n), " species)")),
-#     y = "Saprotroph proportion (share of total sequences)",
-#     tag = "A"
-#   ) +
-#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-#   theme_cor +
-#   theme(legend.position = c(0.03, 0.25),
-#         legend.justification = c(0, 1),
-#         legend.title = element_text(size = 9, face = 1),
-#         legend.text = element_text(size = 8, face = 1),
-#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-#         legend.key = element_rect(fill = "white"),
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0, 1))
-# #+ fig8b,warning=FALSE
-# fig8b <-
-#   cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
-#   ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.sapro_prop)) +
-#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
-#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), 
-#        y = NULL, 
-#        tag = "B") +
-#   scale_fill_manual(values = ft_pal[2:3]) +
-#   scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
-#   scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(sapro_resto$fungi_mass)),
-#   labels = c(2.7, 3.8, 5.3, 7.5)) +
-#   theme_cor +
-#   theme(legend.position = "none",
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0.025, 1))
-# #+ fig8c,warning=FALSE
-# fig8c <-
-#   cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
-#   ggplot(aes(x = pl_rich.pl_rich, y = pl_rich.sapro_prop)) +
-#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
-#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(x = expression(paste("Plant richness (", italic(n), " species)")), 
-#        y = NULL, tag = "C") +
-#   scale_fill_manual(values = ft_pal[2:3]) +
-#   scale_y_continuous(breaks = c(-1, 0, 1)) +
-#   theme_cor +
-#   theme(legend.position = "none",
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0.025, 1))
-# fig8yax_grob <- textGrob(
-#   "Saprotroph proportion (partial residuals, logit scale)",
-#   x = 0.5,
-#   y = 0.5,
-#   hjust = 0.5,
-#   vjust = 0.5,
-#   rot = 90,
-#   gp = gpar(cex = 9/12)
-# )
-# #+ fig8_patchwork
-# fig8rh <- (fig8b / plot_spacer() / fig8c) +
-#   plot_layout(heights = c(0.5, 0.01,0.5))
-# fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plot.tag = element_blank())) | fig8rh) +
-#   plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
-# #+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
-# fig8
-# #+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
-# ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = svglite::svglite,
-#        width = 18, height = 11, units = "cm")
-
-
-
-
 #' 
-#' ### Plant diversity and saprotroph biomass
+#' ### Plant diversity and saprotrophs
 #' Is plant diversity related to saprotroph mass?
 saprofa_pshan_lm <- lm(sapro_mass ~ pl_shan, data = sapro_resto)
 summary(saprofa_pshan_lm)
-#' Saprotroph mass and plant diversity may also deserve further examination.
+#' Saprotroph mass has a weak, significant relationship with saprotroph mass
 #' 
+#' Is plant diversity related to saprotroph proportion?
 sapro_pshan_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_shan,
                        data = sapro_resto, family = quasibinomial(link = "logit"),
                        weights = fungi_abund)
 summary(sapro_pshan_glm)
 #' NS
 #' 
-#' ### Saprotroph biomass and grass/forb composition
+#' ### Plant functional groups and saprotrophs
 sama_rest_m <- lm(sapro_mass ~ gf_axis, data = sapro_resto)
 summary(sama_rest_m)
 #' Likely not enough of a relationship to warrant further attention
@@ -2653,8 +2406,8 @@ sapro_plant_summary <- plant %>%
 kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low or high saprotroph sites")
 
 #' 
-#' # Results summary
-# Results summary ———————— ####
+#' # Results summaries
+# Results summaries ———————— ####
 #' The following outputs display unified summary reports where needed for tables, etc.
 #' 
 #' ## Richness summary
@@ -2940,72 +2693,78 @@ ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = svglite::svglite,
 
 
 
-
-# #+ fig7a,warning=FALSE
-# fig7a <- 
-#   ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
-#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-#   geom_line(color = "black", linewidth = lw) +
-#   geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
-#              size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since), 
-#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(
-#     x = "Grass–forb axis",
-#     y = "Pathogen proportion (share of total sequences)",
-#     tag = "A"
-#   ) +
-#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-#   theme_cor +
-#   theme(legend.position = c(0.03, 1),
-#         legend.justification = c(0, 1),
-#         legend.title = element_text(size = 9, face = 1),
-#         legend.text = element_text(size = 8, face = 1),
-#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-#         legend.key = element_rect(fill = "white"),
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0, 1))
-# #+ fig7a_rug,warning=FALSE
-# fig7a_rug <- add_fig7_rug(
-#   fig7a,
-#   comp_df = gfa_fgc,
-#   y0 = 0.05,     
-#   h  = 0.010, 
-#   forb_fill  = pfg_col[4],
-#   grass_fill = pfg_col[5]
-# ) +
-#   expand_limits(y = 0.05) +
-#   geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04), 
-#                               lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
-#             aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8)
-# #+ fig8a,warning=FALSE
-# fig8a <-
-#   ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
-#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-#   geom_line(color = "black", linewidth = lw) +
-#   geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
-#              size = sm_size, stroke = lw, shape = 21) +
-#   geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
-#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-#   labs(
-#     x = expression(paste("Plant richness (", italic(n), " species)")),
-#     y = "Saprotroph proportion (share of total sequences)",
-#     tag = "A"
-#   ) +
-#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-#   theme_cor +
-#   theme(legend.position = c(0.03, 0.25),
-#         legend.justification = c(0, 1),
-#         legend.title = element_text(size = 9, face = 1),
-#         legend.text = element_text(size = 8, face = 1),
-#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-#         legend.key = element_rect(fill = "white"),
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0, 1))
-
-
-
-
-fig7_temp <- (fig7a_rug | plot_spacer() | fig8a) +
+#' 
+#' ### Guild-plant relationships
+#' Create multipanel figure, post-production in editing software will be necessary.
+#+ fig7a,warning=FALSE
+fig7a <-
+  ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
+  geom_line(color = "black", linewidth = lw) +
+  geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
+             size = sm_size, stroke = lw, shape = 21) +
+  geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since),
+            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = "Grass–forb axis",
+    y = "Pathogen proportion",
+    tag = "A"
+  ) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_cor +
+  theme(legend.position = c(0.03, 1),
+        legend.justification = c(0, 1),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#+ fig7a_rug_data
+gfa_fgc <- # grass-forb axis, forb-grass composition
+  pfg_pct %>% 
+  group_by(field_name) %>% 
+  mutate(pct_comp = pct_cvr / sum(pct_cvr)) %>% 
+  filter(pfg == "forb") %>% 
+  select(field_name, gf_axis, forb_comp = pct_comp) %>% 
+  arrange(gf_axis)
+#+ fig7a_rug,warning=FALSE
+fig7a_rug <- add_fig7_rug(
+  fig7a,
+  comp_df = gfa_fgc,
+  y0 = 0.05,
+  h  = 0.010,
+  forb_fill  = pfg_col[4],
+  grass_fill = pfg_col[5]
+) +
+  expand_limits(y = 0.05) +
+  geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04),
+                              lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
+            aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8, family = "Helvetica")
+#+ fig7b,warning=FALSE
+fig7b <-
+  ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
+  geom_line(color = "black", linewidth = lw) +
+  geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
+             size = sm_size, stroke = lw, shape = 21) +
+  geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
+            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = expression(paste("Plant richness (", italic(n), " species)")),
+    y = "Saprotroph proportion",
+    tag = "A"
+  ) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#+ fig7_patchwork
+fig7 <- (fig7a_rug | plot_spacer() | fig7b) +
   plot_layout(widths = c(0.50, 0.01, 0.50), axis_titles = "collect_y") +
   plot_annotation(tag_levels = 'A')
+#+ fig7_display,warning=FALSE
+fig7
+#+ fig7_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
+       width = 18, height = 9, units = "cm")
+#' 
