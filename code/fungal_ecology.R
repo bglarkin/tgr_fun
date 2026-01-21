@@ -1891,131 +1891,109 @@ gfa_fgc <- # grass-forb axis, forb-grass composition
 #     y = c(rep(0, 13), rev(gfa_fgc$forb_comp), rep(1, 13), rev(gfa_fgc$forb_comp))
 #   )
 
-add_fig7_rug <- function(p, comp_df,
-                            y0, h,
-                            forb_fill, grass_fill, v_nudge=0) {
-  comp_df <- comp_df %>%
-    mutate(ymin = y0 + v_nudge,
-           ymid = (y0 + forb_comp * h) + v_nudge,
-           ymax = (y0 + h) + v_nudge)
-  
-  p +
-    geom_ribbon(
-      data = comp_df,
-      aes(x = gf_axis, ymin = ymin, ymax = ymid),
-      inherit.aes = FALSE,
-      fill = forb_fill
-    ) +
-    geom_ribbon(
-      data = comp_df,
-      aes(x = gf_axis, ymin = ymid, ymax = ymax),
-      inherit.aes = FALSE,
-      fill = grass_fill
-    ) +
-    coord_cartesian(clip = "off")
-}
 
 
 
 
 
-#+ fig7a,warning=FALSE
-fig7a <- 
-  ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
-  # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-  geom_line(color = "black", linewidth = lw) +
-  geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
-             size = sm_size, stroke = lw, shape = 21) +
-  geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since), 
-            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = "Grass–forb axis",
-    y = "Pathogen proportion (share of total sequences)",
-    tag = "A"
-  ) +
-  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-  theme_cor +
-  theme(legend.position = c(0.03, 1),
-        legend.justification = c(0, 1),
-        legend.title = element_text(size = 9, face = 1),
-        legend.text = element_text(size = 8, face = 1),
-        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-        legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#+ fig7a_rug,warning=FALSE
-fig7a_rug <- add_fig7_rug(
-  fig7a,
-  comp_df = gfa_fgc,
-  y0 = 0.05,     
-  h  = 0.010, 
-  forb_fill  = pfg_col[4],
-  grass_fill = pfg_col[5]
-) +
-  expand_limits(y = 0.05) +
-  geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04), 
-                              lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
-            aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8)
-#+ fig7b,warning=FALSE
-fig7b <- 
-  cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
-  ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.patho_prop)) +
-  geom_smooth(method = "lm", color = "black", linewidth = lw, linetype = "dashed", se = FALSE) + 
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), y = NULL, tag = "B") +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
-  scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(patho_resto$fungi_mass)), 
-                     labels = c(2.7, 3.8, 5.3, 7.5)) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.175, 1))
-#+ fig7c,warning=FALSE
-fig7c <- 
-  cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
-  ggplot(aes(x = gf_axis.gf_axis, y = gf_axis.patho_prop)) +
-  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = "Grass–forb axis", y = NULL, tag = "C") +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.175, 1))
-#+ fig7c_rug,warning=FALSE
-fig7c_rug <- add_fig7_rug(
-  fig7c,
-  comp_df = gfa_fgc,
-  y0 = -1.3,    
-  h  = 0.14,      
-  forb_fill  = pfg_col[4],
-  grass_fill = pfg_col[5]
-) +
-  expand_limits(y = -1.3)
-#+ fig7yax_shared
-fig7yax_grob <- textGrob(
-  "Pathogen proportion (partial residuals, logit scale)",
-  x = 0.5,
-  y = 0.5,
-  hjust = 0.5,
-  vjust = 0.5,
-  rot = 90,
-  gp = gpar(cex = 9/12)
-)
-#+ fig7_patchwork
-fig7rh <- (fig7b / plot_spacer() / fig7c_rug) +
-  plot_layout(heights = c(0.5, 0.01,0.5))
-fig7 <- (fig7a_rug | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
-  plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
-#+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
-fig7
-#+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
-       width = 18, height = 11, units = "cm")
+
+# #+ fig7a,warning=FALSE
+# fig7a <- 
+#   ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
+#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+#   geom_line(color = "black", linewidth = lw) +
+#   geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
+#              size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since), 
+#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(
+#     x = "Grass–forb axis",
+#     y = "Pathogen proportion (share of total sequences)",
+#     tag = "A"
+#   ) +
+#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+#   theme_cor +
+#   theme(legend.position = c(0.03, 1),
+#         legend.justification = c(0, 1),
+#         legend.title = element_text(size = 9, face = 1),
+#         legend.text = element_text(size = 8, face = 1),
+#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+#         legend.key = element_rect(fill = "white"),
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0, 1))
+# #+ fig7a_rug,warning=FALSE
+# fig7a_rug <- add_fig7_rug(
+#   fig7a,
+#   comp_df = gfa_fgc,
+#   y0 = 0.05,     
+#   h  = 0.010, 
+#   forb_fill  = pfg_col[4],
+#   grass_fill = pfg_col[5]
+# ) +
+#   expand_limits(y = 0.05) +
+#   geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04), 
+#                               lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
+#             aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8)
+# #+ fig7b,warning=FALSE
+# fig7b <- 
+#   cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
+#   ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.patho_prop)) +
+#   geom_smooth(method = "lm", color = "black", linewidth = lw, linetype = "dashed", se = FALSE) + 
+#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), y = NULL, tag = "B") +
+#   scale_fill_manual(values = ft_pal[2:3]) +
+#   scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
+#   scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(patho_resto$fungi_mass)), 
+#                      labels = c(2.7, 3.8, 5.3, 7.5)) +
+#   theme_cor +
+#   theme(legend.position = "none",
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0.175, 1))
+# #+ fig7c,warning=FALSE
+# fig7c <- 
+#   cbind(paglm_crpldata, patho_gf_glm$data %>% select(field_type, yr_since)) %>% 
+#   ggplot(aes(x = gf_axis.gf_axis, y = gf_axis.patho_prop)) +
+#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) + 
+#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(x = "Grass–forb axis", y = NULL, tag = "C") +
+#   scale_fill_manual(values = ft_pal[2:3]) +
+#   scale_y_continuous(breaks = c(-1, 0, 1)) +
+#   theme_cor +
+#   theme(legend.position = "none",
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0.175, 1))
+# #+ fig7c_rug,warning=FALSE
+# fig7c_rug <- add_fig7_rug(
+#   fig7c,
+#   comp_df = gfa_fgc,
+#   y0 = -1.3,    
+#   h  = 0.14,      
+#   forb_fill  = pfg_col[4],
+#   grass_fill = pfg_col[5]
+# ) +
+#   expand_limits(y = -1.3)
+# #+ fig7yax_shared
+# fig7yax_grob <- textGrob(
+#   "Pathogen proportion (partial residuals, logit scale)",
+#   x = 0.5,
+#   y = 0.5,
+#   hjust = 0.5,
+#   vjust = 0.5,
+#   rot = 90,
+#   gp = gpar(cex = 9/12)
+# )
+# #+ fig7_patchwork
+# fig7rh <- (fig7b / plot_spacer() / fig7c_rug) +
+#   plot_layout(heights = c(0.5, 0.01,0.5))
+# fig7 <- (fig7a_rug | plot_spacer() | (wrap_elements(full = fig7yax_grob) & theme(plot.tag = element_blank())) | fig7rh) +
+#   plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
+# #+ fig7,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
+# fig7
+# #+ fig7_save,warning=FALSE,message=FALSE,echo=FALSE
+# ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
+#        width = 18, height = 11, units = "cm")
 
 
 
@@ -2533,82 +2511,90 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-#+ fig8a,warning=FALSE
-fig8a <-
-  ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
-  # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
-  geom_line(color = "black", linewidth = lw) +
-  geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
-             size = sm_size, stroke = lw, shape = 21) +
-  geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
-            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = expression(paste("Plant richness (", italic(n), " species)")),
-    y = "Saprotroph proportion (share of total sequences)",
-    tag = "A"
-  ) +
-  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-  theme_cor +
-  theme(legend.position = c(0.03, 0.25),
-        legend.justification = c(0, 1),
-        legend.title = element_text(size = 9, face = 1),
-        legend.text = element_text(size = 8, face = 1),
-        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-        legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#+ fig8b,warning=FALSE
-fig8b <-
-  cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
-  ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.sapro_prop)) +
-  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), 
-       y = NULL, 
-       tag = "B") +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
-  scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(sapro_resto$fungi_mass)),
-  labels = c(2.7, 3.8, 5.3, 7.5)) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.025, 1))
-#+ fig8c,warning=FALSE
-fig8c <-
-  cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
-  ggplot(aes(x = pl_rich.pl_rich, y = pl_rich.sapro_prop)) +
-  geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(x = expression(paste("Plant richness (", italic(n), " species)")), 
-       y = NULL, tag = "C") +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0.025, 1))
-fig8yax_grob <- textGrob(
-  "Saprotroph proportion (partial residuals, logit scale)",
-  x = 0.5,
-  y = 0.5,
-  hjust = 0.5,
-  vjust = 0.5,
-  rot = 90,
-  gp = gpar(cex = 9/12)
-)
-#+ fig8_patchwork
-fig8rh <- (fig8b / plot_spacer() / fig8c) +
-  plot_layout(heights = c(0.5, 0.01,0.5))
-fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plot.tag = element_blank())) | fig8rh) +
-  plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
-#+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
-fig8
-#+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = svglite::svglite,
-       width = 18, height = 11, units = "cm")
+
+
+
+
+# #+ fig8a,warning=FALSE
+# fig8a <-
+#   ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
+#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+#   geom_line(color = "black", linewidth = lw) +
+#   geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
+#              size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
+#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(
+#     x = expression(paste("Plant richness (", italic(n), " species)")),
+#     y = "Saprotroph proportion (share of total sequences)",
+#     tag = "A"
+#   ) +
+#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+#   theme_cor +
+#   theme(legend.position = c(0.03, 0.25),
+#         legend.justification = c(0, 1),
+#         legend.title = element_text(size = 9, face = 1),
+#         legend.text = element_text(size = 8, face = 1),
+#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+#         legend.key = element_rect(fill = "white"),
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0, 1))
+# #+ fig8b,warning=FALSE
+# fig8b <-
+#   cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
+#   ggplot(aes(x = fungi_mass_lc.fungi_mass_lc, y = fungi_mass_lc.sapro_prop)) +
+#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
+#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(x = expression("Fungal biomass"~paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")), 
+#        y = NULL, 
+#        tag = "B") +
+#   scale_fill_manual(values = ft_pal[2:3]) +
+#   scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
+#   scale_x_continuous(breaks = log(c(2.7, 3.8, 5.3, 7.5)) - mean(log(sapro_resto$fungi_mass)),
+#   labels = c(2.7, 3.8, 5.3, 7.5)) +
+#   theme_cor +
+#   theme(legend.position = "none",
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0.025, 1))
+# #+ fig8c,warning=FALSE
+# fig8c <-
+#   cbind(saglm_crpldata, sapro_resto %>% select(field_type, yr_since)) %>%
+#   ggplot(aes(x = pl_rich.pl_rich, y = pl_rich.sapro_prop)) +
+#   geom_smooth(method = "lm", color = "black", linewidth = lw, se = FALSE) +
+#   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(x = expression(paste("Plant richness (", italic(n), " species)")), 
+#        y = NULL, tag = "C") +
+#   scale_fill_manual(values = ft_pal[2:3]) +
+#   scale_y_continuous(breaks = c(-1, 0, 1)) +
+#   theme_cor +
+#   theme(legend.position = "none",
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0.025, 1))
+# fig8yax_grob <- textGrob(
+#   "Saprotroph proportion (partial residuals, logit scale)",
+#   x = 0.5,
+#   y = 0.5,
+#   hjust = 0.5,
+#   vjust = 0.5,
+#   rot = 90,
+#   gp = gpar(cex = 9/12)
+# )
+# #+ fig8_patchwork
+# fig8rh <- (fig8b / plot_spacer() / fig8c) +
+#   plot_layout(heights = c(0.5, 0.01,0.5))
+# fig8 <- (fig8a | plot_spacer() | (wrap_elements(full = fig8yax_grob) & theme(plot.tag = element_blank())) | fig8rh) +
+#   plot_layout(widths = c(0.62, 0.004, 0.02, 0.38))
+# #+ fig8,warning=FALSE,message=FALSE,fig.height=5,fig.width=7
+# fig8
+# #+ fig8_save,warning=FALSE,message=FALSE,echo=FALSE
+# ggsave(root_path("figs", "fig8.svg"), plot = fig8, device = svglite::svglite,
+#        width = 18, height = 11, units = "cm")
+
+
+
+
 #' 
 #' ### Plant diversity and saprotroph biomass
 #' Is plant diversity related to saprotroph mass?
@@ -2667,7 +2653,8 @@ sapro_plant_summary <- plant %>%
 kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low or high saprotroph sites")
 
 #' 
-#' # Summary results
+#' # Results summary
+# Results summary ———————— ####
 #' The following outputs display unified summary reports where needed for tables, etc.
 #' 
 #' ## Richness summary
@@ -2951,3 +2938,74 @@ ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = svglite::svglite,
        width = 18, height = 18, units = "cm")
 
 
+
+
+
+# #+ fig7a,warning=FALSE
+# fig7a <- 
+#   ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
+#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+#   geom_line(color = "black", linewidth = lw) +
+#   geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
+#              size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since), 
+#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(
+#     x = "Grass–forb axis",
+#     y = "Pathogen proportion (share of total sequences)",
+#     tag = "A"
+#   ) +
+#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+#   theme_cor +
+#   theme(legend.position = c(0.03, 1),
+#         legend.justification = c(0, 1),
+#         legend.title = element_text(size = 9, face = 1),
+#         legend.text = element_text(size = 8, face = 1),
+#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+#         legend.key = element_rect(fill = "white"),
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0, 1))
+# #+ fig7a_rug,warning=FALSE
+# fig7a_rug <- add_fig7_rug(
+#   fig7a,
+#   comp_df = gfa_fgc,
+#   y0 = 0.05,     
+#   h  = 0.010, 
+#   forb_fill  = pfg_col[4],
+#   grass_fill = pfg_col[5]
+# ) +
+#   expand_limits(y = 0.05) +
+#   geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04), 
+#                               lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
+#             aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8)
+# #+ fig8a,warning=FALSE
+# fig8a <-
+#   ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
+#   # geom_ribbon(aes(ymin = lwr_med, ymax = upr_med), fill = "gray90") +
+#   geom_line(color = "black", linewidth = lw) +
+#   geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
+#              size = sm_size, stroke = lw, shape = 21) +
+#   geom_text(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
+#             size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#   labs(
+#     x = expression(paste("Plant richness (", italic(n), " species)")),
+#     y = "Saprotroph proportion (share of total sequences)",
+#     tag = "A"
+#   ) +
+#   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+#   theme_cor +
+#   theme(legend.position = c(0.03, 0.25),
+#         legend.justification = c(0, 1),
+#         legend.title = element_text(size = 9, face = 1),
+#         legend.text = element_text(size = 8, face = 1),
+#         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+#         legend.key = element_rect(fill = "white"),
+#         plot.tag = element_text(size = 14, face = 1),
+#         plot.tag.position = c(0, 1))
+
+
+
+
+fig7_temp <- (fig7a_rug | plot_spacer() | fig8a) +
+  plot_layout(widths = c(0.50, 0.01, 0.50), axis_titles = "collect_y") +
+  plot_annotation(tag_levels = 'A')

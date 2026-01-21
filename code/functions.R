@@ -566,3 +566,28 @@ make_zoom_map <- function(bb, panel_tag = NULL, pos = c(0,1), show_counties = FA
   g
   
 }
+#' 
+#' ### Add informative rug to fig 7
+add_fig7_rug <- function(p, comp_df,
+                         y0, h,
+                         forb_fill, grass_fill, v_nudge=0) {
+  comp_df <- comp_df %>%
+    mutate(ymin = y0 + v_nudge,
+           ymid = (y0 + forb_comp * h) + v_nudge,
+           ymax = (y0 + h) + v_nudge)
+  
+  p +
+    geom_ribbon(
+      data = comp_df,
+      aes(x = gf_axis, ymin = ymin, ymax = ymid),
+      inherit.aes = FALSE,
+      fill = forb_fill
+    ) +
+    geom_ribbon(
+      data = comp_df,
+      aes(x = gf_axis, ymin = ymid, ymax = ymax),
+      inherit.aes = FALSE,
+      fill = grass_fill
+    ) +
+    coord_cartesian(clip = "off")
+}
