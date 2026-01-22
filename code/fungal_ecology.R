@@ -1393,24 +1393,9 @@ summary(amma_rest_m)
 #' AM fungal mass increases with grass-forb index slightly with p value just 
 #' above 0.95 alpha cutoff. 
 
-
-# try with Glomeraceae and Claroideoglomeraceae
-
-
-
-
-
-
-
-
-
-
-
-
-
 #' 
-#' # Putative plant pathogens
-# Putative plant pathogens ———————— ####
+#' # Plant pathogens
+# Plant pathogens ———————— ####
 #' 
 #' Retrieve pathogen sequence abundance
 patho <- guildseq(its_avg, its_meta, "plant_pathogen")
@@ -1789,14 +1774,15 @@ summary(patho_pshan_glm)
 #' #### PFG and pathogen mass
 patho_gf_lm <- lm(patho_mass ~ gf_axis, data = patho_resto)
 #+ cm9,warning=FALSE,fig.width=7,fig.height=9
-check_model(patho_gf_lm)
+check_model(patho_gf_lm) 
+#' No obvious issues
 summary(patho_gf_lm)
 #' The model shows a positive relationship that isn't significant. 
 #' Diagnostic reveals noisy fit and lots of structure. How much does fungal mass vary 
 #' across sites?
 (fma_cv <- sd(patho_resto$fungi_mass) / mean(patho_resto$fungi_mass) * 100)
-#' 
-#' Decompose biomass and sequence abundance in a model to test changes in each given the other. 
+#' Variability in biomass is substantial; disconnect between composition and biomass 
+#' probable, resulting in a poor fit for the compositite variable. 
 #' 
 #' #### PFG and pathogen proportion
 #' Note on interpretation: exponentiated coefficients are interpreted as odds ratios 
@@ -1839,9 +1825,10 @@ summary(loocv_paglm_fma)
 #' points (LPRP1) and three other potential outliers from the qq plot do not 
 #' significantly affect fit. Sign and magnitude of LOO slopes wouldn't change inference. 
 #' The higher variability here shows that the noise of PLFA variation is substantial.
-#' View partial regression plots for consistency and save data for plotting.
-paglm_crpldata <- as.data.frame(crPlots(patho_gf_glm))
-#' Noise in fungal mass data is obvious here. Fit of partial gf_axis is clean.
+#' View partial regression plots for consistency.
+avPlots(patho_gf_glm)
+#' Noise in fungal mass data is obvious here. Fit of partial gf_axis is clean. No 
+#' non-linear structure is obvious. Both variables seem valuable.
 #' 
 #' Partial R2 values
 #+ parest_m_abs_rsq,warning=FALSE,message=FALSE
@@ -1896,8 +1883,8 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
   )
 
 #' 
-#' # Putative saprotrophs
-# Putative saprotrophs ———————— ####
+#' # Saprotrophs
+# Saprotrophs ———————— ####
 #' 
 #' Retrieve pathogen sequence abundance
 sapro <- guildseq(its_avg, its_meta, "saprotroph")
@@ -2256,10 +2243,21 @@ sapro_resto <- its_guild %>%
 #' ### Plant richness and saprotrophs
 #' Is plant richness related to saprotroph mass?
 saprofa_prich_lm <- lm(sapro_mass ~ pl_rich, data = sapro_resto)
+distribution_prob(saprofa_prich_lm)
+check_model(saprofa_prich_lm)
+#' Passes visual diagnostics
 summary(saprofa_prich_lm)
 #' Strong negative relationship worthy of closer examination. It isn't driven by 
 #' grass-forb index (see below), so this isn't a confounding with C4 grass abundance...
-#' KORP site appears to have some leverage (not shown).
+#' Residuals distribution normal. 
+#' KORP site appears to have some leverage (not shown). With possible leverage, conduct a 
+#' LOOCV check.
+loocv_sapro_prich_lm <- map_dbl(seq_len(nrow(sapro_resto)), function(i){
+  coef(lm(sapro_mass ~ pl_rich, data = sapro_resto[-i, ]))["pl_rich"]
+})
+summary(loocv_sapro_prich_lm)
+(cv_saprich_lm <- (sd(loocv_sapro_prich_lm) / mean(loocv_sapro_prich_lm) * 100) %>% round(., 1) %>% abs(.))
+#' All slopes negative and similar in magnitude, with CV = `r cv_saprich_lm`.
 #' 
 #' Is plant richness related to saprotroph proportion?
 sapro_prich_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_rich,
@@ -2293,8 +2291,10 @@ summary(loocv_saglm_fma)
 (cv_saglm <- (sd(loocv_saglm_fma) / mean(loocv_saglm_fma) * 100) %>% round(., 1))
 #' Slope CV on fungal mass of 4.6% is low but shows greater noise with the covariate
 #' than the test variable. 
-saglm_crpldata <- as.data.frame(crPlots(sapro_prich_glm))
-#' Noise in fungal mass data is obvious here. Fit of partial gf_axis is clean.
+avPlots(sapro_prich_glm)
+#' Noise in fungal mass data is obvious here. Fit of partial gf_axis is clean. No non-linear
+#' behavior is obvious, increasing spread with fungal mass expected for model type, 
+#' no overdispersion was detected earlier though. 
 #' 
 #' Partial R2 values
 #+ sarest_m_abs_rsq,warning=FALSE,message=FALSE
@@ -2351,9 +2351,19 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
 #' ### Plant diversity and saprotrophs
 #' Is plant diversity related to saprotroph mass?
 saprofa_pshan_lm <- lm(sapro_mass ~ pl_shan, data = sapro_resto)
+distribution_prob(saprofa_pshan_lm)
+check_model(saprofa_pshan_lm)
 summary(saprofa_pshan_lm)
-#' Saprotroph mass has a weak, significant relationship with saprotroph mass
-#' 
+#' Saprotroph mass has a weak, significant relationship with saprotroph mass. 
+#' Two extreme values exist, making a bit of a dumbbell shape. Residuals distribution
+#' normal. Two points with borderline leverage, conduct LOOCV. 
+loocv_sapshlm_fma <- map_dbl(seq_len(nrow(sapro_resto)), function(i){
+  coef(lm(sapro_mass ~ pl_shan, data = sapro_resto[-i, ]))["pl_shan"]
+})
+summary(loocv_sapshlm_fma)
+(cv_sapshlm_fma <- (sd(loocv_sapshlm_fma) / mean(loocv_sapshlm_fma) * 100) %>% round(., 1) %>% abs(.))
+#' Model relies heavily on two extreme values, with a LOOCV variation of `r cv_sapshlm_fma`%. 
+#' Suggest that makes the model unimportant. All slopes negative, but many very slight.
 #' Is plant diversity related to saprotroph proportion?
 sapro_pshan_glm <- glm(sapro_prop ~ fungi_mass_lc + pl_shan,
                        data = sapro_resto, family = quasibinomial(link = "logit"),
