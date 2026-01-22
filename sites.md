@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 16 January, 2026
+Last updated: 21 January, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
