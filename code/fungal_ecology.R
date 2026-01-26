@@ -1999,6 +1999,14 @@ sapro_shan_fig <-
 sapro_ma_lm <- lm(sapro_mass ~ field_type, data = its_guild_ma)
 par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
+
+
+its_guild %>% 
+  mutate(sapro_prop = sapro_abund / fungi_abund) %>% 
+  ggplot(aes(x = field_type, y = sapro_prop)) +
+  geom_boxplot()
+
+
 #' Variance looks consistent, no leverage points, poor qq fit
 distribution_prob(sapro_ma_lm)
 #' Residuals distribution fits normal, so do residuals
