@@ -364,8 +364,8 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
 source(root_path("code", "functions.R"))
 
 #' 
-#' # ITS-detectable fungi
-# ITS-detectable fungi ———————— ####
+#' # Soil fungi
+# Soil fungi ———————— ####
 #' 
 #' ## Guild composition
 its_meta %>% 
@@ -723,9 +723,10 @@ env_expl %>%
 #' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
 #' Removed soil_micro_1 and K to maintain OM in the model.
 #' No overfitting detected in full model; proceed with forward selection. 
-spe_its_wi_resto <- its_avg_ma %>% 
+spe_its_wi_resto <- its_avg %>% 
   filter(field_name %in% rownames(env_expl)) %>% 
-  column_to_rownames(var = "field_name")
+  data.frame(row.names = 1) %>%
+  decostand("total")
 mod_null <- dbrda(spe_its_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
 mod_full <- dbrda(spe_its_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
 mod_step <- ordistep(mod_null, 
@@ -1298,9 +1299,10 @@ amf_ind %>%
 #' 
 #' ## Constrained Analysis
 #' Env covars processed in the ITS section (see above)
-spe_amf_wi_resto <- amf_avg_ma %>%
+spe_amf_wi_resto <- amf_avg %>%
   filter(field_name %in% rownames(env_expl)) %>%
-  column_to_rownames(var = "field_name")
+  data.frame(row.names = 1) %>%
+  decostand("total")
 
 amf_mod_null <- dbrda(spe_amf_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
 amf_mod_full <- dbrda(spe_amf_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
@@ -1695,9 +1697,10 @@ patho_ind %>%
 #' 
 #' ## Constrained Analysis
 #' Env covars processed in the ITS section (see above)
-spe_patho_wi_resto <- patho_ma %>%
+spe_patho_wi_resto <- patho %>%
   filter(field_name %in% rownames(env_expl)) %>%
-  column_to_rownames(var = "field_name")
+  data.frame(row.names = 1) %>%
+  decostand("total")
 
 patho_mod_null <- dbrda(spe_patho_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
 patho_mod_full <- dbrda(spe_patho_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
@@ -1705,7 +1708,7 @@ patho_mod_step <- ordistep(patho_mod_null,
                            scope = formula(patho_mod_full),
                            direction = "forward",
                            permutations = 1999,
-                           trace = FALSE)
+                           trace = TRUE)
 #' 
 #' ### Constrained Analysis Results
 patho_mod_step
@@ -1713,25 +1716,38 @@ patho_mod_step
 (patho_mod_glax <- anova(patho_mod_step, permutations = 1999))
 (patho_mod_inax <- anova(patho_mod_step, by = "axis", permutations = 1999))
 (patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$eig), 1))
+patho_mod_step$anova %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
 #' Based on permutation tests with n=1999 permutations, 
 #' after accounting for inter-site pairwise distance as a covariate, the model shows 
 #' no significant correlation between pathogen community turnover and explanatory variables.
 #' 
-#' #### Pathogen (un)constrained figure
-#' Produce figure objects. In this case the panel will show a PCoA ordination of sites based on 
-#' pathogen communities. Code for multipanel fig 6 is shown in the saprotroph section.
-#+ patho_fig6_objects
-patho_mod_eig <- round(patho_mod_step$CA$eig / sum(patho_mod_step$CA$eig) * 100, 1)[1:2]
+#' #### Pathogen constrained figure
+patho_mod_step_eig <- c(round(patho_mod_step$CCA$eig * 100, 1), round(patho_mod_step$CA$eig * 100, 1)[1])
 patho_mod_scor <- scores(
   patho_mod_step,
   choices = c(1, 2),
-  display = c("sites"),
+  display = c("bp", "sites"),
   tidy = FALSE
 )
-patho_mod_scor_site <- patho_mod_scor %>%
+patho_mod_scor_site <- patho_mod_scor$sites %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
   left_join(sites, by = join_by(field_name))
+patho_mod_scor_bp <-
+  patho_mod_scor$biplot %>%
+    data.frame() %>%
+    rownames_to_column(var = "envvar") %>%
+    mutate(envlabs = "'OM'") %>% 
+  mutate(
+    origin = 0,
+    m = dbRDA1,
+    d = dbRDA1,
+    dadd = dbRDA1 * dadd_adj,
+    labx = d+dadd,
+    laby = 0)
 #' 
 #' ## Pathogen and plant community correlations
 #' Data for these tests
@@ -2164,9 +2180,10 @@ sapro_ind %>%
 #' 
 #' ## Constrained Analysis
 #' Env covars processed in the ITS section (see above)
-spe_sapro_wi_resto <- sapro_ma %>%
+spe_sapro_wi_resto <- sapro %>%
   filter(field_name %in% rownames(env_expl)) %>%
-  column_to_rownames(var = "field_name")
+  data.frame(row.names = 1) %>%
+  decostand("total")
 
 sapro_mod_null <- dbrda(spe_sapro_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
 sapro_mod_full <- dbrda(spe_sapro_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
@@ -2211,7 +2228,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'OM'", "'>forb'", "plant~spp.", 'NO[3]^"–"')),
+    mutate(envlabs = c("'>forb'", "'OM'")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
@@ -2602,7 +2619,7 @@ fig6a <-
   labs(
     x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
-  lims(x = c(-0.95,1.6)) +
+  lims(x = c(-1.5,1.2)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   theme_ord +
@@ -2612,13 +2629,13 @@ fig6a <-
 #' AMF
 #+ fig6b
 fig6b <-
-  ggplot(amf_mod_scor_site, aes(x = -1 * (dbRDA1), y = dbRDA2)) +
+  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = -1 * (dbRDA1), y = origin, yend = dbRDA2),
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = amf_mod_scor_bp,
-            aes(x = -1 * (labx), y = laby, label = envlabs),
+            aes(x = labx, y = laby, label = envlabs),
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
@@ -2626,7 +2643,7 @@ fig6b <-
   labs(
     x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
-  lims(x = c(-1.2,1.2)) +
+  lims(x = c(-1.3,1.2)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -2635,15 +2652,23 @@ fig6b <-
 #' Pathogens, PCoA fig
 #+ fig6c
 fig6c <-
-  ggplot(patho_mod_scor_site, aes(x = (MDS1), y = MDS2)) +
+  ggplot(patho_mod_scor_site, aes(x = -1 * dbRDA1, y = MDS1)) +
+  geom_segment(data = patho_mod_scor_bp,
+               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = MDS1),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = "gray20") +
+  geom_text(data = patho_mod_scor_bp,
+            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("PCoA 1 (", patho_mod_eig[1], "%)"),
-    y = paste0("PCoA 2 (", patho_mod_eig[2], "%)")) +
-  # lims(x = c(-1.1,1.05), y = c(-1.6,0.9)) +
+    x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%)"),
+    y = paste0("PCoA 1 (", patho_mod_step_eig[2], "%)")) +
+  # lims(y = c(-0.5,0.5)) +
   scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -2651,13 +2676,13 @@ fig6c <-
 #' Saprotrophs
 #+ fig6d
 fig6d <-
-  ggplot(sapro_mod_scor_site, aes(x = (dbRDA1), y = dbRDA2)) +
+  ggplot(sapro_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
   geom_segment(data = sapro_mod_scor_bp,
-               aes(x = origin, xend = (dbRDA1), y = origin, yend = dbRDA2),
+               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "gray20", "darkblue", "darkblue", "gray20")) +
+               color = c("gray20", "darkblue", "darkblue")) +
   geom_text(data = sapro_mod_scor_bp,
-            aes(x = (labx), y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
+            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
@@ -2665,10 +2690,10 @@ fig6d <-
   labs(
     x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
-  lims(x = c(-0.9,1.7)) +
+  lims(x = c(-1.2,2.0)) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_ord +
-  theme(legend.position = c(0.98, 0.03),
+  theme(legend.position = c(0.98, 0.5),
         legend.justification = c(1, 0),
         legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1),
