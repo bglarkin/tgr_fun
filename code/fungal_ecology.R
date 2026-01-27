@@ -671,7 +671,8 @@ its_protest
 #' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
 #' $R^{2}=$ `r round(its_protest$scale^2, 2)`, p<0.001. 
 #' 
-#' ## Constrained Analysis
+#' ## Constrained analysis
+## Constrained analysis ———————— ####
 #' Test explanatory variables for correlation with site ordination. Using plant data, 
 #' so the analysis is restricted to Wisconsin sites. Edaphic variables are too numerous 
 #' to include individually, so transform micro nutrients using PCA. Forb and grass 
@@ -726,6 +727,7 @@ env_expl %>%
 spe_its_wi_resto <- its_avg %>% 
   filter(field_name %in% rownames(env_expl)) %>% 
   data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
   decostand("total")
 mod_null <- dbrda(spe_its_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
 mod_full <- dbrda(spe_its_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
@@ -785,6 +787,9 @@ mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+#' 
+#' ### Variation partitioning
+#' Not informative with the entire genomic library.soil_expl <- sites %>% 
 #' 
 #' ## Soil fungi and plant community correlations
 #' Data for these tests
@@ -1297,11 +1302,13 @@ amf_ind %>%
   kable(format = "pandoc", caption = "Indicator species analysis results with avg biomass")
 #' None of the identified species seem relevant for further discussion...
 #' 
-#' ## Constrained Analysis
+#' ## Constrained analysis
+## Constrained analysis ------ ####
 #' Env covars processed in the ITS section (see above)
 spe_amf_wi_resto <- amf_avg %>%
   filter(field_name %in% rownames(env_expl)) %>%
   data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
   decostand("total")
 
 amf_mod_null <- dbrda(spe_amf_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
@@ -1363,6 +1370,43 @@ amf_mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+#' 
+#' ### Variation partitioning
+## Varpart ———————— ####
+#' Partial RDAs on testable fractions of variation
+#' soil + plant shared
+amf_m_ac <- rda(spe_amf_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+#' plant + soil shared
+amf_m_bc <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil + plant + shared
+amf_m_abc <- rda(spe_amf_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil only
+amf_m_a <- rda(spe_amf_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+#' plant only
+amf_m_b <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+#' shared only
+RsquareAdj(amf_m_abc)$adj.r.squared - RsquareAdj(amf_m_a)$adj.r.squared - RsquareAdj(amf_m_b)$adj.r.squared
+#' Results
+amf_varptes <- list(
+  `soil + plant shared`   = amf_m_ac, 
+  `plant + soil shared`   = amf_m_bc, 
+  `soil + plant + shared` = amf_m_abc, 
+  `soil only`             = amf_m_a, 
+  `plant only`            = amf_m_b
+  )
+tibble(
+  fraction = names(amf_varptes),
+  model = unname(amf_varptes)
+) %>%
+  mutate(
+    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
+    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
+    df = map_int(anova, \(a) a[["Df"]][1]),
+    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
+    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
+    p.val = format.pval(p, digits = 2, eps = 0.001)
+  ) %>%
+  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
 #' 
 #' ## AM fungi and plant community correlations
 #' Data for these tests
@@ -1695,11 +1739,13 @@ patho_ind %>%
          across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 #' 
-#' ## Constrained Analysis
+#' ## Constrained analysis
+## Constrained analysis ------ ####
 #' Env covars processed in the ITS section (see above)
 spe_patho_wi_resto <- patho %>%
   filter(field_name %in% rownames(env_expl)) %>%
   data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
   decostand("total")
 
 patho_mod_null <- dbrda(spe_patho_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
@@ -1748,6 +1794,43 @@ patho_mod_scor_bp <-
     dadd = dbRDA1 * dadd_adj,
     labx = d+dadd,
     laby = 0)
+#' 
+#' ### Variation partitioning
+## Varpart ———————— ####
+#' Partial RDAs on testable fractions of variation
+#' soil + plant shared
+patho_m_ac <- rda(spe_patho_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+#' plant + soil shared
+patho_m_bc <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil + plant + shared
+patho_m_abc <- rda(spe_patho_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil only
+patho_m_a <- rda(spe_patho_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+#' plant only
+patho_m_b <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+#' shared only
+RsquareAdj(patho_m_abc)$adj.r.squared - RsquareAdj(patho_m_a)$adj.r.squared - RsquareAdj(patho_m_b)$adj.r.squared
+#' Results
+patho_varptes <- list(
+  `soil + plant shared`   = patho_m_ac, 
+  `plant + soil shared`   = patho_m_bc, 
+  `soil + plant + shared` = patho_m_abc, 
+  `soil only`             = patho_m_a, 
+  `plant only`            = patho_m_b
+)
+tibble(
+  fraction = names(patho_varptes),
+  model = unname(patho_varptes)
+) %>%
+  mutate(
+    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
+    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
+    df = map_int(anova, \(a) a[["Df"]][1]),
+    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
+    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
+    p.val = format.pval(p, digits = 2, eps = 0.001)
+  ) %>%
+  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
 #' 
 #' ## Pathogen and plant community correlations
 #' Data for these tests
@@ -2186,11 +2269,13 @@ sapro_ind %>%
          across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 #' 
-#' ## Constrained Analysis
+#' ## Constrained analysis
+## Constrained analysis ------ ####
 #' Env covars processed in the ITS section (see above)
 spe_sapro_wi_resto <- sapro %>%
   filter(field_name %in% rownames(env_expl)) %>%
   data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
   decostand("total")
 
 sapro_mod_null <- dbrda(spe_sapro_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
@@ -2251,6 +2336,43 @@ sapro_mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+#' 
+#' ### Variation partitioning
+## Varpart ———————— ####
+#' Partial RDAs on testable fractions of variation
+#' soil + plant shared
+sapro_m_ac <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+#' plant + soil shared
+sapro_m_bc <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil + plant + shared
+sapro_m_abc <- rda(spe_sapro_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil only
+sapro_m_a <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+#' plant only
+sapro_m_b <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+#' shared only
+RsquareAdj(sapro_m_abc)$adj.r.squared - RsquareAdj(sapro_m_a)$adj.r.squared - RsquareAdj(sapro_m_b)$adj.r.squared
+#' Results
+sapro_varptes <- list(
+  `soil + plant shared`   = sapro_m_ac, 
+  `plant + soil shared`   = sapro_m_bc, 
+  `soil + plant + shared` = sapro_m_abc, 
+  `soil only`             = sapro_m_a, 
+  `plant only`            = sapro_m_b
+)
+tibble(
+  fraction = names(sapro_varptes),
+  model = unname(sapro_varptes)
+) %>%
+  mutate(
+    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
+    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
+    df = map_int(anova, \(a) a[["Df"]][1]),
+    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
+    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
+    p.val = format.pval(p, digits = 2, eps = 0.001)
+  ) %>%
+  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
 #' 
 #' ## Saprotroph and plant community correlations
 #' Data for these tests
