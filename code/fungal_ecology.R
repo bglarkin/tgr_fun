@@ -363,23 +363,54 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
 # Functions ———————— ####
 source(root_path("code", "functions.R"))
 
+
+
+
 #' 
-#' # Soil fungi
-# Soil fungi ———————— ####
-#' 
-#' ## Guild composition
+#' # Guild composition
 its_meta %>% 
   count(primary_lifestyle) %>% 
   mutate(composition = round(n / sum(n) * 100, 1)) %>% 
   arrange(-composition) %>% 
   kable(format = "pandoc", caption = "ITS-detectable fungi: composition in guilds")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' 
-#' ## Alpha diversity
+#' # Alpha diversity
+# Alpha diversity ———————— ####
+#' Preprocess data for diversity indices
 #+ its_diversity
 its_div <- calc_div(its_avg, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+#+ amf_diversity
+amf_div <- calc_div(amf_avg, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+#+ patho_diversity
+patho <- guildseq(its_avg, its_meta, "plant_pathogen")
+patho_div <- calc_div(patho, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+#+ sapro_diversity
+sapro <- guildseq(its_avg, its_meta, "saprotroph")
+sapro_div <- calc_div(sapro, sites) %>% 
+  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+
 #' 
-#' ### Richness
+#' ## Richness
+## Richness ———————— ####
+#' ### ITS fungi
 #' Sequence depth square root transformed and centered. Negative binomial model used to handle count 
 #' data. Poisson model was overdispersed (not shown). 
 #' 
@@ -418,21 +449,146 @@ kable(pairs(its_rich_em),
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' OTU richness in cornfields is significantly less than in restored or remnant fields (p<0.001), which 
 #' don't differ. 
-#+ its_richness_fig,fig.width=4,fig.height=4
-its_rich_fig <- 
-  ggplot(summary(its_rich_em), aes(x = field_type, y = response)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
-  lims(y = c(0, 760)) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
 #' 
-#' ### Shannon's diversity
+#' ### AM fungi
+#' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
+#' and failed to converge at default iterations; use poisson glm instead. 
+#' 
+#' Test interaction
+amf_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = amf_div, family = poisson(link = "log")) 
+Anova(amf_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
+check_overdispersion(amf_rich_glm_i) # not overdispersed
+augment(amf_rich_glm_i) # corn site has cooks >0.9
+check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
+#' An interaction was detected, but including it in the model leads to very poor diagnostics.
+#' It's driven by one site in corn with high leverage, and it introduces high 
+#' multicollinearity. Further, the outlier point would tend to lead to a Type II
+#' error of inference, making it a conservative choice to stick with the additive model. 
+#' 
+#' Fit additive model
+amf_rich_glm <- glm(richness ~ depth_csq + field_type, data = amf_div, family = poisson(link = "log")) 
+#' Diagnostics
+#+ amf_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(amf_rich_glm)
+check_overdispersion(amf_rich_glm)
+check_collinearity(amf_rich_glm)
+#' Long tails, some midrange structure, no leverage points, overdispersion, or multicollinearity
+distribution_prob(amf_rich_glm)
+#' residuals distribution normal or long-tailed, response count-distributed
+leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(amf_rich_glm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals/response distributions do not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
+#' 
+#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
+Anova(amf_rich_glm, type = 2, test.statistic = "LR")
+#' Sequencing depth not a significant predictor of amf richness
+amf_rich_em <- emmeans(amf_rich_glm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of estimated marginal means and confidence intervals, 
+#' and the post hoc contrast of richness among field types. 
+#' Main effect in model significant; pairwise contrast warranted.
+#+ amf_rich_em_summary,echo=FALSE
+kable(summary(amf_rich_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ amf_rich_em_posthoc,echo=FALSE
+kable(pairs(amf_rich_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' OTU richness in cornfields is significantly less than in restored or remnant fields, which 
+#' don't differ.
+#' 
+#' ### Pathogens
+#' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
+#' and failed to converge at default iterations; use poisson glm instead. 
+#' 
+#' Test interaction
+patho_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = patho_div, family = poisson(link = "log")) 
+Anova(patho_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
+#' Fit additive model
+patho_rich_glm <- glm(richness ~ depth_csq + field_type, data = patho_div, family = poisson(link = "log")) 
+#' Diagnostics
+#+ patho_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(patho_rich_glm)
+check_overdispersion(patho_rich_glm)
+check_collinearity(patho_rich_glm)
+#' Some midrange structure, no leverage points, overdispersion, or multicollinearity
+distribution_prob(patho_rich_glm)
+#' residuals distribution normal or long-tailed, response count-distributed
+leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(patho_rich_glm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals/response distributions do not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
+#' 
+#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
+Anova(patho_rich_glm, type = 2, test.statistic = "LR")
+#' Sequence depth is highly significant; richness doesn't vary in groups. 
+#+ patho_depth_ft_cor
+patho_div %>% 
+  group_by(field_type) %>% 
+  summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
+  kable(format = "pandoc", caption = "Average sequence depth and pathogen richness in field types")
+#' Depth is correlated with richness in field types. Differences in richness are small
+#' and with depth variance removed first, this explains why richness isn't significantly 
+#' different. 
+#' 
+#' Calculate confidence intervals for figure.
+#' Arithmetic means calculated in this case.
+patho_rich_em <- emmeans(patho_rich_glm, ~ field_type, type = "response")
+#+ patho_rich_em_summary,echo=FALSE
+kable(summary(patho_rich_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ patho_rich_em_posthoc,echo=FALSE
+kable(pairs(patho_rich_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' 
+#' ### Saprotrophs
+#' Sequence depth square root transformed and centered. Poisson model was overdispersed (not shown), 
+#' use negative binomial instead.  
+#' 
+#' Test interaction
+sapro_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = sapro_div) 
+Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
+check_model(sapro_rich_glm_i)
+check_overdispersion(sapro_rich_glm_i) # not overdispersed
+augment(sapro_rich_glm_i) # corn site has cooks >0.9
+check_collinearity(sapro_rich_glm_i) # depth and interaction VIF > 6
+#' An interaction was detected, but including it in the model leads to very poor diagnostics.
+#' It's driven by one site in corn with high leverage, and it introduces high 
+#' multicollinearity.  
+#' 
+#' Fit additive model
+sapro_rich_glm <- glm.nb(richness ~ depth_csq + field_type, data = sapro_div) 
+#' Diagnostics
+#+ sapro_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(sapro_rich_glm)
+check_overdispersion(sapro_rich_glm)
+check_collinearity(sapro_rich_glm)
+#' Long tails, some structure throughout, no leverage points, overdispersion, or multicollinearity
+distribution_prob(sapro_rich_glm)
+#' residuals distribution normal or long-tailed, response count-distributed
+leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(sapro_rich_glm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals/response distributions do not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
+#' 
+#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
+Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
+#' Differences in richness are very close to significance. Calculate confidence intervals for figure.
+#' Estimated marginal means calculated in this case
+sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
+#+ sapro_rich_em_summary,echo=FALSE
+kable(summary(sapro_rich_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#' Model NS; no post hoc comparison...
+
+#' 
+#' ## Shannon diversity
+## Shannon diversity ———————— ####
+#' ### ITS fungi
 #' Sequence depth square root transformed and centered  
 its_shan_lm <- lm(shannon ~ depth_csq + field_type, data = its_div)
 #' Diagnostics
@@ -476,23 +632,264 @@ kable(summary(its_shan_em),
 kable(pairs(its_shan_em), 
       format = "pandoc", 
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' Shannon diversity in cornfields is significantly less than in restored or remnant fields, which 
+#' don't differ.
+#' 
+#' ### AM fungi
+#' Sequence depth square root transformed and centered 
+amf_shan_lm <- lm(shannon ~ depth_csq + field_type, data = amf_div)
+#' Diagnostics
+#+ amf_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(amf_shan_lm)
+#' Variance appears somewhat non-constant in groups, qqplot fit is poor, 
+#' one leverage point (Cook's > 0.5), a cornfield with high richness. Mean
+#' richness in corn fields is lowest; this outlier would make the pairwise contrast
+#' less significant, possible Type II error which is more acceptable.
+distribution_prob(amf_shan_lm)
+#' Residuals/response distributions most likely normal. 
+leveneTest(shannon ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals/response distributions do not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+#' 
+#' Model results, group means, and post-hoc
+Anova(amf_shan_lm, type = 2)
+#' Sequencing depth not a significant predictor of Shannon diversity. Produce arithmetic means
+#' in groups and post hoc contrasts
+amf_shan_em <- emmeans(amf_shan_lm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of group means and confidence intervals,
+#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
+#+ amf_shan_em_summary,echo=FALSE
+kable(summary(amf_shan_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ amf_shan_em_posthoc,echo=FALSE
+kable(pairs(amf_shan_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' Shannon's diversity in cornfields is significantly less than in restored or remnant fields, which 
 #' don't differ.
-#+ its_shan_fig
-its_shan_fig <- 
-  ggplot(summary(its_shan_em), aes(x = field_type, y = emmean)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")), vjust = -1, family = "sans", size = 3.5) +
-  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
-  lims(y = c(0, 160)) +
+#' 
+#' ### Pathogens
+#' Sequence depth square root transformed and centered 
+patho_shan_lm <- lm(shannon ~ depth_csq + field_type, data = patho_div)
+#' Diagnostics
+#+ patho_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(patho_shan_lm)
+distribution_prob(patho_shan_lm)
+#' residuals distribution most likely cauchy/normal; symmetric but long tails
+#' response normal
+leveneTest(shannon ~ field_type, data = patho_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals distribution does not suggest the need for further model selection.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+#' 
+#' Model results, group means, and post-hoc
+Anova(patho_shan_lm, type = 2)
+#' Neither predictor is significant
+patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of group means and confidence intervals,
+#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
+#+ patho_shan_em_summary,echo=FALSE
+kable(summary(patho_shan_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ patho_shan_em_posthoc,echo=FALSE
+kable(pairs(patho_shan_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' 
+#' ### Saprotrophs
+#' Sequence depth square root transformed and centered 
+sapro_shan_lm <- lm(shannon ~ depth_csq + field_type, data = sapro_div)
+#' Diagnostics
+#+ sapro_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
+check_model(sapro_shan_lm)
+distribution_prob(sapro_shan_lm)
+#' residuals distribution most likely normal, qq fit good, no evidence of mean/variance increase
+#' response non-normal, check variance in groups though
+leveneTest(shannon ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable(format = "pandoc")
+leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
+#' Residuals distribution does not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+#' 
+#' Model results, group means, and post-hoc
+Anova(sapro_shan_lm, type = 2)
+#' Sequence depth is not a significant predictor of Shannon diversity, nor field type
+sapro_shan_em <- emmeans(sapro_shan_lm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of group means and confidence intervals,
+#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
+#' 
+#' ## Unified results
+## Unified results ———————— ####
+#' Summary statistics for richness models
+#' Fungal OTU richness differences across field types accounting for sequencing depth.
+#' Field type effects were evaluated using Type II Analysis of Deviance.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure.
+list(
+  its_rich_nb     = Anova(its_rich_glm, type = 2, test.statistic = "LR"),
+  amf_rich_pois   = Anova(amf_rich_glm, type = 2, test.statistic = "LR"),
+  patho_rich_pois = Anova(patho_rich_glm, type = 2, test.statistic = "LR"),
+  sapro_rich_nb   = Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
+) %>% map(\(df) tidy(df)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         LRchisq_df = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, LRchisq_df, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' Summary statistics for Shannon models
+#' Fungal OTU Shannon diversity differences across field types accounting for sequencing depth.
+#' Field type effects were evaluated using Type II Analysis of Variance
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure.
+list(
+  its_shan_lm   = Anova(its_shan_lm, type = 2),
+  amf_shan_lm   = Anova(amf_shan_lm, type = 2),
+  patho_shan_lm = Anova(patho_shan_lm, type = 2),
+  sapro_shan_lm = Anova(sapro_shan_lm, type = 2)
+) %>% map(\(df) tidy(df)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, `F`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' Results summary and figures
+div_tagpos <- c(0.18, 1.1)
+#+ its_div_fig
+its_div_fig <- 
+  bind_rows(
+    rich = summary(its_rich_em) %>% 
+      select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(its_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
+            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 100, 200))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
+        plot.tag.position = div_tagpos)
 #' 
-#' ## Abundance (PLFA biomass)
+#+ amf_div_fig
+amf_div_fig <- 
+  bind_rows(
+    rich = summary(amf_rich_em) %>% 
+      select(field_type, mean = rate, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(amf_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
+            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("AM fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 80), 
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 15, 30))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = div_tagpos)
+#' 
+#+ patho_div_fig
+patho_div_fig <- 
+  bind_rows(
+    rich = summary(patho_rich_em) %>% 
+      select(field_type, mean = rate, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(patho_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("Pathogen fungal", paste("Richness (", italic(n), " OTUs)"))),  
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 5, 10, 15))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = div_tagpos)
+#' 
+#+ sapro_div_fig
+sapro_div_fig <- 
+  bind_rows(
+    rich = summary(sapro_rich_em) %>% 
+      select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(sapro_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))),  
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = div_tagpos)
+#' 
+#' ### Unified figure
+#' Display diversity index results
+#+ div_fig_patchwork,warning=FALSE
+fig2 <- (its_div_fig / plot_spacer() / amf_div_fig / plot_spacer() / patho_div_fig / plot_spacer() / sapro_div_fig) +
+  plot_layout(heights = c(rep(c(1, 0.1), 3), 1), axis_titles = "collect") +
+  plot_annotation(tag_levels = 'A')
+#+ div_fig,warning=FALSE,fig.height=7,fig.width=7
+fig2
+#+ div_fig_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig2.svg"), plot = div_fig, device = svglite::svglite,
+       width = 8.5, height = 17, units = "cm")
+
+#' 
+#' # Abundance
+# Abundance ———————— ####
+#' Biomass and abundance-scaled biomass
+#' 
+#' ## ITS fungi (PLFA)
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
 par(mfrow = c(2,2))
 plot(plfa_lm) 
@@ -514,94 +911,200 @@ kable(summary(plfa_em),
 kable(pairs(plfa_em), 
       format = "pandoc", 
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
-plfa_fig <- 
-  ggplot(summary(plfa_em), aes(x = field_type, y = emmean)) +
+#' 
+#' ## AM fungi (NLFA)
+nlfa_lm <- lm(amf ~ field_type, data = fa)
+#' Diagnostics
+par(mfrow = c(2,2))
+plot(nlfa_lm) # variance obviously not constant in groups
+distribution_prob(nlfa_lm)
+# response distribution gamma; resids likely normal
+leveneTest(residuals(nlfa_lm) ~ fa$field_type) # No covariate, response and residuals tests equivalent
+#' Residuals distribution variance may not be equal in groups.
+#' Levene's p = 0.054, close to rejecting the null of equal variance. Check CV in groups.
+fa %>%
+  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant"))) %>%
+  group_by(field_type) %>%
+  summarize(mean = mean(amf),
+            cv = sd(amf) / mean) %>%
+  mutate(across(mean:cv, ~ round(.x, 2))) %>%
+  kable(format = "pandoc", caption = "Mean and CV relationship in groups")
+#' CV increases with mean, suggesting > proportional mean/variance relationship. 
+#' Determine best model choice of log-transformed response or gamma glm.
+#' Log:
+nlfa_lm_log <- lm(log(amf) ~ field_type, data = fa)
+par(mfrow = c(2,2))
+plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
+ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
+#' Gamma glm:
+nlfa_glm  <- glm(amf ~ field_type, family = Gamma(link = "log"), data = fa)
+nlfa_glm_diag <- glm.diag(nlfa_glm)
+glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
+performance::check_overdispersion(nlfa_glm) # not detected
+#' Gamma glm is the best choice; no high-leverage point
+#' 
+#' Model results, group means, and post-hoc
+Anova(nlfa_glm, test.statistic = "LR") 
+nlfa_em <- emmeans(nlfa_glm, ~ field_type, type = "response")
+#+ nlfa_em_summary,echo=FALSE
+kable(summary(nlfa_em),
+      format = "pandoc",
+      caption = "Confidence level used: 0.95.\nIntervals are back-transformed from the log scale")
+#+ nlfa_em_posthoc,echo=FALSE
+kable(pairs(nlfa_em),
+      format = "pandoc",
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
+#' 
+#' ## Pathogens
+#' Abundance-scaled biomass
+patho_ma_lm <- lm(patho_mass ~ field_type, data = its_guild_ma)
+par(mfrow = c(2,2))
+plot(patho_ma_lm) 
+#' no serious violations observed
+distribution_prob(patho_ma_lm)
+#' Residuals distribution fits normal, response gamma?
+leveneTest(residuals(patho_ma_lm) ~ fa$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
+#' No covariate, response and residuals tests equivalent.
+#' Residuals distribution does not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
+#' 
+#' Model results, group means, and post-hoc, with arithmetic means from emmeans
+anova(patho_ma_lm)
+patho_ma_em <- emmeans(patho_ma_lm, ~ field_type, type = "response")
+#+ patho_plfa_em_summary,echo=FALSE
+kable(summary(patho_ma_em), 
+      format = "pandoc", 
+      caption = "Confidence level used: 0.95")
+#+ patho_plfa_em_posthoc,echo=FALSE
+kable(pairs(patho_ma_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' 
+#' ## Saprotrophs
+#' Abundance-scaled biomass
+sapro_ma_lm <- lm(sapro_mass ~ field_type, data = its_guild_ma)
+par(mfrow = c(2,2))
+plot(sapro_ma_lm) 
+#' Variance looks consistent, no leverage points, poor qq fit
+distribution_prob(sapro_ma_lm)
+#' Residuals distribution fits normal, so do residuals
+leveneTest(residuals(sapro_ma_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
+#' No covariate; response and residuals tests equivalent
+#' Residuals distribution does not suggest the need for transformation.
+#' Levene's p > 0.05 → fail to reject = variances can be considered equal (aka homoscedastic 
+#' by group).
+#' 
+#' Produce model results, group means, and post-hoc, with arithmetic means from emmeans
+anova(sapro_ma_lm)
+sapro_ma_em <- emmeans(sapro_ma_lm, ~ field_type, type = "response")
+#+ sapro_ab_em_summary,echo=FALSE
+kable(summary(sapro_ma_em),
+      format = "pandoc",
+      caption = "Confidence level used: 0.95")
+#+ sapro_ab_fig,fig.width=4,fig.height=4
+sapro_ma_fig <- 
+  ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field type", y = expression(atop("Biomass", paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")))) +
-  # labs(x = "Field Type", y = "Biomass") +
+  labs(x = "Field type", y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
+  # labs(x = "Field Type", y = "Biomass (scaled)") +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1.1))
 #' 
-#' ## Beta Diversity
+#' ## Unified results
+## Unified results ———————— ####
+#' Fungal biomass differences differences across field types.
+#' Field type effects were evaluated using ANOVA or Analysis of Deviance.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure.
+list(
+  its_ma_lm   = anova(plfa_lm), 
+  amf_ma_glm  = Anova(nlfa_glm, test.statistic = "LR"), 
+  patho_ma_lm = anova(patho_ma_lm), 
+  sapro_ma_lm = anova(sapro_ma_lm)
+) %>% map(\(df) tidy(df) %>% select(term, statistic, df, p.value)) %>% 
+  bind_rows(.id = "guild_test") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+  select(guild_test, term, `F`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
 #' 
-#' 1. Using biomass-weighted relative abundance [Waller et al. 2023](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/1365-2745.14392)
-#' 1. Using sequence-based relative abundance [McKnight et al. 2019](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13115)
-#' 1. Contrast the two with procrustes
-#' 
-#' ### Biomass-weighted relative abundance
-#+ its_ord_ma
-d_its_ma <- its_avg_ma %>% 
-  data.frame(row.names = 1) %>% 
-  vegdist("bray")
-mva_its_ma <- mva(d = d_its_ma, env = sites)
-#+ its_ord_ma_results
-mva_its_ma$dispersion_test
-mva_its_ma$permanova
-mva_its_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-  arrange(group1, desc(group2)) %>% 
-  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
-#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
-#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
-#' a PERMANOVA test. 
-#' 
-#' Clustering revealed that community variation was related to geographic distance, the covariate in 
-#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
-#' 
-#' Plotting results: 
-its_ma_ord_data <- mva_its_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_its_ma_centers <- its_ma_ord_data %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
-its_ma_ord <- 
-  ggplot(its_ma_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_linerange(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_its_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+#' Figures
+#+ plfa_fig,fig.width=4,fig.height=4,fig.align='center'
+plfa_fig <- 
+  ggplot(summary(plfa_em), aes(x = field_type, y = emmean)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = expression(atop("Biomass", paste("(", nmol[PLFA], " × ", g[soil]^{-1}, ")")))) +
   scale_fill_manual(values = ft_pal) +
-  labs(
-    x = paste0("PCoA 1 (", mva_its_ma$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_its_ma$axis_pct[2], "%)")) +
-  theme_ord +
+  theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
+#+ nlfa_fig,fig.width=4,fig.height=4,
+nlfa_fig <-
+  ggplot(summary(nlfa_em), aes(x = field_type, y = response)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
+  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  labs(x = NULL, y = expression(atop("Biomass", paste("(", nmol[NLFA], " × ", g[soil]^{-1}, ")")))) +
+  scale_fill_manual(values = ft_pal) +
+  lims(y = c(0, 75)) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#+ patho_plfa_fig,fig.width=4,fig.height=4,fig.align='center'
+patho_ma_fig <- 
+  ggplot(summary(patho_ma_em), aes(x = field_type, y = emmean)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#+ sapro_ab_fig,fig.width=4,fig.height=4
+sapro_ma_fig <- 
+  ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
+  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
+  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
+  labs(x = NULL, y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#' ### Patchwork and export figure
+#' Unified figure for supplemental
+#+ figS3_patchwork,warning=FALSE
+figS3up <- (plfa_fig | plot_spacer() | nlfa_fig) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+figS3dn <- (patho_ma_fig | plot_spacer() | sapro_ma_fig) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+figS3 <- (figS3up / plot_spacer() / figS3dn) +
+  plot_layout(heights = c(0.50, 0.01, 0.50)) +
+  plot_annotation(tag_levels = 'A')
+#+ figS3_fig,warning=FALSE,fig.height=7,fig.width=7
+figS3
+#+ figS3_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "figS3.svg"), plot = figS3, device = svglite::svglite,
+       width = 19, height = 12, units = "cm")
+
 #' 
-#' #### Unified figure
-#+ fig2_patchwork,warning=FALSE
-fig2_ls <- (its_rich_fig / plot_spacer() / plfa_fig) +
-  plot_layout(heights = c(1,0.01,1)) 
-fig2 <- (fig2_ls | plot_spacer() | its_ma_ord) +
-  plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'A') 
-#+ fig2,warning=FALSE,fig.height=4,fig.width=6.5
-fig2
-#' **Fig 2.** Whole-soil fungal communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** fungal biomass (nmol PLFA g soil^-1)
-#' are shown as columns with 95 % CIs; lowercase
-#' letters mark significant pairwise differences.
-#' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
-#' distances: small points = sites, large circles = field-type centroids (error bars =
-#' 95 % CI). Cornfields cluster apart from restored or remnant prairies.
-#' Numbers in circles give years since restoration. Axis labels show the
-#' percent variation explained. 
-#+ fig2_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig2.svg"), plot = fig2, device = svglite::svglite,
-       width = 18, height = 10.5, units = "cm")
+#' # Beta diversity
+# Beta diversity ———————— ####
+#' PCoA of B-C dissimilarity matrix of relative sequence abundance (row proportion) used for ITS2 
+#' OTU sets where biomass did not differ among field types. For AM fungi, the ordination is based on 
+#' UNIFRAC distance, and because biomass did differ among field types, the UNIFRAC results are 
+#' constrasted with B-C dissimilarity of abundance-scaled biomass. 
 #' 
-#' ### Sequence-based relative abundance
-#' Comparison figure and stats for supplemental
+#' ## ITS fungi
 #+ its_ord
 d_its <- its_avg %>% 
   data.frame(row.names = 1) %>%
@@ -647,32 +1150,224 @@ its_ord <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' 
-#' #### Supplemental figure
-#+ its_shan_ord_sup_patchwork,warning=FALSE
-its_shan_ord_sup <- (its_shan_fig | plot_spacer() | its_ord) +
-  plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'A') 
-#+ its_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
-its_shan_ord_sup
-#+ its_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS3.svg"), plot = its_shan_ord_sup, device = svglite::svglite,
-       width = 7.5, height = 4, units = "in")
+#' ## AM fungi
+#' ### Standard ordination
+#' Using sequence-based relative abundance, unifrac distance
+#+ amf_ord
+d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
+mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
+#+ amf_ord_results
+mva_amf$dispersion_test
+mva_amf$permanova
+mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+#' Lingoes eigenvalue correction was used. The first three relative eigenvalues exceeded broken stick model. 
+#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
+#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
+#' a PERMANOVA test. 
 #' 
-#' #### Contrast community metrics
+#' Clustering revealed that geographic distance among sites did not significantly explain AMF community variation. 
+#' With geographic distance accounted for, the test variable field type significantly explained 
+#' variation in AMF communities, with a post-hoc test revealing that communities in corn fields differed from
+#' communities in restored and remnant fields. 
+#' 
+#' Plotting the result:
+amf_ord_data <- mva_amf$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_amf_centers <- amf_ord_data %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
+         across(ends_with("Axis.1"), ~ .x * -1)) # reversed for consistency
+amf_ord <- 
+  ggplot(amf_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reversed for consistency
+  geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  scale_fill_manual(values = ft_pal) +
+  labs(
+    x = paste0("PCoA 1 (", mva_amf$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_amf$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' 
+#' ### Biomass-aware ordination
+#' Using abundance-scaled biomass, B-C distance
+#+ amf_ord_ma
+d_amf_ma <- amf_avg_ma %>% 
+  data.frame(row.names = 1) %>% 
+  vegdist("bray")
+mva_amf_ma <- mva(d = d_amf_ma, env = sites, corr = "lingoes")
+#+ amf_ord_ma_results
+mva_amf_ma$dispersion_test
+mva_amf_ma$permanova
+mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+#' Lingoes correction was applied to negative eignevalues. Three relative eigenvalues exceeded broken stick model. 
+#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
+#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
+#' a PERMANOVA test. 
+#' 
+#' Clustering revealed that community variation was not related to geographic distance, the covariate in 
+#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
+#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
+#' communities in restored and remnant fields. 
+#' 
+#' Plotting results: 
+amf_ma_ord_data <- mva_amf_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_amf_ma_centers <- amf_ma_ord_data %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
+         across(ends_with("Axis.1"), ~ .x))
+amf_ma_ord <- 
+  ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) + 
+  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  scale_fill_manual(values = ft_pal) +
+  labs(
+    x = paste0("PCoA 1 (", mva_amf_ma$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_amf_ma$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' 
+#' ### Supplemental figure
+#+ fig3_patchwork,warning=FALSE
+# fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
+#   plot_layout(heights = c(1,0.01,1)) 
+# fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
+#   plot_layout(widths = c(0.35, 0.01, 0.64)) +
+#   plot_annotation(tag_levels = 'A') 
+# #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
+# fig3
+#' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
+#' biomass **b** (nmol NLFA g soil^-1), 95 % CI, letters = Tukey groups). 
+#' PCoA of BC distances on proportion of biomass abundance data
+#' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
+#' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
+#' prairie types. 
+#+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+# ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
+#        width = 18, height = 10.5, units = "cm")
+#' 
+
+
+
+#' 
+#' ### Contrast community metrics
 #' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
-#+ its_protest
+#+ amf_protest
 set.seed(20251111)
-its_protest <- protest(
-  pcoa(d_its)$vectors[, 1:2],
-  pcoa(d_its_ma)$vectors[, 1:2],
+amf_protest <- protest(
+  pcoa(d_amf, correction = "lingoes")$vectors[, 1:3],
+  pcoa(d_amf_ma, correction = "lingoes")$vectors[, 1:3],
   permutations = 1999
 )
-its_protest
-#' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
-#' $R^{2}=$ `r round(its_protest$scale^2, 2)`, p<0.001. 
+amf_protest
+#' The null that these solutions are unrelated
+#' is rejected at p<0.001. However, the alignment isn't perfect. 
+#' Clearly, the low biomass in cornfields is a driving difference in 
+#' the biomass-aware ordination, which, as a result, should possibly be preferred in this case.
+
+
+
+
+
 #' 
-#' ## Constrained analysis
-## Constrained analysis ———————— ####
+#' ## Beta diversity summary
+#' ### Using abundance-scaled biomass
+#' Fungal community differences differences among field types.
+#' Field type effects were evaluated using Permanova.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure."
+#+ permanova_summary,warning=FALSE,message=FALSE
+list(
+  its_ma   = mva_its_ma$permanova,
+  amf_ma   = mva_amf_ma$permanova,
+  patho_ma = mva_patho_ma$permanova,
+  sapro_ma = mva_sapro_ma$permanova
+) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+  bind_rows(.id = "guild") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  filter(term %in% c("dist_axis_1", "field_type")) %>% 
+  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' ### Using relative sequence abundance
+#' Fungal community differences differences among field types.
+#' Field type effects were evaluated using Permanova.
+#' P-values for field type were adjusted for multiple comparisons
+#' across fungal groups using the Benjamini-Hochberg procedure."
+#+ unified_permanova_summary,warning=FALSE,message=FALSE
+list(
+  its_ma   = mva_its$permanova,
+  amf_ma   = mva_amf$permanova,
+  patho_ma = mva_patho$permanova,
+  sapro_ma = mva_sapro$permanova
+) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+  bind_rows(.id = "guild") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  filter(term %in% c("dist_axis_1", "field_type")) %>% 
+  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+
+
+#' 
+#' ## Beta diversity summary
+#' 
+#' #### Unified figure
+#' Display results of constrained analyses
+#+ betadiv_patchwork,warning=FALSE
+fig3up <- (its_ord | plot_spacer() | amf_ord) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig3dn <- (patho_ord | plot_spacer() | sapro_ord) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig3 <- (fig3up / plot_spacer() / fig3dn) +
+  plot_layout(heights = c(0.50, 0.01, 0.50)) +
+  plot_annotation(tag_levels = 'A')
+#+ betadiv_fig,warning=FALSE,fig.height=7,fig.width=7
+fig3
+#' Caption...
+#+ betadiv_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
+       width = 18, height = 18, units = "cm")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#' 
+#' # Constrained analysis
+# Constrained analysis ———————— ####
 #' Test explanatory variables for correlation with site ordination. Using plant data, 
 #' so the analysis is restricted to Wisconsin sites. Edaphic variables are too numerous 
 #' to include individually, so transform micro nutrients using PCA. Forb and grass 
@@ -834,320 +1529,16 @@ amf_meta %>%
   mutate(composition = round(n / sum(n) * 100, 1)) %>% 
   arrange(-composition) %>% 
   kable(format = "pandoc", caption = "AM fungi: composition in families")
+
+
+
+
 #' 
 #' ## Diversity indices
-#+ amf_diversity
-amf_div <- calc_div(amf_avg, sites) %>% 
-  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
-#' 
-#' ### Richness
-#' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
-#' and failed to converge at default iterations; use poisson glm instead. 
-#' 
-#' Test interaction
-amf_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = amf_div, family = poisson(link = "log")) 
-Anova(amf_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
-check_overdispersion(amf_rich_glm_i) # not overdispersed
-augment(amf_rich_glm_i) # corn site has cooks >0.9
-check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
-#' An interaction was detected, but including it in the model leads to very poor diagnostics.
-#' It's driven by one site in corn with high leverage, and it introduces high 
-#' multicollinearity. Further, the outlier point would tend to lead to a Type II
-#' error of inference, making it a conservative choice to stick with the additive model. 
-#' 
-#' Fit additive model
-amf_rich_glm <- glm(richness ~ depth_csq + field_type, data = amf_div, family = poisson(link = "log")) 
-#' Diagnostics
-#+ amf_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(amf_rich_glm)
-check_overdispersion(amf_rich_glm)
-check_collinearity(amf_rich_glm)
-#' Long tails, some midrange structure, no leverage points, overdispersion, or multicollinearity
-distribution_prob(amf_rich_glm)
-#' residuals distribution normal or long-tailed, response count-distributed
-leveneTest(richness ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(amf_rich_glm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-#' Residuals/response distributions do not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
-#' 
-#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
-Anova(amf_rich_glm, type = 2, test.statistic = "LR")
-#' Sequencing depth not a significant predictor of amf richness
-amf_rich_em <- emmeans(amf_rich_glm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of estimated marginal means and confidence intervals, 
-#' and the post hoc contrast of richness among field types. 
-#' Main effect in model significant; pairwise contrast warranted.
-#+ amf_rich_em_summary,echo=FALSE
-kable(summary(amf_rich_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ amf_rich_em_posthoc,echo=FALSE
-kable(pairs(amf_rich_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' OTU richness in cornfields is significantly less than in restored or remnant fields, which 
-#' don't differ. Plot the results
-#+ amf_richness_fig,fig.width=4,fig.height=4,fig.align='center'
-amf_rich_fig <- 
-  ggplot(summary(amf_rich_em), aes(x = field_type, y = rate)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
-  lims(y = c(0, 75)) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#' 
+
 #' ### Shannon diversity
-#' Sequence depth square root transformed and centered 
-amf_shan_lm <- lm(shannon ~ depth_csq + field_type, data = amf_div)
-#' Diagnostics
-#+ amf_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(amf_shan_lm)
-#' Variance appears somewhat non-constant in groups, qqplot fit is poor, 
-#' one leverage point (Cook's > 0.5), a cornfield with high richness. Mean
-#' richness in corn fields is lowest; this outlier would make the pairwise contrast
-#' less significant, possible Type II error which is more acceptable.
-distribution_prob(amf_shan_lm)
-#' Residuals/response distributions most likely normal. 
-leveneTest(shannon ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(amf_shan_lm) ~ amf_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-#' Residuals/response distributions do not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 #' 
-#' Model results, group means, and post-hoc
-Anova(amf_shan_lm, type = 2)
-#' Sequencing depth not a significant predictor of Shannon diversity. Produce arithmetic means
-#' in groups and post hoc contrasts
-amf_shan_em <- emmeans(amf_shan_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
-#+ amf_shan_em_summary,echo=FALSE
-kable(summary(amf_shan_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ amf_shan_em_posthoc,echo=FALSE
-kable(pairs(amf_shan_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' Shannon's diversity in cornfields is significantly less than in restored or remnant fields, which 
-#' don't differ.
-#+ amf_shannons_fig,fig.width=4,fig.height=4,fig.align='center'
-amf_shan_fig <- 
-  ggplot(summary(amf_shan_em), aes(x = field_type, y = emmean)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
-  lims(y = c(0, 32)) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' 
-#' ## Abundance (NLFA biomass)
-nlfa_lm <- lm(amf ~ field_type, data = fa)
-#' Diagnostics
-par(mfrow = c(2,2))
-plot(nlfa_lm) # variance obviously not constant in groups
-distribution_prob(nlfa_lm)
-# response distribution gamma; resids likely normal
-leveneTest(residuals(nlfa_lm) ~ fa$field_type) # No covariate, response and residuals tests equivalent
-#' Residuals distribution variance may not be equal in groups.
-#' Levene's p = 0.054, close to rejecting the null of equal variance. Check CV in groups.
-fa %>%
-  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant"))) %>%
-  group_by(field_type) %>%
-  summarize(mean = mean(amf),
-            cv = sd(amf) / mean) %>%
-  mutate(across(mean:cv, ~ round(.x, 2))) %>%
-  kable(format = "pandoc", caption = "Mean and CV relationship in groups")
-#' CV increases with mean, suggesting > proportional mean/variance relationship. 
-#' Determine best model choice of log-transformed response or gamma glm.
-#' Log:
-nlfa_lm_log <- lm(log(amf) ~ field_type, data = fa)
-par(mfrow = c(2,2))
-plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
-ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
-#' Gamma glm:
-nlfa_glm  <- glm(amf ~ field_type, family = Gamma(link = "log"), data = fa)
-nlfa_glm_diag <- glm.diag(nlfa_glm)
-glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
-performance::check_overdispersion(nlfa_glm) # not detected
-#' Gamma glm is the best choice; no high-leverage point
-#' 
-#' Model results, group means, and post-hoc
-Anova(nlfa_glm, test.statistic = "LR") 
-nlfa_em <- emmeans(nlfa_glm, ~ field_type, type = "response")
-#+ nlfa_em_summary,echo=FALSE
-kable(summary(nlfa_em),
-      format = "pandoc",
-      caption = "Confidence level used: 0.95.\nIntervals are back-transformed from the log scale")
-#+ nlfa_em_posthoc,echo=FALSE
-kable(pairs(nlfa_em),
-      format = "pandoc",
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates.\nTests are performed on the log scale")
-#+ nlfa_fig,fig.width=4,fig.height=4,
-nlfa_fig <-
-  ggplot(summary(nlfa_em), aes(x = field_type, y = response)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = "Field type", y = expression(atop("Biomass", paste("(", nmol[NLFA], " × ", g[soil]^{-1}, ")")))) +
-  # labs(x = "Field Type", y = "Biomass") +
-  scale_fill_manual(values = ft_pal) +
-  lims(y = c(0, 75)) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.1))
-#' 
-#' ## Beta Diversity
-#' 
-#' 1. Using biomass-weighted relative abundance and b-c distance (unifrac is scale invariant; it's based on the proportion 
-#' of reads on each descending branch, multiplying rows by any constant doesn't change this). 
-#' 1. Using sequence-based relative abundance and unifrac distance to display phylogenetically aware information.
-#' 1. Contrast the two with procrustes.
-#' 
-#' ### Biomass-weighted relative abundance
-#+ amf_ord_ma
-d_amf_ma <- amf_avg_ma %>% 
-  data.frame(row.names = 1) %>% 
-  vegdist("bray")
-mva_amf_ma <- mva(d = d_amf_ma, env = sites, corr = "lingoes")
-#+ amf_ord_ma_results
-mva_amf_ma$dispersion_test
-mva_amf_ma$permanova
-mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-  arrange(group1, desc(group2)) %>% 
-  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' Lingoes correction was applied to negative eignevalues. Three relative eigenvalues exceeded broken stick model. 
-#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
-#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
-#' a PERMANOVA test. 
-#' 
-#' Clustering revealed that community variation was not related to geographic distance, the covariate in 
-#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
-#' 
-#' Plotting results: 
-amf_ma_ord_data <- mva_amf_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_amf_ma_centers <- amf_ma_ord_data %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
-         across(ends_with("Axis.1"), ~ .x))
-amf_ma_ord <- 
-  ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) + 
-  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
-  labs(
-    x = paste0("PCoA 1 (", mva_amf_ma$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_amf_ma$axis_pct[2], "%)")) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Unified figure
-#+ fig3_patchwork,warning=FALSE
-fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
-  plot_layout(heights = c(1,0.01,1)) 
-fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
-  plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'A') 
-#+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
-fig3
-#' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
-#' biomass **b** (nmol NLFA g soil^-1), 95 % CI, letters = Tukey groups). 
-#' PCoA of BC distances on proportion of biomass abundance data
-#' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
-#' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
-#' prairie types. 
-#+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
-       width = 18, height = 10.5, units = "cm")
-#' 
-#' ### Sequence-based relative abundance, unifrac distance
-#' 
-#+ amf_ord
-d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
-mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
-#+ amf_ord_results
-mva_amf$dispersion_test
-mva_amf$permanova
-mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-  arrange(group1, desc(group2)) %>% 
-  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' Lingoes eigenvalue correction was used. The first three relative eigenvalues exceeded broken stick model. 
-#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
-#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
-#' a PERMANOVA test. 
-#' 
-#' Clustering revealed that geographic distance among sites did not significantly explain AMF community variation. 
-#' With geographic distance accounted for, the test variable field type significantly explained 
-#' variation in AMF communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
-#' 
-#' Plotting the result:
-amf_ord_data <- mva_amf$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_amf_centers <- amf_ord_data %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
-         across(ends_with("Axis.1"), ~ .x * -1)) # reversed for consistency
-amf_ord <- 
-  ggplot(amf_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reversed for consistency
-  geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
-  labs(
-    x = paste0("PCoA 1 (", mva_amf$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_amf$axis_pct[2], "%)")) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Supplemental figure
-#+ amf_shan_ord_sup_patchwork,warning=FALSE
-amf_shan_ord_sup <- (amf_shan_fig | plot_spacer() | amf_ord) +
-  plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'A') 
-#+ amf_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
-amf_shan_ord_sup
-#+ amf_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS5.svg"), plot = amf_shan_ord_sup, device = svglite::svglite,
-       width = 7.5, height = 4, units = "in")
-#' 
-#' #### Contrast community metrics
-#' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
-#+ amf_protest
-set.seed(20251111)
-amf_protest <- protest(
-  pcoa(d_amf, correction = "lingoes")$vectors[, 1:3],
-  pcoa(d_amf_ma, correction = "lingoes")$vectors[, 1:3],
-  permutations = 1999
-)
-amf_protest
-#' The null that these solutions are unrelated
-#' is rejected at p<0.001. However, the alignment isn't perfect. 
-#' Clearly, the low biomass in cornfields is a driving difference in 
-#' the biomass-aware ordination, which, as a result, should possibly be preferred in this case.
+
 #' 
 #' ## AMF abundance in families
 #' Test proportion of biomass across field types for each family. A similar contrast with 
@@ -1443,146 +1834,11 @@ summary(amma_rest_m)
 #' # Plant pathogens
 # Plant pathogens ———————— ####
 #' 
-#' Retrieve pathogen sequence abundance
-patho <- guildseq(its_avg, its_meta, "plant_pathogen")
 #' 
 #' ## Diversity Indices
-#+ patho_diversity
-patho_div <- calc_div(patho, sites) %>% 
-  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
-#' and failed to converge at default iterations; use poisson glm instead. 
-#' 
-#' Test interaction
-patho_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = patho_div, family = poisson(link = "log")) 
-Anova(patho_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
-#' Fit additive model
-patho_rich_glm <- glm(richness ~ depth_csq + field_type, data = patho_div, family = poisson(link = "log")) 
-#' Diagnostics
-#+ patho_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(patho_rich_glm)
-check_overdispersion(patho_rich_glm)
-check_collinearity(patho_rich_glm)
-#' Some midrange structure, no leverage points, overdispersion, or multicollinearity
-distribution_prob(patho_rich_glm)
-#' residuals distribution normal or long-tailed, response count-distributed
-leveneTest(richness ~ field_type, data = patho_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(patho_rich_glm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-#' Residuals/response distributions do not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
-#' 
-#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
-Anova(patho_rich_glm, type = 2, test.statistic = "LR")
-#' Sequence depth is highly significant; richness doesn't vary in groups. 
-#+ patho_depth_ft_cor
-patho_div %>% 
-  group_by(field_type) %>% 
-  summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
-  kable(format = "pandoc", caption = "Average sequence depth and pathogen richness in field types")
-#' Depth is correlated with richness in field types. Differences in richness are small
-#' and with depth variance removed first, this explains why richness isn't significantly 
-#' different. 
-#' 
-#' Calculate confidence intervals for figure.
-#' Arithmetic means calculated in this case.
-patho_rich_em <- emmeans(patho_rich_glm, ~ field_type, type = "response")
-#+ patho_rich_em_summary,echo=FALSE
-kable(summary(patho_rich_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ patho_rich_em_posthoc,echo=FALSE
-kable(pairs(patho_rich_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#+ patho_richness_fig,fig.width=4,fig.height=4
-patho_rich_fig <- 
-  ggplot(summary(patho_rich_em), aes(x = field_type, y = rate)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#' 
-#' ### Shannon's diversity
-#' Sequence depth square root transformed and centered 
-patho_shan_lm <- lm(shannon ~ depth_csq + field_type, data = patho_div)
-#' Diagnostics
-#+ patho_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(patho_shan_lm)
-distribution_prob(patho_shan_lm)
-#' residuals distribution most likely cauchy/normal; symmetric but long tails
-#' response normal
-leveneTest(shannon ~ field_type, data = patho_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-#' Residuals distribution does not suggest the need for further model selection.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-#' 
-#' Model results, group means, and post-hoc
-Anova(patho_shan_lm, type = 2)
-#' Neither predictor is significant
-patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
-#+ patho_shan_em_summary,echo=FALSE
-kable(summary(patho_shan_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ patho_shan_em_posthoc,echo=FALSE
-kable(pairs(patho_shan_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#+ patho_shan_fig,fig.width=4,fig.height=4
-patho_shan_fig <- 
-  ggplot(summary(patho_shan_em), aes(x = field_type, y = emmean)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' 
-#' ## Abundance
-patho_ma_lm <- lm(patho_mass ~ field_type, data = its_guild_ma)
-par(mfrow = c(2,2))
-plot(patho_ma_lm) 
-#' no serious violations observed
-distribution_prob(patho_ma_lm)
-#' Residuals distribution fits normal, response gamma?
-leveneTest(residuals(patho_ma_lm) ~ fa$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
-#' No covariate, response and residuals tests equivalent.
-#' Residuals distribution does not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-#' 
-#' Model results, group means, and post-hoc, with arithmetic means from emmeans
-anova(patho_ma_lm)
-patho_ma_em <- emmeans(patho_ma_lm, ~ field_type, type = "response")
-#+ patho_plfa_em_summary,echo=FALSE
-kable(summary(patho_ma_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ patho_plfa_em_posthoc,echo=FALSE
-kable(pairs(patho_ma_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#+ patho_plfa_fig,fig.width=4,fig.height=4,fig.align='center'
-patho_ma_fig <- 
-  ggplot(summary(patho_ma_em), aes(x = field_type, y = emmean)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field type", y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
-  # labs(x = "Field Type", y = "Biomass (scaled)") +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.1))
+#' ### Shannon diversity
 #' 
 #' ## Beta Diversity
 #' Community distances handled similarly to previous
@@ -1984,140 +2240,8 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 #' # Saprotrophs
 # Saprotrophs ———————— ####
 #' 
-#' Retrieve pathogen sequence abundance
-sapro <- guildseq(its_avg, its_meta, "saprotroph")
-#' 
-#' ## Diversity Indices
-#+ sapro_diversity
-sapro_div <- calc_div(sapro, sites) %>% 
-  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #' 
 #' ### Richness
-#' Sequence depth square root transformed and centered. Poisson model was overdispersed (not shown), 
-#' use negative binomial instead.  
-#' 
-#' Test interaction
-sapro_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = sapro_div) 
-Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
-check_model(sapro_rich_glm_i)
-check_overdispersion(sapro_rich_glm_i) # not overdispersed
-augment(sapro_rich_glm_i) # corn site has cooks >0.9
-check_collinearity(sapro_rich_glm_i) # depth and interaction VIF > 6
-#' An interaction was detected, but including it in the model leads to very poor diagnostics.
-#' It's driven by one site in corn with high leverage, and it introduces high 
-#' multicollinearity.  
-#' 
-#' Fit additive model
-sapro_rich_glm <- glm.nb(richness ~ depth_csq + field_type, data = sapro_div) 
-#' Diagnostics
-#+ sapro_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(sapro_rich_glm)
-check_overdispersion(sapro_rich_glm)
-check_collinearity(sapro_rich_glm)
-#' Long tails, some structure throughout, no leverage points, overdispersion, or multicollinearity
-distribution_prob(sapro_rich_glm)
-#' residuals distribution normal or long-tailed, response count-distributed
-leveneTest(richness ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(sapro_rich_glm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-#' Residuals/response distributions do not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal across groups.
-#' 
-#' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
-Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
-#' Differences in richness are very close to significance. Calculate confidence intervals for figure.
-#' Estimated marginal means calculated in this case
-sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
-#+ sapro_rich_em_summary,echo=FALSE
-kable(summary(sapro_rich_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#' Model NS; no post hoc comparison...
-#+ sapro_richness_fig,fig.width=4,fig.height=4
-sapro_rich_fig <- 
-  ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#' 
-#' ### Shannon's diversity
-#' Sequence depth square root transformed and centered 
-sapro_shan_lm <- lm(shannon ~ depth_csq + field_type, data = sapro_div)
-#' Diagnostics
-#+ sapro_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
-check_model(sapro_shan_lm)
-distribution_prob(sapro_shan_lm)
-#' residuals distribution most likely normal, qq fit good, no evidence of mean/variance increase
-#' response non-normal, check variance in groups though
-leveneTest(shannon ~ field_type, data = sapro_div) %>% as.data.frame() %>% kable(format = "pandoc")
-leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
-#' Residuals distribution does not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-#' 
-#' Model results, group means, and post-hoc
-Anova(sapro_shan_lm, type = 2)
-#' Sequence depth is not a significant predictor of Shannon diversity, nor field type
-sapro_shan_em <- emmeans(sapro_shan_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
-#+ sapro_shan_fig,fig.width=4,fig.height=4
-sapro_shan_fig <- 
-  ggplot(summary(sapro_shan_em), aes(x = field_type, y = emmean)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' 
-#' ## Abundance
-#' Proportional biomass
-sapro_ma_lm <- lm(sapro_mass ~ field_type, data = its_guild_ma)
-par(mfrow = c(2,2))
-plot(sapro_ma_lm) 
-
-
-its_guild %>% 
-  mutate(sapro_prop = sapro_abund / fungi_abund) %>% 
-  ggplot(aes(x = field_type, y = sapro_prop)) +
-  geom_boxplot()
-
-
-#' Variance looks consistent, no leverage points, poor qq fit
-distribution_prob(sapro_ma_lm)
-#' Residuals distribution fits normal, so do residuals
-leveneTest(residuals(sapro_ma_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
-#' No covariate; response and residuals tests equivalent
-#' Residuals distribution does not suggest the need for transformation.
-#' Levene's p > 0.05 → fail to reject = variances can be considered equal (aka homoscedastic 
-#' by group).
-#' 
-#' Produce model results, group means, and post-hoc, with arithmetic means from emmeans
-anova(sapro_ma_lm)
-sapro_ma_em <- emmeans(sapro_ma_lm, ~ field_type, type = "response")
-#+ sapro_ab_em_summary,echo=FALSE
-kable(summary(sapro_ma_em),
-      format = "pandoc",
-      caption = "Confidence level used: 0.95")
-#+ sapro_ab_fig,fig.width=4,fig.height=4
-sapro_ma_fig <- 
-  ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field type", y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
-  # labs(x = "Field Type", y = "Biomass (scaled)") +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.1))
-#' 
 #' ## Beta Diversity
 #' Community distance handled similarly to previous
 #' 
@@ -2563,237 +2687,14 @@ kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low
 
 #' 
 #' # Results summaries
-# Results summaries ———————— ####
-#' The following outputs display unified summary reports where needed for tables, etc.
-#' 
-#' ## Richness summary
-list(
-  its_rich_nb     = Anova(its_rich_glm, type = 2, test.statistic = "LR"),
-  amf_rich_pois   = Anova(amf_rich_glm, type = 2, test.statistic = "LR"),
-  patho_rich_pois = Anova(patho_rich_glm, type = 2, test.statistic = "LR"),
-  sapro_rich_nb   = Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
-) %>% map(\(df) tidy(df)) %>% 
-  bind_rows(.id = "guild_test") %>% 
-  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
-         LRchisq_df = paste0(statistic, " (", df, ", 21)")) %>% 
-  select(guild_test, term, LRchisq_df, p.value, p.adj) %>% 
-  kable(format = "pandoc", caption = "Fungal OTU richness differences across field types accounting for sequencing depth.\nField type effects were evaluated using Type II Analysis of Deviance.\nP-values for field type were adjusted for multiple comparisons\nacross fungal groups using the Benjamini-Hochberg procedure.")
-#' 
-#' ## Shannon diversity summary
-#' Fungal OTU Shannon Diversity differences across field types accounting for sequencing depth.
-#' Field type effects were evaluated using Type II Analysis of Deviance.
-#' P-values for field type were adjusted for multiple comparisons
-#' across fungal groups using the Benjamini-Hochberg procedure.
-list(
-  its_shan_lm   = Anova(its_shan_lm, type = 2),
-  amf_shan_lm   = Anova(amf_shan_lm, type = 2),
-  patho_shan_lm = Anova(patho_shan_lm, type = 2),
-  sapro_shan_lm = Anova(sapro_shan_lm, type = 2)
-) %>% map(\(df) tidy(df)) %>% 
-  bind_rows(.id = "guild_test") %>% 
-  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
-         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
-  select(guild_test, term, `F`, p.value, p.adj) %>% 
-  kable(format = "pandoc")
 
 
 
 
 
-#' 
-#' ### Alpha diversity figure
-## Diversity figure ———————— ####
-div_tagpos <- c(0.18, 1.1)
-#+ its_div_fig
-its_div_fig <- 
-  bind_rows(
-    rich = summary(its_rich_em) %>% 
-      select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
-    shan = summary(its_shan_em) %>% 
-      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
-    .id = "index"
-  ) %>% 
-  ggplot(aes(x = field_type, y = mean)) +
-  geom_col_pattern(
-    aes(fill = field_type, pattern = index),
-    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
-  ) +
-  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
-                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
-  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
-            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
-                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 100, 200))) +
-  scale_pattern_manual(values = c("none", "stripe")) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = div_tagpos)
-#' 
-#+ amf_div_fig
-amf_div_fig <- 
-  bind_rows(
-    rich = summary(amf_rich_em) %>% 
-      select(field_type, mean = rate, lcl = asymp.LCL, ucl = asymp.UCL),
-    shan = summary(amf_shan_em) %>% 
-      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
-    .id = "index"
-  ) %>% 
-  ggplot(aes(x = field_type, y = mean)) +
-  geom_col_pattern(
-    aes(fill = field_type, pattern = index),
-    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
-  ) +
-  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
-                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
-  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
-            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("AM fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 80), 
-                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 15, 30))) +
-  scale_pattern_manual(values = c("none", "stripe")) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = div_tagpos)
-#' 
-#+ patho_div_fig
-patho_div_fig <- 
-  bind_rows(
-    rich = summary(patho_rich_em) %>% 
-      select(field_type, mean = rate, lcl = asymp.LCL, ucl = asymp.UCL),
-    shan = summary(patho_shan_em) %>% 
-      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
-    .id = "index"
-  ) %>% 
-  ggplot(aes(x = field_type, y = mean)) +
-  geom_col_pattern(
-    aes(fill = field_type, pattern = index),
-    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
-  ) +
-  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
-                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
-  labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Pathogen fungal", paste("Richness (", italic(n), " OTUs)"))),  
-                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 5, 10, 15))) +
-  scale_pattern_manual(values = c("none", "stripe")) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = div_tagpos)
-#' 
-#+ sapro_div_fig
-sapro_div_fig <- 
-  bind_rows(
-    rich = summary(sapro_rich_em) %>% 
-      select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
-    shan = summary(sapro_shan_em) %>% 
-      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
-    .id = "index"
-  ) %>% 
-  ggplot(aes(x = field_type, y = mean)) +
-  geom_col_pattern(
-    aes(fill = field_type, pattern = index),
-    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
-  ) +
-  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
-                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
-  labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))),  
-                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
-  scale_pattern_manual(values = c("none", "stripe")) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = div_tagpos)
-#' 
-#' #### Unified figure
-#' Display diversity index resultsyses
-#+ div_fig_patchwork,warning=FALSE
-div_fig <- (its_div_fig / plot_spacer() / amf_div_fig / plot_spacer() / patho_div_fig / plot_spacer() / sapro_div_fig) +
-  plot_layout(heights = c(rep(c(1, 0.1), 3), 1), axis_titles = "collect") +
-  plot_annotation(tag_levels = 'A')
-#+ div_fig,warning=FALSE,fig.height=7,fig.width=7
-div_fig
-#' Caption... 
-#+ div_fig_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "div_fig.svg"), plot = div_fig, device = svglite::svglite,
-       width = 8.5, height = 17, units = "cm")
 
 
 
-
-
-#' 
-#' ## Biomass (abundance) summary
-#' Fungal biomass differences differences across field types.
-#' Field type effects were evaluated using ANOVA or Analysis of Deviance.
-#' P-values for field type were adjusted for multiple comparisons
-#' across fungal groups using the Benjamini-Hochberg procedure."
-list(
-  its_ma_lm   = anova(plfa_lm), 
-  amf_ma_glm  = Anova(nlfa_glm, test.statistic = "LR"), 
-  patho_ma_lm = anova(patho_ma_lm), 
-  sapro_ma_lm = anova(sapro_ma_lm)
-) %>% map(\(df) tidy(df) %>% select(term, statistic, df, p.value)) %>% 
-  bind_rows(.id = "guild_test") %>% 
-  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
-         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
-  select(guild_test, term, `F`, p.value, p.adj) %>% 
-  kable(format = "pandoc")
-#' 
-#' ## Beta diversity summary
-#' ### Using abundance-scaled biomass
-#' Fungal community differences differences among field types.
-#' Field type effects were evaluated using Permanova.
-#' P-values for field type were adjusted for multiple comparisons
-#' across fungal groups using the Benjamini-Hochberg procedure."
-#+ permanova_summary,warning=FALSE,message=FALSE
-list(
-  its_ma   = mva_its_ma$permanova,
-  amf_ma   = mva_amf_ma$permanova,
-  patho_ma = mva_patho_ma$permanova,
-  sapro_ma = mva_sapro_ma$permanova
-) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
-  bind_rows(.id = "guild") %>% 
-  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
-         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
-  filter(term %in% c("dist_axis_1", "field_type")) %>% 
-  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
-  kable(format = "pandoc")
-#' 
-#' ### Using relative sequence abundance
-#' Fungal community differences differences among field types.
-#' Field type effects were evaluated using Permanova.
-#' P-values for field type were adjusted for multiple comparisons
-#' across fungal groups using the Benjamini-Hochberg procedure."
-#+ unified_permanova_summary,warning=FALSE,message=FALSE
-list(
-  its_ma   = mva_its$permanova,
-  amf_ma   = mva_amf$permanova,
-  patho_ma = mva_patho$permanova,
-  sapro_ma = mva_sapro$permanova
-) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
-  bind_rows(.id = "guild") %>% 
-  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
-         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
-  filter(term %in% c("dist_axis_1", "field_type")) %>% 
-  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
-  kable(format = "pandoc")
 #' 
 #' ## Constrained analysis summary
 #' Environmental drivers were identified via partial distance-based Redundancy Analysis (db-RDA) 
@@ -2870,8 +2771,8 @@ list(
 #' 
 #' ### Biplot panels
 #' All soil fungi
-#+ fig6a
-fig6a <- 
+#+ fig4a
+fig4a <- 
   ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
@@ -2894,8 +2795,8 @@ fig6a <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' AMF
-#+ fig6b
-fig6b <-
+#+ fig4b
+fig4b <-
   ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_segment(data = amf_mod_scor_bp,
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
@@ -2917,8 +2818,8 @@ fig6b <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' Pathogens, PCoA fig
-#+ fig6c
-fig6c <-
+#+ fig4c
+fig4c <-
   ggplot(patho_mod_scor_site, aes(x = -1 * dbRDA1, y = MDS1)) +
   geom_segment(data = patho_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = MDS1),
@@ -2941,8 +2842,8 @@ fig6c <-
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' Saprotrophs
-#+ fig6d
-fig6d <-
+#+ fig4d
+fig4d <-
   ggplot(sapro_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
@@ -2971,16 +2872,16 @@ fig6d <-
 #' 
 #' #### Unified figure
 #' Display results of constrained analyses
-#+ fig6_patchwork,warning=FALSE
-fig6up <- (fig6a | plot_spacer() | fig6b) +
+#+ fig4_patchwork,warning=FALSE
+fig4up <- (fig4a | plot_spacer() | fig4b) +
   plot_layout(widths = c(0.50, 0.01, 0.50))
-fig6dn <- (fig6c | plot_spacer() | fig6d) +
+fig4dn <- (fig4c | plot_spacer() | fig4d) +
   plot_layout(widths = c(0.50, 0.01, 0.50))
-fig6 <- (fig6up / fig6dn) +
-  plot_layout(widths = c(0.50, 0.50)) +
+fig4 <- (fig4up / plot_spacer() / fig4dn) +
+  plot_layout(heights = c(0.50, 0.01, 0.50)) +
   plot_annotation(tag_levels = 'A')
-#+ fig6,warning=FALSE,fig.height=7,fig.width=7
-fig6
+#+ fig4,warning=FALSE,fig.height=7,fig.width=7
+fig4
 #' Fungal community ordinations which are constrained or unconstrained by explanatory variables. 
 #' Panels show results for all soil fungi **a**, amf **b**, pathogens **c**, and saprotrophs **d**.
 #' Percent of constrained (db-RDA) and unconstrained (PCoA) variation explained is shown with axis labels.
