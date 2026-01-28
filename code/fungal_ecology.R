@@ -424,7 +424,7 @@ its_rich_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
   geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   lims(y = c(0, 760)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -478,7 +478,7 @@ kable(pairs(its_shan_em),
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' Shannon's diversity in cornfields is significantly less than in restored or remnant fields, which 
 #' don't differ.
-#+ its_shan_fig,fig.width=4,fig.height=4
+#+ its_shan_fig
 its_shan_fig <- 
   ggplot(summary(its_shan_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
@@ -491,41 +491,6 @@ its_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
-
-bind_rows(
-  rich = summary(its_rich_em) %>% 
-    select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
-  shan = summary(its_shan_em) %>% 
-    select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
-  .id = "index"
-) %>% 
-  ggplot(aes(x = field_type, y = mean)) +
-  geom_col_pattern(
-    aes(fill = field_type, pattern = index),
-    position = position_dodge(width = 0.6), width = 0.5,
-    color = "black", linewidth = lw,
-    pattern_fill = "grey70",
-    pattern_colour = "grey70",
-    pattern_density = 0.2,
-    pattern_spacing = 0.02
-  ) +
-  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), position = position_dodge(width = 0.6), width = 0, linewidth = lw) +
-  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), position = position_dodge(width = 0.6), vjust = -1, family = "sans", size = 3.5) +
-  scale_y_continuous(name = expression(paste("Richness (", italic(n), " OTUs)")), limits = c(0, 760), 
-                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
-  scale_pattern_manual(values = c("none", "stripe")) +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-  
-  
-  
-
-
-
 #' 
 #' ## Abundance (PLFA biomass)
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
@@ -928,7 +893,7 @@ amf_rich_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
   geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   lims(y = c(0, 75)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -1536,7 +1501,7 @@ patho_rich_fig <-
   ggplot(summary(patho_rich_em), aes(x = field_type, y = rate)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -1577,7 +1542,6 @@ patho_shan_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
   labs(x = "Field type", y = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")"))) +
-  # lims(y = c(0, 160)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -1775,7 +1739,7 @@ patho_ind %>%
   kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 #' 
 #' ## Constrained analysis
-## Constrained analysis ------ ####
+## Constrained analysis ———————— ####
 #' Env covars processed in the ITS section (see above)
 spe_patho_wi_resto <- patho %>%
   filter(field_name %in% rownames(env_expl)) %>%
@@ -2073,7 +2037,7 @@ sapro_rich_fig <-
   ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
+  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -2633,6 +2597,144 @@ list(
          `F` = paste0(statistic, " (", df, ", 21)")) %>% 
   select(guild_test, term, `F`, p.value, p.adj) %>% 
   kable(format = "pandoc")
+
+
+
+
+
+#' 
+#' ### Alpha diversity figure
+## Diversity figure ———————— ####
+div_tagpos <- c(0.18, 1.1)
+#+ its_div_fig
+its_div_fig <- 
+  bind_rows(
+    rich = summary(its_rich_em) %>% 
+      select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(its_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
+            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 100, 200))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = div_tagpos)
+#' 
+#+ amf_div_fig
+amf_div_fig <- 
+  bind_rows(
+    rich = summary(amf_rich_em) %>% 
+      select(field_type, mean = rate, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(amf_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
+            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("AM fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 80), 
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 15, 30))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = div_tagpos)
+#' 
+#+ patho_div_fig
+patho_div_fig <- 
+  bind_rows(
+    rich = summary(patho_rich_em) %>% 
+      select(field_type, mean = rate, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(patho_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("Pathogen fungal", paste("Richness (", italic(n), " OTUs)"))),  
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 5, 10, 15))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = div_tagpos)
+#' 
+#+ sapro_div_fig
+sapro_div_fig <- 
+  bind_rows(
+    rich = summary(sapro_rich_em) %>% 
+      select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
+    shan = summary(sapro_shan_em) %>% 
+      select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+    .id = "index"
+  ) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
+    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
+                position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  labs(x = NULL) +
+  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))),  
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = div_tagpos)
+#' 
+#' #### Unified figure
+#' Display diversity index resultsyses
+#+ div_fig_patchwork,warning=FALSE
+div_fig <- (its_div_fig / plot_spacer() / amf_div_fig / plot_spacer() / patho_div_fig / plot_spacer() / sapro_div_fig) +
+  plot_layout(heights = c(rep(c(1, 0.1), 3), 1), axis_titles = "collect") +
+  plot_annotation(tag_levels = 'A')
+#+ div_fig,warning=FALSE,fig.height=7,fig.width=7
+div_fig
+#' Caption... 
+#+ div_fig_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "div_fig.svg"), plot = div_fig, device = svglite::svglite,
+       width = 8.5, height = 17, units = "cm")
+
+
+
+
+
 #' 
 #' ## Biomass (abundance) summary
 #' Fungal biomass differences differences across field types.
@@ -2972,12 +3074,4 @@ ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
 
 
 
-
-
-
-# Use a pattern to distinguish richness from shannon
-rich_fig <- (its_rich_fig / amf_rich_fig / patho_rich_fig / sapro_rich_fig) +
-  plot_layout(axis_titles = "collect")
-
-((its_ord | amf_ord) / (patho_ord | sapro_ord))
 

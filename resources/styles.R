@@ -11,12 +11,18 @@ library("colorspace")
 ft_pal <- c("#CEA110", "#C0EC73", "#5086B5")
 # Plant functional groups
 pfg_col <- sequential_hcl(n = 5, h = c(-96, 224), c = c(81, NA, 75), l = c(44, 85), power = c(0.7, 2.25), rev = TRUE)
-# Shapes and sizes
+# Shapes, patterns, and sizes
 lw <- 0.4
 sm_size <- 3.1
 lg_size <- 4.6
 yrtx_size <- 2.1
 dadd_adj <- 0.08
+div_dodw <- 0.75
+div_colw <- 0.65
+div_patfil <- "grey40"
+div_patcol <- "grey40"
+div_patden <- 0.15
+div_patspa <- 0.034
 # Ordination style
 theme_ord <-
   theme_bw() +
