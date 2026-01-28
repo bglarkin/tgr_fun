@@ -424,7 +424,7 @@ its_rich_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
   geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
+  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
   lims(y = c(0, 760)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -893,7 +893,7 @@ amf_rich_fig <-
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
   geom_text(aes(y = asymp.UCL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
+  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
   lims(y = c(0, 75)) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
@@ -1501,7 +1501,7 @@ patho_rich_fig <-
   ggplot(summary(patho_rich_em), aes(x = field_type, y = rate)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = rate, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
+  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -2038,7 +2038,7 @@ sapro_rich_fig <-
   ggplot(summary(sapro_rich_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = asymp.UCL), width = 0, linewidth = lw) +
-  labs(x = NULL, y = expression(atop("Richness", paste("(", italic(n), " OTUs)")))) +
+  labs(x = NULL, y = expression(paste("Richness (", italic(n), " OTUs)"))) +
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
@@ -2933,3 +2933,16 @@ fig7
 ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
        width = 18, height = 9, units = "cm")
 #' 
+
+
+
+
+
+
+
+# Use a pattern to distinguish richness from shannon
+rich_fig <- (its_rich_fig / amf_rich_fig / patho_rich_fig / sapro_rich_fig) +
+  plot_layout(axis_titles = "collect")
+
+((its_ord | amf_ord) / (patho_ord | sapro_ord))
+
