@@ -35,7 +35,7 @@ packages_needed <- c(
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
-  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork"
+  "colorspace", "grid", "gridExtra", "ggpubr", "patchwork", "ggpattern"
 )
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
@@ -491,6 +491,41 @@ its_shan_fig <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
+
+
+bind_rows(
+  rich = summary(its_rich_em) %>% 
+    select(field_type, mean = response, lcl = asymp.LCL, ucl = asymp.UCL),
+  shan = summary(its_shan_em) %>% 
+    select(field_type, mean = emmean, lcl = lower.CL, ucl = upper.CL),
+  .id = "index"
+) %>% 
+  ggplot(aes(x = field_type, y = mean)) +
+  geom_col_pattern(
+    aes(fill = field_type, pattern = index),
+    position = position_dodge(width = 0.6), width = 0.5,
+    color = "black", linewidth = lw,
+    pattern_fill = "grey70",
+    pattern_colour = "grey70",
+    pattern_density = 0.2,
+    pattern_spacing = 0.02
+  ) +
+  geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), position = position_dodge(width = 0.6), width = 0, linewidth = lw) +
+  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), position = position_dodge(width = 0.6), vjust = -1, family = "sans", size = 3.5) +
+  scale_y_continuous(name = expression(paste("Richness (", italic(n), " OTUs)")), limits = c(0, 760), 
+                     sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
+  scale_pattern_manual(values = c("none", "stripe")) +
+  scale_fill_manual(values = ft_pal) +
+  theme_cor +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+  
+  
+  
+
+
+
 #' 
 #' ## Abundance (PLFA biomass)
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
