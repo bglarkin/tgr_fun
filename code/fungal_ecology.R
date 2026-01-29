@@ -293,7 +293,7 @@ pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS8.svg"), plot = pfg_pct_fig, device = svglite::svglite,
+ggsave(root_path("figs", "figS6.svg"), plot = pfg_pct_fig, device = svglite::svglite,
        width = 7.5, height = 7, units = "in")
 #' 
 #' ## ITS-detectable fungi
@@ -881,7 +881,7 @@ fig2 <- (its_div_fig / plot_spacer() / amf_div_fig / plot_spacer() / patho_div_f
 #+ div_fig,warning=FALSE,fig.height=7,fig.width=7
 fig2
 #+ div_fig_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig2.svg"), plot = div_fig, device = svglite::svglite,
+ggsave(root_path("figs", "fig2.svg"), plot = fig2, device = svglite::svglite,
        width = 8.5, height = 17, units = "cm")
 
 #' 
@@ -1094,7 +1094,7 @@ figS3 <- (figS3up / plot_spacer() / figS3dn) +
 figS3
 #+ figS3_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "figS3.svg"), plot = figS3, device = svglite::svglite,
-       width = 19, height = 12, units = "cm")
+       width = 7.5, height = 4.5, units = "in")
 
 #' 
 #' # Beta diversity
@@ -1244,31 +1244,13 @@ amf_ma_ord <-
         plot.tag.position = c(0, 1))
 #' 
 #' ### Supplemental figure
-#+ figS4_patchwork,warning=FALSE
+#+ figS4,warning=FALSE
 amf_ma_ord
-
-figS4_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
-  plot_layout(heights = c(1,0.01,1))
-figS4 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
-  plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'A')
-#+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
-fig3
-#' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
-#' biomass **b** (nmol NLFA g soil^-1), 95 % CI, letters = Tukey groups). 
-#' PCoA of BC distances on proportion of biomass abundance data
-#' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
-#' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
-#' prairie types. 
 #+ figS4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
-       width = 18, height = 10.5, units = "cm")
+ggsave(root_path("figs", "figS4.svg"), plot = amf_ma_ord, device = svglite::svglite,
+       width = 3.5, height = 3.5, units = "in")
 #' 
-
-
-
-#' 
-#' ### Contrast community metrics
+#' ### Contrast AMF ordinations
 #' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
 #+ amf_protest
 set.seed(20251111)
@@ -1281,39 +1263,107 @@ amf_protest
 #' The null that these solutions are unrelated
 #' is rejected at p<0.001. However, the alignment isn't perfect. 
 #' Clearly, the low biomass in cornfields is a driving difference in 
-#' the biomass-aware ordination, which, as a result, should possibly be preferred in this case.
-
-
-
-
-
+#' the biomass-aware ordination. Inference would be nearly identical in both cases, 
+#' all diagnostics also the same.
+#' 
+#' ## Pathogens
+d_patho <- patho %>% 
+  data.frame(row.names = 1) %>% 
+  decostand("total") %>%
+  vegdist("bray")
+mva_patho <- mva(d = d_patho, env = sites, corr = "lingoes")
+#' Diagnostics/results
+mva_patho$dispersion_test
+mva_patho$permanova
+mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+  arrange(group1, desc(group2)) %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+#' 
+#' Lingoes correction was needed. Three axes were significant based on a broken stick test. 
+#' Based on the homogeneity of variance test, the null hypothesis 
+#' of equal variance among groups is accepted across all clusters and in pairwise comparison of 
+#' clusters (both p>0.05), supporting the application of a PERMANOVA test.
+#' An effect of geographic distance (covariate) on pathogen communities was not supported. 
+#' With geographic distance accounted for, the test variable ‘field type’ significantly explained 
+#' variation in fungal communities, with a post-hoc test revealing that communities in corn 
+#' fields differed from communities in restored and remnant fields.
+#' 
+#' Plot results
+patho_ord_data <- mva_patho$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_patho_centers <- patho_ord_data %>% 
+  group_by(field_type) %>% 
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+patho_ord <- 
+  ggplot(patho_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
+  scale_fill_manual(values = ft_pal) +
+  labs(
+    x = paste0("PCoA 1 (", mva_patho$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_patho$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
+#' ## Saprotrophs
+#+ sapro_ord
+d_sapro <- sapro %>%
+  data.frame(row.names = 1) %>%
+  decostand("total") %>%
+  vegdist("bray")
+mva_sapro <- mva(d = d_sapro, env = sites)
+#+ sapro_ord_results
+mva_sapro$dispersion_test
+mva_sapro$permanova
+mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
+  arrange(group1, desc(group2)) %>% 
+  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
+#' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is
+#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of
+#' a PERMANOVA test.
+#'
+#' An effect of geographic distance (covariate) on pathogen communities was detected
+#' With geographic distance accounted for, the test variable 'field type' significantly explained
+#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
+#' communities in restored and remnant fields.
+#'
+#' Plotting results:
+sapro_ord_data <- mva_sapro$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+p_sapro_centers <- sapro_ord_data %>%
+  group_by(field_type) %>%
+  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
+  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
+         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+sapro_ord <-
+  ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  scale_fill_manual(values = ft_pal) +
+  labs(
+    x = paste0("PCoA 1 (", mva_sapro$axis_pct[1], "%)"),
+    y = paste0("PCoA 2 (", mva_sapro$axis_pct[2], "%)")) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1),
+        plot.tag.position = c(0, 1))
 #' 
 #' ## Beta diversity summary
-#' ### Using abundance-scaled biomass
-#' Fungal community differences differences among field types.
-#' Field type effects were evaluated using Permanova.
-#' P-values for field type were adjusted for multiple comparisons
-#' across fungal groups using the Benjamini-Hochberg procedure."
-#+ permanova_summary,warning=FALSE,message=FALSE
-list(
-  its_ma   = mva_its_ma$permanova,
-  amf_ma   = mva_amf_ma$permanova,
-  patho_ma = mva_patho_ma$permanova,
-  sapro_ma = mva_sapro_ma$permanova
-) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
-  bind_rows(.id = "guild") %>% 
-  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
-         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
-  filter(term %in% c("dist_axis_1", "field_type")) %>% 
-  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
-  kable(format = "pandoc")
+## Unified results ———————— ####
+#' ### Model summary statistics
+#' Relative sequence abundance results
 #' 
-#' ### Using relative sequence abundance
 #' Fungal community differences differences among field types.
 #' Field type effects were evaluated using Permanova.
 #' P-values for field type were adjusted for multiple comparisons
-#' across fungal groups using the Benjamini-Hochberg procedure."
+#' across fungal groups using the Benjamini-Hochberg procedure.
 #+ unified_permanova_summary,warning=FALSE,message=FALSE
 list(
   its_ma   = mva_its$permanova,
@@ -1328,13 +1378,21 @@ list(
   filter(term %in% c("dist_axis_1", "field_type")) %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
-
-
 #' 
-#' ## Beta diversity summary
+#' Model summary for biomass-aware AM fungi results
+#+ permanova_summary,warning=FALSE,message=FALSE
+list(amf_ma = mva_amf_ma$permanova) %>% 
+  map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+  bind_rows(.id = "guild") %>% 
+  mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
+         across(where(is.numeric), ~ round(.x, 3)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+  filter(term %in% c("dist_axis_1", "field_type")) %>% 
+  select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
+  kable(format = "pandoc")
 #' 
-#' #### Unified figure
-#' Display results of constrained analyses
+#' ### Unified figure
+#' Display community ordinations
 #+ betadiv_patchwork,warning=FALSE
 fig3up <- (its_ord | plot_spacer() | amf_ord) +
   plot_layout(widths = c(0.50, 0.01, 0.50))
@@ -1345,31 +1403,15 @@ fig3 <- (fig3up / plot_spacer() / fig3dn) +
   plot_annotation(tag_levels = 'A')
 #+ betadiv_fig,warning=FALSE,fig.height=7,fig.width=7
 fig3
-#' Caption...
 #+ betadiv_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
        width = 18, height = 18, units = "cm")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #' 
-#' # Constrained analysis
-# Constrained analysis ———————— ####
+#' # Environmental correlations
+# Environmental correlations ———————— ####
+#' 
+#' ## ITS fungi
 #' Test explanatory variables for correlation with site ordination. Using plant data, 
 #' so the analysis is restricted to Wisconsin sites. Edaphic variables are too numerous 
 #' to include individually, so transform micro nutrients using PCA. Forb and grass 
@@ -1413,11 +1455,7 @@ env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
 env_expl <- env_vars[, setdiff(colnames(env_vars), "dist_axis_1"), drop = FALSE] %>% 
   decostand("standardize")
 #' Check VIF
-env_expl %>% 
-  cor() %>% 
-  solve() %>% 
-  diag() %>% 
-  sort()
+env_expl %>% scale() %>% cor() %>% solve() %>% diag() %>% sort() %>% round(2)
 #' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
 #' Removed soil_micro_1 and K to maintain OM in the model.
 #' No overfitting detected in full model; proceed with forward selection. 
@@ -1451,8 +1489,7 @@ anova(mod_step, by = "margin", permutations = 1999) %>%
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
 #' individual p values and statistics. 
 #' 
-#' Create the figure objects. Figure 6 will be produced with panels from other groups, see code
-#' in the saprotrophs section. 
+#' Create the figure objects. Figure will be produced with panels from other groups. 
 #+ fig6_objects
 mod_step_eig <- round(mod_step$CCA$eig * 100, 1)
 mod_scor <- scores(
@@ -1484,6 +1521,406 @@ mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+#' 
+#' ## AM fungi
+#' Env covars processed in the ITS section (see above)
+spe_amf_wi_resto <- amf_avg %>%
+  filter(field_name %in% rownames(env_expl)) %>%
+  data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
+  decostand("total")
+
+amf_mod_null <- dbrda(spe_amf_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+amf_mod_full <- dbrda(spe_amf_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+amf_mod_step <- ordistep(amf_mod_null,
+                         scope = formula(amf_mod_full),
+                         direction = "forward",
+                         permutations = 1999,
+                         trace = FALSE)
+#' 
+#' ### Constrained Analysis Results
+amf_mod_step
+(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
+(amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
+(amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999))
+(amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1))
+amf_mod_step$anova %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' Based on permutation tests with n=1999 permutations, 
+#' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
+#' correlation between the site ordination on fungal communities
+#' and the selected explanatory variables (p<0.001). The first two constrained axes are
+#' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=`r round(amf_mod_r2$adj.r.squared, 3) * 100` of the community
+#' variation. Selected explanatory variables are pH and the grass-forb index; see table for
+#' individual p values and statistics.
+#' 
+#' #### AMF constrained figure
+#' Produce figure objects. Code for multipanel fig 6 is shown in the saprotroph section.
+#+ amf_fig6_objects
+amf_mod_step_eig <- round(amf_mod_step$CCA$eig * 100, 1)
+amf_mod_scor <- scores(
+  amf_mod_step,
+  choices = c(1, 2),
+  display = c("bp", "sites"),
+  tidy = FALSE
+)
+amf_mod_scor_site <- amf_mod_scor$sites %>%
+  data.frame() %>%
+  rownames_to_column(var = "field_name") %>%
+  left_join(sites, by = join_by(field_name))
+amf_mod_scor_bp <- bind_rows(
+  amf_mod_scor$biplot %>%
+    data.frame() %>%
+    rownames_to_column(var = "envvar") %>%
+    mutate(envlabs = c(">forb", "pH")),
+  data.frame(
+    envvar = "gf_axis",
+    dbRDA1 = -amf_mod_scor$biplot["gf_axis", 1],
+    dbRDA2 = -amf_mod_scor$biplot["gf_axis", 2],
+    envlabs = ">grass")
+) %>% 
+  arrange(envvar, envlabs) %>% 
+  mutate(
+    origin = 0,
+    m = dbRDA2 / dbRDA1,
+    d = sqrt(dbRDA1^2 + dbRDA2^2),
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
+    labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
+    laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+#' 
+#' ## Pathogens
+#' Env covars processed in the ITS section (see above)
+spe_patho_wi_resto <- patho %>%
+  filter(field_name %in% rownames(env_expl)) %>%
+  data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
+  decostand("total")
+
+patho_mod_null <- dbrda(spe_patho_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+patho_mod_full <- dbrda(spe_patho_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+patho_mod_step <- ordistep(patho_mod_null,
+                           scope = formula(patho_mod_full),
+                           direction = "forward",
+                           permutations = 1999,
+                           trace = TRUE)
+#' 
+#' ### Constrained Analysis Results
+patho_mod_step
+(patho_mod_r2   <- RsquareAdj(patho_mod_step, permutations = 1999))
+(patho_mod_glax <- anova(patho_mod_step, permutations = 1999))
+(patho_mod_inax <- anova(patho_mod_step, by = "axis", permutations = 1999))
+(patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$eig), 1))
+patho_mod_step$anova %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' Based on permutation tests with n=1999 permutations, 
+#' after accounting for inter-site pairwise distance as a covariate, the model shows 
+#' no significant correlation between pathogen community turnover and explanatory variables.
+#' 
+#' #### Pathogen constrained figure
+patho_mod_step_eig <- c(round(patho_mod_step$CCA$eig * 100, 1), round(patho_mod_step$CA$eig * 100, 1)[1])
+patho_mod_scor <- scores(
+  patho_mod_step,
+  choices = c(1, 2),
+  display = c("bp", "sites"),
+  tidy = FALSE
+)
+patho_mod_scor_site <- patho_mod_scor$sites %>%
+  data.frame() %>%
+  rownames_to_column(var = "field_name") %>%
+  left_join(sites, by = join_by(field_name))
+patho_mod_scor_bp <-
+  patho_mod_scor$biplot %>%
+  data.frame() %>%
+  rownames_to_column(var = "envvar") %>%
+  mutate(envlabs = "'OM'") %>% 
+  mutate(
+    origin = 0,
+    m = dbRDA1,
+    d = dbRDA1,
+    dadd = dbRDA1 * dadd_adj,
+    labx = d+dadd,
+    laby = 0)
+#' 
+#' ## Saprotrophs
+#' Env covars processed in the ITS section (see above)
+spe_sapro_wi_resto <- sapro %>%
+  filter(field_name %in% rownames(env_expl)) %>%
+  data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
+  decostand("total")
+
+sapro_mod_null <- dbrda(spe_sapro_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+sapro_mod_full <- dbrda(spe_sapro_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+sapro_mod_step <- ordistep(sapro_mod_null,
+                           scope = formula(sapro_mod_full),
+                           direction = "forward",
+                           permutations = 1999,
+                           trace = FALSE)
+#' 
+#' ### Constrained Analysis Results
+sapro_mod_step
+(sapro_mod_r2   <- RsquareAdj(sapro_mod_step, permutations = 1999))
+(sapro_mod_glax <- anova(sapro_mod_step, permutations = 1999))
+(sapro_mod_inax <- anova(sapro_mod_step, by = "axis", permutations = 1999))
+(sapro_mod_axpct <- round(100 * sapro_mod_step$CCA$eig / sum(sapro_mod_step$CCA$eig), 1))
+sapro_mod_step$anova %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' Based on permutation tests with n=1999 permutations, 
+#' after accounting for inter-site pairwise distance as a covariate, the model shows 
+#' correlations between the site ordination on saprotroph communities
+#' and the selected explanatory variables (p<0.001). The first four constrained axes are
+#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=
+#' `r round(sapro_mod_r2$adj.r.squared * 100, 1)`% of the community
+#' variation. Selected explanatory variables are SOM, grass-forb index, plant richness,
+#' and nitrate; see table for individual p values and statistics.
+#' 
+#' #### Saprotroph constrained figure
+sapro_mod_step_eig <- round(sapro_mod_step$CCA$eig * 100, 1)
+sapro_mod_scor <- scores(
+  sapro_mod_step,
+  choices = c(1, 2),
+  display = c("bp", "sites"),
+  tidy = FALSE
+)
+sapro_mod_scor_site <- sapro_mod_scor$sites %>%
+  data.frame() %>%
+  rownames_to_column(var = "field_name") %>%
+  left_join(sites, by = join_by(field_name))
+sapro_mod_scor_bp <- bind_rows(
+  sapro_mod_scor$biplot %>%
+    data.frame() %>%
+    rownames_to_column(var = "envvar") %>%
+    mutate(envlabs = c("'>forb'", "'OM'")),
+  data.frame(
+    envvar = "gf_axis",
+    dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
+    dbRDA2 = -sapro_mod_scor$biplot["gf_axis", 2],
+    envlabs = "'>grass'")
+) %>% 
+  arrange(envvar, envlabs) %>% 
+  mutate(
+    origin = 0,
+    m = dbRDA2 / dbRDA1,
+    d = sqrt(dbRDA1^2 + dbRDA2^2),
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
+    labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
+    laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+#' 
+#' ## Constrained analysis unifiec summary
+## Unified results ———————— ####
+#' Environmental drivers were identified via partial distance-based Redundancy Analysis (db-RDA) 
+#' using forward selection. 
+#' Geographic distance (PCoA Axis 1) was included as a conditional term to partial out spatial effects. 
+#' Radj2 represents the cumulative variance explained by the final selected model. 
+#' P-values are based on 1,999 permutations; Padj reflects FDR correction within the guild.
+#' 
+#' ### Adjusted R2
+#' Produce objects with explanatory power and degrees of freedom for reporting
+#+ dbrda_r2
+data.frame(
+  guild = c("all_fungi", "amf", "pathogens", "saprotrophs"),
+  r2    = round(c(mod_r2$adj.r.squared, amf_mod_r2$adj.r.squared, patho_mod_r2$adj.r.squared, sapro_mod_r2$adj.r.squared), 3)
+) %>% 
+  kable(format = "pandoc")
+#+ rdf
+rdf <- data.frame(
+  guild = c("all_fungi", "amf", "pathogens", "saprotrophs"),
+  rdf   = c(mod_inax["Residual", "Df"], amf_mod_inax["Residual", "Df"], patho_mod_inax["Residual", "Df"], sapro_mod_inax["Residual", "Df"])
+)
+#' 
+#' ### Selected constraining variables
+#+ dbrda_var_summary
+list(
+  all_fungi   = mod_step$anova,
+  amf         = amf_mod_step$anova,
+  pathogens   = patho_mod_step$anova,
+  saprotrophs = sapro_mod_step$anova
+) %>% 
+  map(\(df) df %>% 
+        tidy() %>% 
+        mutate(p.adj = p.adjust(p.value, "fdr"),
+               across(where(is.numeric), ~ round(.x, 4)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ ")) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' ### Global tests
+#+ dbrda_global_summary,message=FALSE,warning=FALSE
+list(
+  all_fungi   = mod_glax,
+  amf         = amf_mod_glax,
+  pathogens   = patho_mod_glax,
+  saprotrophs = sapro_mod_glax
+) %>% map(\(df) df %>% 
+            tidy() %>% 
+            filter(term != "Residual") %>% 
+            mutate(p.adj = p.adjust(p.value, "fdr"),
+                   across(where(is.numeric), ~ round(.x, 4)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`pseudo_F_(df)` = paste0(round(statistic, 2), " (", df, ", ", rdf, ")")) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' ### Component axes
+#+ dbrda_axis_summary,message=FALSE,warning=FALSE
+list(
+  all_fungi   = mod_inax,
+  amf         = amf_mod_inax,
+  pathogens   = patho_mod_inax,
+  saprotrophs = sapro_mod_inax
+) %>% map(\(df) df %>% 
+            tidy() %>% 
+            filter(term != "Residual") %>% 
+            mutate(p.adj = p.adjust(p.value, "fdr"),
+                   across(where(is.numeric), ~ round(.x, 4)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(rdf, by = join_by(guild)) %>% 
+  mutate(`pseudo_F_(df)` = paste0(round(statistic, 2), " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ ")) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' ### Biplot panels
+#' All soil fungi
+#+ fig4a
+fig4a <- 
+  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_segment(data = mod_scor_bp, 
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20", "gray20")) +
+  geom_text(data = mod_scor_bp, 
+            aes(x = labx, y = laby, label = envlabs), 
+            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
+            size = 3, color = "black", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
+  lims(x = c(-1.5,1.2)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' AMF
+#+ fig4b
+fig4b <-
+  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  geom_segment(data = amf_mod_scor_bp,
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("darkblue", "darkblue", "gray20")) +
+  geom_text(data = amf_mod_scor_bp,
+            aes(x = labx, y = laby, label = envlabs),
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
+  lims(x = c(-1.3,1.2)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' Pathogens, PCoA fig
+#+ fig4c
+fig4c <-
+  ggplot(patho_mod_scor_site, aes(x = -1 * dbRDA1, y = MDS1)) +
+  geom_segment(data = patho_mod_scor_bp,
+               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = MDS1),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = "gray20") +
+  geom_text(data = patho_mod_scor_bp,
+            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20", fontface = 2) +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%)"),
+    y = paste0("PCoA 1 (", patho_mod_step_eig[2], "%)")) +
+  # lims(y = c(-0.5,0.5)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
+  theme_ord +
+  theme(legend.position = "none",
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' Saprotrophs
+#+ fig4d
+fig4d <-
+  ggplot(sapro_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
+  geom_segment(data = sapro_mod_scor_bp,
+               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               color = c("gray20", "darkblue", "darkblue")) +
+  geom_text(data = sapro_mod_scor_bp,
+            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
+            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
+            size = 3, color = "gray20") +
+  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  labs(
+    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
+    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
+  lims(x = c(-1.2,2.0)) +
+  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
+  theme_ord +
+  theme(legend.position = c(0.98, 0.5),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
+        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+#' 
+#' #### Unified figure
+#' Display results of constrained analyses
+#+ fig4_patchwork,warning=FALSE
+fig4up <- (fig4a | plot_spacer() | fig4b) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig4dn <- (fig4c | plot_spacer() | fig4d) +
+  plot_layout(widths = c(0.50, 0.01, 0.50))
+fig4 <- (fig4up / plot_spacer() / fig4dn) +
+  plot_layout(heights = c(0.50, 0.01, 0.50)) +
+  plot_annotation(tag_levels = 'A')
+#+ fig4,warning=FALSE,fig.height=7,fig.width=7
+fig4
+#' Fungal community ordinations which are constrained or unconstrained by explanatory variables. 
+#' Panels show results for all soil fungi **a**, amf **b**, pathogens **c**, and saprotrophs **d**.
+#' Percent of constrained (db-RDA) and unconstrained (PCoA) variation explained is shown with axis labels.
+#' For explanatory variables with significant community correlations, blue arrows show the grass-forb index 
+#' with labels indicating the direction of relative increase in 
+#' C4 grasses or forbs, respectively, along the index. The black arrows show other significant constraining
+#' variables. Points show locations of restored fields (green) and remnant fields (blue) in Wisconsin. 
+#+ fig6_save,warning=FALSE,echo=FALSE
+ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = svglite::svglite,
+       width = 18, height = 18, units = "cm")
+
+
+
+
+
+
+
+
 #' 
 #' ### Variation partitioning
 #' Not informative with the entire genomic library.soil_expl <- sites %>% 
@@ -1695,74 +2132,7 @@ amf_ind %>%
   kable(format = "pandoc", caption = "Indicator species analysis results with avg biomass")
 #' None of the identified species seem relevant for further discussion...
 #' 
-#' ## Constrained analysis
-## Constrained analysis ------ ####
-#' Env covars processed in the ITS section (see above)
-spe_amf_wi_resto <- amf_avg %>%
-  filter(field_name %in% rownames(env_expl)) %>%
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
 
-amf_mod_null <- dbrda(spe_amf_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-amf_mod_full <- dbrda(spe_amf_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
-amf_mod_step <- ordistep(amf_mod_null,
-                         scope = formula(amf_mod_full),
-                         direction = "forward",
-                         permutations = 1999,
-                         trace = FALSE)
-#' 
-#' ### Constrained Analysis Results
-amf_mod_step
-(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
-(amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
-(amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999))
-(amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1))
-amf_mod_step$anova %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' Based on permutation tests with n=1999 permutations, 
-#' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
-#' correlation between the site ordination on fungal communities
-#' and the selected explanatory variables (p<0.001). The first two constrained axes are
-#' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=`r round(amf_mod_r2$adj.r.squared, 3) * 100` of the community
-#' variation. Selected explanatory variables are pH and the grass-forb index; see table for
-#' individual p values and statistics.
-#' 
-#' #### AMF constrained figure
-#' Produce figure objects. Code for multipanel fig 6 is shown in the saprotroph section.
-#+ amf_fig6_objects
-amf_mod_step_eig <- round(amf_mod_step$CCA$eig * 100, 1)
-amf_mod_scor <- scores(
-  amf_mod_step,
-  choices = c(1, 2),
-  display = c("bp", "sites"),
-  tidy = FALSE
-)
-amf_mod_scor_site <- amf_mod_scor$sites %>%
-  data.frame() %>%
-  rownames_to_column(var = "field_name") %>%
-  left_join(sites, by = join_by(field_name))
-amf_mod_scor_bp <- bind_rows(
-  amf_mod_scor$biplot %>%
-    data.frame() %>%
-    rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c(">forb", "pH")),
-  data.frame(
-    envvar = "gf_axis",
-    dbRDA1 = -amf_mod_scor$biplot["gf_axis", 1],
-    dbRDA2 = -amf_mod_scor$biplot["gf_axis", 2],
-    envlabs = ">grass")
-) %>% 
-  arrange(envvar, envlabs) %>% 
-  mutate(
-    origin = 0,
-    m = dbRDA2 / dbRDA1,
-    d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
-    labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
-    laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
 #' ### Variation partitioning
 ## Varpart ———————— ####
@@ -1845,144 +2215,8 @@ summary(amma_rest_m)
 #' ## Beta Diversity
 #' Community distances handled similarly to previous
 #' 
-#' ### Biomass-weighted relative abundance
-patho_ma <- guildseq(its_avg_ma, its_meta, "plant_pathogen")
-#+ patho_ma_ord
-d_patho_ma <- patho_ma %>% 
-  data.frame(row.names = 1) %>% 
-  vegdist("bray")
-mva_patho_ma <- mva(d = d_patho_ma, env = sites, corr = "lingoes")
-#+ patho_ord_results
-mva_patho_ma$dispersion_test
-mva_patho_ma$permanova
-mva_patho_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-  arrange(group1, desc(group2)) %>% 
-  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' Lingoes correction was needed. Three axes were significant based on broken stick test. 
-#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
-#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
-#' a PERMANOVA test. 
-#' 
-#' An effect of geographic distance (covariate) on pathogen communities was not supported. 
-#' With geographic distance accounted for, the test variable 'field type' significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
-#' 
-#' Plotting results: 
-patho_ma_ord_data <- mva_patho_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_patho_ma_centers <- patho_ma_ord_data %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
-         across(ends_with("Axis.1"), ~ .x * -1)) # reverse axis values to be consistent with other plots
-patho_ma_ord <- 
-  ggplot(patho_ma_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reverse axis
-  geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_patho_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
-  labs(
-    x = paste0("PCoA 1 (", mva_patho_ma$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_patho_ma$axis_pct[2], "%)")) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Unified figure
-#+ fig4_patchwork,warning=FALSE
-fig4_ls <- (patho_rich_fig / plot_spacer() / patho_ma_fig) +
-  plot_layout(heights = c(1,0.01,1)) 
-fig4 <- (fig4_ls | plot_spacer() | patho_ma_ord) +
-  plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'A') 
-#+ fig4,warning=FALSE,fig.height=4,fig.width=6.5
-fig4
-#' **Fig 4.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** biomass (nmol PLFA g soil^-1 * (proportional sequence abundance)) 
-#' are shown as columns with 95 % CIs.
-#' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
-#' distances: small points = sites, large circles = field-type centroids (error bars =
-#' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
-#' Numbers in black circles give years since restoration. Axis labels show the
-#' percent variation explained. 
-#' 
-#+ fig4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = svglite::svglite,
-       width = 18, height = 10.5, units = "cm")
-#' 
-#' ### Sequence-based relative abundance
-d_patho <- patho %>% 
-  data.frame(row.names = 1) %>% 
-  decostand("total") %>%
-  vegdist("bray")
-mva_patho <- mva(d = d_patho, env = sites, corr = "lingoes")
-#' Diagnostics/results
-mva_patho$dispersion_test
-mva_patho$permanova
-mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-  arrange(group1, desc(group2)) %>% 
-  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' 
-#' Lingoes correction was needed. Three axes were significant based on a broken stick test. 
-#' Based on the homogeneity of variance test, the null hypothesis 
-#' of equal variance among groups is accepted across all clusters and in pairwise comparison of 
-#' clusters (both p>0.05), supporting the application of a PERMANOVA test.
-#' An effect of geographic distance (covariate) on pathogen communities was not supported. 
-#' With geographic distance accounted for, the test variable ‘field type’ significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn 
-#' fields differed from communities in restored and remnant fields.
-#' 
-#' Plot results
-patho_ord_data <- mva_patho$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_patho_centers <- patho_ord_data %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
-patho_ord <- 
-  ggplot(patho_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_patho_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
-  labs(
-    x = paste0("PCoA 1 (", mva_patho$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_patho$axis_pct[2], "%)")) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Supplemental figure
-#+ patho_shan_ord_sup_patchwork,warning=FALSE
-patho_shan_ord_sup <- (patho_shan_fig | plot_spacer() | patho_ord) +
-  plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'A') 
-#+ patho_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
-patho_shan_ord_sup
-#+ patho_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS6.svg"), plot = patho_shan_ord_sup, device = svglite::svglite,
-       width = 7.5, height = 4, units = "in")
-#' 
-#' #### Contrast community metrics
-#' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
-#+ patho_protest
-set.seed(20251112)
-patho_protest <- protest(
-  pcoa(d_patho)$vectors[, 1:3],
-  pcoa(d_patho_ma)$vectors[, 1:3],
-  permutations = 1999
-)
-patho_protest
-#' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
-#' $R^{2}=$ `r round(patho_protest$scale^2, 2)`, p<0.001. 
-#' 
+
+
 #' ## Pathogen Indicator Species
 #' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
 #' research may make the indicator stats less appropriate for other use. Using biomass-weighted relative
@@ -1995,62 +2229,7 @@ patho_ind %>%
   mutate(across(A:p_val_adj, ~ round(.x, 3)),
          across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
-#' 
-#' ## Constrained analysis
-## Constrained analysis ———————— ####
-#' Env covars processed in the ITS section (see above)
-spe_patho_wi_resto <- patho %>%
-  filter(field_name %in% rownames(env_expl)) %>%
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
 
-patho_mod_null <- dbrda(spe_patho_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-patho_mod_full <- dbrda(spe_patho_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
-patho_mod_step <- ordistep(patho_mod_null,
-                           scope = formula(patho_mod_full),
-                           direction = "forward",
-                           permutations = 1999,
-                           trace = TRUE)
-#' 
-#' ### Constrained Analysis Results
-patho_mod_step
-(patho_mod_r2   <- RsquareAdj(patho_mod_step, permutations = 1999))
-(patho_mod_glax <- anova(patho_mod_step, permutations = 1999))
-(patho_mod_inax <- anova(patho_mod_step, by = "axis", permutations = 1999))
-(patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$eig), 1))
-patho_mod_step$anova %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' Based on permutation tests with n=1999 permutations, 
-#' after accounting for inter-site pairwise distance as a covariate, the model shows 
-#' no significant correlation between pathogen community turnover and explanatory variables.
-#' 
-#' #### Pathogen constrained figure
-patho_mod_step_eig <- c(round(patho_mod_step$CCA$eig * 100, 1), round(patho_mod_step$CA$eig * 100, 1)[1])
-patho_mod_scor <- scores(
-  patho_mod_step,
-  choices = c(1, 2),
-  display = c("bp", "sites"),
-  tidy = FALSE
-)
-patho_mod_scor_site <- patho_mod_scor$sites %>%
-  data.frame() %>%
-  rownames_to_column(var = "field_name") %>%
-  left_join(sites, by = join_by(field_name))
-patho_mod_scor_bp <-
-  patho_mod_scor$biplot %>%
-    data.frame() %>%
-    rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = "'OM'") %>% 
-  mutate(
-    origin = 0,
-    m = dbRDA1,
-    d = dbRDA1,
-    dadd = dbRDA1 * dadd_adj,
-    labx = d+dadd,
-    laby = 0)
 #' 
 #' ### Variation partitioning
 ## Varpart ———————— ####
@@ -2247,143 +2426,8 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 #' ## Beta Diversity
 #' Community distance handled similarly to previous
 #' 
-#' ### Biomass-weighted relative abundance
-sapro_ma <- guildseq(its_avg_ma, its_meta, "saprotroph")
-#+ sapro_ma_ord
-d_sapro_ma <- sapro_ma %>% 
-  data.frame(row.names = 1) %>% 
-  vegdist("bray")
-mva_sapro_ma <- mva(d = d_sapro_ma, env = sites)
-#+ sapro_ma_ord_results
-mva_sapro_ma$dispersion_test
-mva_sapro_ma$permanova
-mva_sapro_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
-  arrange(group1, desc(group2)) %>% 
-  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
-#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
-#' a PERMANOVA test. 
-#' 
-#' An effect of geographic distance (covariate) on pathogen communities was detected. 
-#' With geographic distance accounted for, the test variable 'field type' significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
-#' 
-#' Plotting results: 
-sapro_ma_ord_data <- mva_sapro_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_sapro_ma_centers <- sapro_ma_ord_data %>% 
-  group_by(field_type) %>% 
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
-         across(ends_with("Axis.1"), ~ .x * -1)) # reverse axis values to be consistent with other plots
-sapro_ma_ord <- 
-  ggplot(sapro_ma_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reverse axis
-  geom_linerange(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_sapro_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
-  labs(
-    x = paste0("PCoA 1 (", mva_sapro_ma$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_sapro_ma$axis_pct[2], "%)")) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Unified figure
-#+ fig5_patchwork,warning=FALSE
-fig5_ls <- (sapro_rich_fig / plot_spacer() / sapro_ma_fig) +
-  plot_layout(heights = c(1,0.01,1)) 
-fig5 <- (fig5_ls | plot_spacer() | sapro_ma_ord) +
-  plot_layout(widths = c(0.35, 0.01, 0.64)) +
-  plot_annotation(tag_levels = 'A') 
-#+ fig5,warning=FALSE,fig.height=4,fig.width=6.5
-fig5
-#' **Fig 5.** Putative plant pathogen communities in **corn**, **restored**, and **remnant** prairie fields.
-#' **a** OTU richness and **b** biomass (nmol PLFA g soil^-1 * (proportional sequence abundance)) 
-#' are shown as columns with 95 % CIs.
-#' **c** Principal-coordinate (PCoA) ordination of ITS-based (97 % OTU) community
-#' distances: small points = sites, large circles = field-type centroids (error bars =
-#' 95 % CI). Cornfields cluster apart from restored or remnant prairies (P < 0.01).
-#' Numbers in black circles give years since restoration. Axis labels show the
-#' percent variation explained. Colours/shading: corn = grey, restored = black,
-#' remnant = white.
-#+ fig5_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "fig5.svg"), plot = fig5, device = svglite::svglite,
-       width = 18, height = 10.5, units = "cm")
-#' 
-#' ### Sequence-based relative abundance
-#+ sapro_ord
-d_sapro <- sapro %>%
-  data.frame(row.names = 1) %>%
-  decostand("total") %>%
-  vegdist("bray")
-mva_sapro <- mva(d = d_sapro, env = sites)
-#+ sapro_ord_results
-mva_sapro$dispersion_test
-mva_sapro$permanova
-mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
-  arrange(group1, desc(group2)) %>% 
-  kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is
-#' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of
-#' a PERMANOVA test.
-#'
-#' An effect of geographic distance (covariate) on pathogen communities was detected
-#' With geographic distance accounted for, the test variable 'field type' significantly explained
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields.
-#'
-#' Plotting results:
-sapro_ord_data <- mva_sapro$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-p_sapro_centers <- sapro_ord_data %>%
-  group_by(field_type) %>%
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
-sapro_ord <-
-  ggplot(sapro_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_sapro_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
-  labs(
-    x = paste0("PCoA 1 (", mva_sapro$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_sapro$axis_pct[2], "%)")) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Supplemental figure
-#+ sapro_shan_ord_sup_patchwork,warning=FALSE
-sapro_shan_ord_sup <- (sapro_shan_fig | plot_spacer() | sapro_ord) +
-  plot_layout(widths = c(0.45, 0.01, 0.55)) +
-  plot_annotation(tag_levels = 'A') 
-#+ sapro_shan_ord_sup,warning=FALSE,fig.height=4,fig.width=6.5
-sapro_shan_ord_sup
-#+ sapro_shan_ord_sup_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS7.svg"), plot = sapro_shan_ord_sup, device = svglite::svglite,
-       width = 7.5, height = 4, units = "in")
-#' 
-#' #### Contrast community metrics
-#' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
-#+ sapro_protest
-set.seed(20251119)
-sapro_protest <- protest(
-  pcoa(d_sapro)$vectors[, 2],
-  pcoa(d_sapro_ma)$vectors[, 2],
-  permutations = 1999
-)
-sapro_protest
-#' Including biomass changes little. The spatial configurations of both ordinations are highly correlated.
-#' $R^{2}=$ `r round(sapro_protest$scale^2, 2)`, p<0.001. 
-#' 
+
+
 #' ## Saprotroph Indicator Species
 sapro_ind <- inspan(its_avg_ma, its_meta, "saprotroph", sites)
 sapro_ind %>% 
@@ -2394,73 +2438,7 @@ sapro_ind %>%
          across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
   kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 #' 
-#' ## Constrained analysis
-## Constrained analysis ------ ####
-#' Env covars processed in the ITS section (see above)
-spe_sapro_wi_resto <- sapro %>%
-  filter(field_name %in% rownames(env_expl)) %>%
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
 
-sapro_mod_null <- dbrda(spe_sapro_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-sapro_mod_full <- dbrda(spe_sapro_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
-sapro_mod_step <- ordistep(sapro_mod_null,
-                           scope = formula(sapro_mod_full),
-                           direction = "forward",
-                           permutations = 1999,
-                           trace = FALSE)
-#' 
-#' ### Constrained Analysis Results
-sapro_mod_step
-(sapro_mod_r2   <- RsquareAdj(sapro_mod_step, permutations = 1999))
-(sapro_mod_glax <- anova(sapro_mod_step, permutations = 1999))
-(sapro_mod_inax <- anova(sapro_mod_step, by = "axis", permutations = 1999))
-(sapro_mod_axpct <- round(100 * sapro_mod_step$CCA$eig / sum(sapro_mod_step$CCA$eig), 1))
-sapro_mod_step$anova %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' Based on permutation tests with n=1999 permutations, 
-#' after accounting for inter-site pairwise distance as a covariate, the model shows 
-#' correlations between the site ordination on saprotroph communities
-#' and the selected explanatory variables (p<0.001). The first four constrained axes are
-#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=
-#' `r round(sapro_mod_r2$adj.r.squared * 100, 1)`% of the community
-#' variation. Selected explanatory variables are SOM, grass-forb index, plant richness,
-#' and nitrate; see table for individual p values and statistics.
-#' 
-#' #### Saprotroph constrained figure
-sapro_mod_step_eig <- round(sapro_mod_step$CCA$eig * 100, 1)
-sapro_mod_scor <- scores(
-  sapro_mod_step,
-  choices = c(1, 2),
-  display = c("bp", "sites"),
-  tidy = FALSE
-)
-sapro_mod_scor_site <- sapro_mod_scor$sites %>%
-  data.frame() %>%
-  rownames_to_column(var = "field_name") %>%
-  left_join(sites, by = join_by(field_name))
-sapro_mod_scor_bp <- bind_rows(
-  sapro_mod_scor$biplot %>%
-    data.frame() %>%
-    rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'>forb'", "'OM'")),
-  data.frame(
-    envvar = "gf_axis",
-    dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
-    dbRDA2 = -sapro_mod_scor$biplot["gf_axis", 2],
-    envlabs = "'>grass'")
-) %>% 
-  arrange(envvar, envlabs) %>% 
-  mutate(
-    origin = 0,
-    m = dbRDA2 / dbRDA1,
-    d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
-    labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
-    laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
 #' ### Variation partitioning
 ## Varpart ———————— ####
@@ -2687,213 +2665,14 @@ sapro_plant_summary <- plant %>%
   arrange(desc(plcvr_hsap)) # Sort by high-sapro indicators first
 kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low or high saprotroph sites")
 
-#' 
-#' # Results summaries
 
 
 
 
 
+# Summaries (old) ####
 
 
-
-#' 
-#' ## Constrained analysis summary
-#' Environmental drivers were identified via partial distance-based Redundancy Analysis (db-RDA) 
-#' using forward selection. 
-#' Geographic distance (PCoA Axis 1) was included as a conditional term to partial out spatial effects. 
-#' Radj2 represents the cumulative variance explained by the final selected model. 
-#' P-values are based on 1,999 permutations; Padj reflects FDR correction within the guild.
-#' 
-#' ### Adjusted R2
-#= dbrda_r2
-data.frame(
-  guild = c("all_fungi", "amf", "saprotrophs"),
-  r2    = round(c(mod_r2$adj.r.squared, amf_mod_r2$adj.r.squared, sapro_mod_r2$adj.r.squared), 3)
-) %>% 
-  kable(format = "pandoc")
-#+ rdf
-rdf <- data.frame(
-  guild = c("all_fungi", "amf", "saprotrophs"),
-  rdf   = c(mod_inax["Residual", "Df"], amf_mod_inax["Residual", "Df"], sapro_mod_inax["Residual", "Df"])
-)
-#' 
-#' ### Selected constraining variables
-#+ dbrda_var_summary
-list(
-  all_fungi   = mod_step$anova,
-  amf         = amf_mod_step$anova,
-  saprotrophs = sapro_mod_step$anova
-) %>% 
-  map(\(df) df %>% 
-        tidy() %>% 
-        mutate(p.adj = p.adjust(p.value, "fdr"),
-               across(where(is.numeric), ~ round(.x, 3)))) %>% 
-  bind_rows(.id = "guild") %>% 
-  left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
-         term = str_remove(term, "\\+ ")) %>% 
-  select(term, `pseudo_F_(df)`, p.value, p.adj) %>% 
-  kable(format = "pandoc")
-#' 
-#' ### Global tests
-#+ dbrda_global_summary,message=FALSE,warning=FALSE
-list(
-  all_fungi   = mod_glax,
-  amf         = amf_mod_glax,
-  saprotrophs = sapro_mod_glax
-) %>% map(\(df) df %>% 
-            tidy() %>% 
-            filter(term != "Residual") %>% 
-            mutate(p.adj = p.adjust(p.value, "fdr"),
-                   across(where(is.numeric), ~ round(.x, 3)))) %>% 
-  bind_rows(.id = "guild") %>% 
-  left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")")) %>% 
-  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
-  kable(format = "pandoc")
-#' 
-#' ### Component axes
-#+ dbrda_axis_summary,message=FALSE,warning=FALSE
-list(
-  all_fungi   = mod_inax,
-  amf         = amf_mod_inax,
-  saprotrophs = sapro_mod_inax
-) %>% map(\(df) df %>% 
-            tidy() %>% 
-            filter(term != "Residual") %>% 
-            mutate(p.adj = p.adjust(p.value, "fdr"),
-                   across(where(is.numeric), ~ round(.x, 3)))) %>% 
-  bind_rows(.id = "guild") %>% 
-  left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
-         term = str_remove(term, "\\+ ")) %>% 
-  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
-  kable(format = "pandoc")
-#' 
-#' ### Biplot panels
-#' All soil fungi
-#+ fig4a
-fig4a <- 
-  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-  geom_segment(data = mod_scor_bp, 
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20", "gray20")) +
-  geom_text(data = mod_scor_bp, 
-            aes(x = labx, y = laby, label = envlabs), 
-            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
-            size = 3, color = "black", fontface = 2) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
-  lims(x = c(-1.5,1.2)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' AMF
-#+ fig4b
-fig4b <-
-  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
-  geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
-  geom_text(data = amf_mod_scor_bp,
-            aes(x = labx, y = laby, label = envlabs),
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20", fontface = 2) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
-  lims(x = c(-1.3,1.2)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' Pathogens, PCoA fig
-#+ fig4c
-fig4c <-
-  ggplot(patho_mod_scor_site, aes(x = -1 * dbRDA1, y = MDS1)) +
-  geom_segment(data = patho_mod_scor_bp,
-               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = MDS1),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = "gray20") +
-  geom_text(data = patho_mod_scor_bp,
-            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20", fontface = 2) +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%)"),
-    y = paste0("PCoA 1 (", patho_mod_step_eig[2], "%)")) +
-  # lims(y = c(-0.5,0.5)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
-  theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' Saprotrophs
-#+ fig4d
-fig4d <-
-  ggplot(sapro_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
-  geom_segment(data = sapro_mod_scor_bp,
-               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
-               arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "darkblue", "darkblue")) +
-  geom_text(data = sapro_mod_scor_bp,
-            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20") +
-  geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  labs(
-    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
-  lims(x = c(-1.2,2.0)) +
-  scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
-  theme_ord +
-  theme(legend.position = c(0.98, 0.5),
-        legend.justification = c(1, 0),
-        legend.title = element_text(size = 9, face = 1),
-        legend.text = element_text(size = 8, face = 1),
-        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-        legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
-#' 
-#' #### Unified figure
-#' Display results of constrained analyses
-#+ fig4_patchwork,warning=FALSE
-fig4up <- (fig4a | plot_spacer() | fig4b) +
-  plot_layout(widths = c(0.50, 0.01, 0.50))
-fig4dn <- (fig4c | plot_spacer() | fig4d) +
-  plot_layout(widths = c(0.50, 0.01, 0.50))
-fig4 <- (fig4up / plot_spacer() / fig4dn) +
-  plot_layout(heights = c(0.50, 0.01, 0.50)) +
-  plot_annotation(tag_levels = 'A')
-#+ fig4,warning=FALSE,fig.height=7,fig.width=7
-fig4
-#' Fungal community ordinations which are constrained or unconstrained by explanatory variables. 
-#' Panels show results for all soil fungi **a**, amf **b**, pathogens **c**, and saprotrophs **d**.
-#' Percent of constrained (db-RDA) and unconstrained (PCoA) variation explained is shown with axis labels.
-#' For explanatory variables with significant community correlations, blue arrows show the grass-forb index 
-#' with labels indicating the direction of relative increase in 
-#' C4 grasses or forbs, respectively, along the index. The black arrows show other significant constraining
-#' variables. Points show locations of restored fields (green) and remnant fields (blue) in Wisconsin. 
-#+ fig6_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig6.svg"), plot = fig6, device = svglite::svglite,
-       width = 18, height = 18, units = "cm")
 
 
 
