@@ -1244,23 +1244,25 @@ amf_ma_ord <-
         plot.tag.position = c(0, 1))
 #' 
 #' ### Supplemental figure
-#+ fig3_patchwork,warning=FALSE
-# fig3_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
-#   plot_layout(heights = c(1,0.01,1)) 
-# fig3 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
-#   plot_layout(widths = c(0.35, 0.01, 0.64)) +
-#   plot_annotation(tag_levels = 'A') 
-# #+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
-# fig3
+#+ figS4_patchwork,warning=FALSE
+amf_ma_ord
+
+figS4_ls <- (amf_rich_fig / plot_spacer() / nlfa_fig) +
+  plot_layout(heights = c(1,0.01,1))
+figS4 <- (fig3_ls | plot_spacer() | amf_ma_ord) +
+  plot_layout(widths = c(0.35, 0.01, 0.64)) +
+  plot_annotation(tag_levels = 'A')
+#+ fig3,warning=FALSE,fig.height=4,fig.width=6.5
+fig3
 #' **Fig 3.** AMF communities in corn, restored, and remnant prairie fields. OTU richness **a**;
 #' biomass **b** (nmol NLFA g soil^-1), 95 % CI, letters = Tukey groups). 
 #' PCoA of BC distances on proportion of biomass abundance data
 #' (18S, 97 % OTUs) **c**: small points = sites, large rings = field‑type centroids ±95 % CI. 
 #' Numbers in points give years since restoration. Axes show % variance. Corn clusters apart from both 
 #' prairie types. 
-#+ fig3_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-# ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
-#        width = 18, height = 10.5, units = "cm")
+#+ figS4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
+ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
+       width = 18, height = 10.5, units = "cm")
 #' 
 
 
