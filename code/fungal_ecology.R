@@ -31,7 +31,7 @@ packages_needed <- c(
   # Analysis
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
   "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot", 
-  "indicspecies", "MASS", "DHARMa", "broom",
+  "indicspecies", "MASS", "DHARMa", "broom", "ALDEx2",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
@@ -101,7 +101,7 @@ amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types
   mutate(across(everything(), ~ replace_na(., "unidentified")))
 #' 
 #' ### Wrangle additional species and metadata objects
-# Spe data wrangling ———————— ####
+# SpeData wrangling ———————— ####
 #' 
 #' 1. Proportional species abundance corrected for site biomass
 #' 1. Unifrac products for AMF
@@ -2145,6 +2145,7 @@ summary(amma_rest_m)
 #' above 0.95 alpha cutoff. 
 #' 
 #' ## Pathogens
+## Pathogens ———————— ####
 #' Data for these tests
 patho_resto <- its_guild %>% 
   filter(field_type != "corn", region != "FL") %>% 
@@ -2299,13 +2300,200 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 
 # What pathogen species are shared across these sites?
 
-patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% 
+patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) %>%
+  mutate(across(everything(), ~ as.integer(round(.x * 10))))# Converting to sums, integers needed.
+
+gf_axis # the covar, assume it will be in a tibble with field_name and covar only
+
+
+spe_tbl
+covar_tbl
+
+otu_mat <- spe_tbl %>%
+  select(-field_name)
+  as.matrix()
+rownames(otu_mat) <- spe_tbl$field_name
+
+gf_vec <- covar_tbl %>%
+  filter(field_name %in% rownames(otu_mat)) %>%
+  arrange(match(field_name, rownames(otu_mat))) %>%
+  pull(gf_axis)
+
+covar <- tibble(field_name = rownames(otu_mat), gf_axis = gf_vec)
+
+mm <- model.matrix(~ gf_axis, data = covar)
+
+set.seed(20260129)
+x <- aldex.clr(t(otu_mat), conds = mm, mc.samples = 256, denom = "all", verbose = FALSE)
+
+glm_res <- aldex.glm(x, fdr.method = "BH")  # ask for BH rather than default holm
+corr_res <- aldex.corr(x, cont.var = covar$gf_axis) %>%
+  as.data.frame() %>%
+  rownames_to_column("otu")
+
+res <- glm_res %>%
+  inner_join(
+    corr_res %>%
+      select(otu, spearman.erho, spearman.ep, spearman.eBH),
+    by = "otu"
+  ) %>%
+  mutate(
+    direction = if_else(`gf_axis:Est` > 0, "increases with forb axis", "increases with grass axis"),
+    abs_est = abs(`gf_axis:Est`),
+    abs_rho = abs(spearman.erho)
+  )
+
+hit_strict <- res %>%
+  filter(`gf_axis:pval.padj` < 0.10) %>%          # or 0.05 if you want very strict
+  arrange(`gf_axis:pval.padj`, desc(abs_est))
+
+hit_candidates <- res %>%
+  filter(`gf_axis:pval.padj` < 0.20) %>%          # relaxed FDR
+  filter(abs_rho >= 0.50) %>%                     # monotonic support threshold
+  arrange(`gf_axis:pval.padj`, desc(abs_rho))
+
+ranked <- res %>%
+  transmute(
+    otu,
+    gf_est = `gf_axis:Est`,
+    gf_se  = `gf_axis:SE`,
+    gf_t   = `gf_axis:t.val`,
+    gf_p   = `gf_axis:pval`,
+    gf_q   = `gf_axis:pval.padj`,
+    rho    = spearman.erho,
+    rho_p  = spearman.ep,
+    rho_q  = spearman.eBH,
+    direction
+  ) %>%
+  arrange(gf_q, desc(abs(rho)))
+
+# Ranked is I think the only output...or maybe the previous hit tables too, your call
+
+
+ranked %>% left_join(its_meta, by = join_by(otu == otu_num))
 
 
 
+patho_gf_specor <- aldex_gradient(
+  spe_tbl = patho_wi,
+  covar_tbl = gf_axis,
+  covar_col = "gf_axis",
+  replicate_multiplier = 10,
+  mc.samples = 256,
+  denom = "all",
+  seed = 20260129
+)
+patho_gf_specor
+
+
+
+
+
+aldex_gradient <- function(
+    spe_tbl,
+    covar_tbl,
+    covar_col,
+    field_col = "field_name",
+    replicate_multiplier = 10,
+    mc.samples = 256,
+    denom = "all",
+    seed = 20260129,
+    fdr.method = "BH",
+    candidate_q = 0.20,
+    candidate_abs_rho = 0.50,
+    strict_q = 0.10,
+    verbose = FALSE
+) {
+  stopifnot(requireNamespace("dplyr", quietly = TRUE))
+  stopifnot(requireNamespace("tibble", quietly = TRUE))
+  stopifnot(requireNamespace("ALDEx2", quietly = TRUE))
+  
+  # --- 1) Build integer OTU matrix (samples x features) ---
+  otu_mat <- spe_tbl %>% 
+    select(-all_of(field_col)) %>% 
+    mutate(across(everything(), ~ as.integer(round(.x * replicate_multiplier))
+    )) %>% 
+    as.matrix()
+  
+  rownames(otu_mat) <- spe_tbl[[field_col]]
+  
+  stopifnot(is.integer(otu_mat))
+  stopifnot(all(otu_mat >= 0))
+  
+  # --- 2) Align covariate vector to matrix rows ---
+  cov_vec <- covar_tbl %>% 
+    filter(.[[field_col]] %in% rownames(otu_mat)) %>% 
+    arrange(match(.[[field_col]], rownames(otu_mat))) %>% 
+    pull({{ covar_col }})
+  
+  # store aligned covariate tibble (rename to standard 'covar')
+  covar_aligned <- tibble(
+    !!field_col := rownames(otu_mat),
+    covar = cov_vec
+  )
+  
+  mm <- model.matrix(~ covar, data = covar_aligned)
+  
+  # --- 3) ALDEx2 ---
+  set.seed(seed)
+  x <- aldex.clr(reads = t(otu_mat), conds = mm, mc.samples = mc.samples,
+    denom = denom, verbose = verbose)
+  
+  glm_res <- aldex.glm(x, fdr.method = fdr.method) %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu") 
+  
+  corr_res <- aldex.corr(x, cont.var = covar_aligned$covar) %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu") %>% 
+    select(otu, spearman.erho, spearman.ep, spearman.eBH, pearson.ecor, pearson.ep, pearson.eBH,
+           kendall.etau, kendall.ep, kendall.eBH)
+  
+  # --- 4) Join + derived fields ---
+  res <- glm_res %>% 
+    left_join(corr_res %>% select(otu, spearman.erho, spearman.ep, spearman.eBH), 
+              by = join_by(otu)) %>% 
+    mutate(
+      direction = if_else(`covar:Est` > 0, "increases with covariate", "decreases with covariate"),
+      abs_est = abs(`covar:Est`),
+      abs_rho = abs(spearman.erho)
+    )
+  
+  # --- 5) Convenience outputs ---
+  hit_strict <- res %>% 
+    filter(`covar:pval.padj` < strict_q) %>% 
+    arrange(`covar:pval.padj`, desc(abs_est))
+  
+  hit_candidates <- res %>% 
+    filter(`covar:pval.padj` < candidate_q, abs_rho >= candidate_abs_rho) %>% 
+    arrange(`covar:pval.padj`, desc(abs_rho))
+  
+  ranked <- res %>% 
+    transmute(
+      otu,
+      cov_est = `covar:Est`,
+      cov_se  = `covar:SE`,
+      cov_t   = `covar:t.val`,
+      cov_p   = `covar:pval`,
+      cov_q   = `covar:pval.padj`,
+      rho     = spearman.erho,
+      rho_p   = spearman.ep,
+      rho_q   = spearman.eBH,
+      direction
+    ) %>% 
+    arrange(cov_q, desc(abs(rho)))
+  
+  list(
+    ranked = ranked,
+    hit_strict = hit_strict,
+    hit_candidates = hit_candidates,
+    full = res,
+    covar_aligned = covar_aligned
+  )
+}
 
 
 
@@ -2313,6 +2501,7 @@ patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>%
 
 
 #' ## Saprotrophs
+## Saprotrophs ———————— ####
 #' Data for these tests
 sapro_resto <- its_guild %>% 
   filter(field_type != "corn", region != "FL") %>% 
@@ -2514,6 +2703,7 @@ kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low
 
 #' 
 #' ### Guild-plant relationships
+## Unified results ———————— ####
 #' Create multipanel figure, post-production in editing software will be necessary.
 #+ fig7a,warning=FALSE
 fig7a <-
