@@ -101,7 +101,7 @@ amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types
   mutate(across(everything(), ~ replace_na(., "unidentified")))
 #' 
 #' ### Wrangle additional species and metadata objects
-# Species data wrangling ———————— ####
+# Spe data wrangling ———————— ####
 #' 
 #' 1. Proportional species abundance corrected for site biomass
 #' 1. Unifrac products for AMF
@@ -376,7 +376,16 @@ its_meta %>%
 
 
 
-
+#' 
+#' # Arbuscular mycorrhizal fungi
+# AM fungi ———————— ####
+#' 
+#' ## Family composition
+amf_meta %>% 
+  count(family) %>% 
+  mutate(composition = round(n / sum(n) * 100, 1)) %>% 
+  arrange(-composition) %>% 
+  kable(format = "pandoc", caption = "AM fungi: composition in families")
 
 
 
@@ -1444,14 +1453,18 @@ sapro_ind %>%
 
 
 #' 
-#' # Environmental correlations
-# Environmental correlations ———————— ####
+#' # Fungal communities and the enviroment
+# FungComm-env corr ———————— ####
 #' 
-#' ## ITS fungi
+#' Do environmental and plant community variables explain variation in fungal communities
+#' among guilds? 
+#' 
 #' Test explanatory variables for correlation with site ordination. Using plant data, 
 #' so the analysis is restricted to Wisconsin sites. Edaphic variables are too numerous 
 #' to include individually, so transform micro nutrients using PCA. Forb and grass 
-#' cover is highly collinear; use the grass-forb index produced previously with PCA. 
+#' cover is highly collinear; use the grass-forb index produced previously with PCA.
+#' 
+#' ## ITS fungi
 soil_micro_pca <- 
   soil %>% 
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
@@ -1749,7 +1762,7 @@ sapro_mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
 #' ## Constrained analysis unifiec summary
-## Unified results ———————— ####
+## Constr. cor results ———————— ####
 #' Environmental drivers were identified via partial distance-based Redundancy Analysis (db-RDA) 
 #' using forward selection. 
 #' Geographic distance (PCoA Axis 1) was included as a conditional term to partial out spatial effects. 
@@ -1950,229 +1963,16 @@ fig4
 ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = svglite::svglite,
        width = 18, height = 18, units = "cm")
 
-
-
-
-
-
-
-
 #' 
-#' ### Variation partitioning
-#' Not informative with the entire genomic library.soil_expl <- sites %>% 
-#' 
-#' ## Soil fungi and plant community correlations
-#' Data for these tests
-fungi_resto <- its_div %>% 
-  left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
-  left_join(sites, by = join_by(field_name, field_type)) %>% 
-  left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, fungi_ab = depth, fungi_mass, gf_axis, pl_rich, pl_shan)
-#' 
-#' ### Plant alpha diversity and fungal biomass
-#' Is plant richness related to pathogen mass?
-fa_prich_lm <- lm(fungi_mass ~ pl_rich, data = fungi_resto)
-summary(fa_prich_lm)
-#' Fungal mass and plant richness are weakly correlated but driven by a high-leverage point (not shown).
-#' When seq abund is a response and log(mass) included as a covariate, no relationship 
-#' is detected (not shown).  
-#' 
-#' Is plant diversity related to fungal mass?
-fa_pshan_lm <- lm(fungi_mass ~ pl_shan, data = fungi_resto)
-summary(fa_pshan_lm)
-#' Fungal biomass and plant diversity are negatively related but the correlation 
-#' is not significant. It's driven almost entirely by KORP (not shown) and wouldn't be close to 
-#' significant otherwise, no further testing warranted. 
-#' 
-#' ### Fungal biomass and grass/forb composition
-#' Inspect simple linear relationship. Naïve model.
-fuma_rest_m <- lm(fungi_mass ~ gf_axis, data = fungi_resto)
-#+ cm1,warning=FALSE,fig.width=7,fig.height=9
-check_model(fuma_rest_m)
-summary(fuma_rest_m)
-#' The relationship is poor and needs no further analysis
-
-#' 
-#' # Arbuscular mycorrhizal fungi
-# AM fungi ———————— ####
-#' 
-#' ## Family composition
-amf_meta %>% 
-  count(family) %>% 
-  mutate(composition = round(n / sum(n) * 100, 1)) %>% 
-  arrange(-composition) %>% 
-  kable(format = "pandoc", caption = "AM fungi: composition in families")
-
-
-
-
-#' 
-#' ## Diversity indices
-
-#' ### Shannon diversity
-#' 
-
-#' 
-#' ## AMF abundance in families
-#' Test proportion of biomass across field types for each family. A similar contrast with 
-#' sequence abundance only returns largely NS results, highlighting the incorrect inference 
-#' when using compositional data to conduct site-differential analysis.
-#' 
-#' For each AMF family, fit a Gamma GLM with log link predicting biomass-weighted relative abundance by 
-#' field type. We controlled the false discovery rate across the four family-level tests using a
-#' Benjamini–Hochberg (BH) false discovery rate correction. For pairwise contrasts, within models 
-#' showing a significant field-type effect, compare estimated marginal means with Tukey adjustment 
-#' for all pairwise contrasts (emmeans). 
-#' 
-#' ### Glomeraceae
-glom_lm <- lm(Glmrc_mass ~ field_type, data = amf_fam_ma)
-par(mfrow = c(2,2))
-plot(glom_lm) # variance non-constant among groups
-distribution_prob(glom_lm)
-#' residuals normal, response chi/gamma...mean variance relationship suggested
-leveneTest(residuals(glom_lm) ~ amf_fam_ma$field_type)
-#' Levene's p<0.05, null of equal variance rejected
-amf_fam_ma %>% 
-  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant"))) %>%
-  group_by(field_type) %>%
-  summarize(mean = mean(Glmrc_mass),
-            cv = sd(Glmrc_mass) / mean) %>%
-  mutate(across(mean:cv, ~ round(.x, 2))) %>%
-  kable(format = "pandoc", caption = "Mean and CV relationship in groups")
-#' Corroborates the mean/variance relationship. Proceed with log transformation or gamma glm
-glom_lm_log   <- lm(log(Glmrc_mass) ~ field_type, data = amf_fam_ma)
-par(mfrow = c(2,2))
-plot(glom_lm_log) # some improvement, leverage point still exists
-ncvTest(glom_lm_log) # p=0.29, null of constant variance not rejected, model fit is improved
-#' Gamma glm to reduce leverage point...
-glom_glm <- glm(Glmrc_mass ~ field_type, family = Gamma(link = "log"), data = amf_fam_ma)
-#' Diagnostics
-glom_glm_diag <- glm.diag(glom_glm)
-glm.diag.plots(glom_glm, glom_glm_diag) # qqplot shows strong fit; no leverage >0.5
-#+ cm3,warning=FALSE,fig.width=7,fig.height=9
-check_model(glom_glm) # corroborates
-performance::check_overdispersion(glom_glm) # not detected
-#' Gamma glm is the best choice; no high-leverage point
-#' 
-#' Model results, group means, and post-hoc
-anova(glom_glm) # Decline in residual deviance worth the cost in df
-glom_em <- emmeans(glom_glm, ~ field_type, type = "response")
-#' 
-#' ### Claroideoglomeraceae
-clar_lm <- lm(Clrdg_mass ~ field_type, data = amf_fam_ma)
-par(mfrow = c(2,2))
-plot(clar_lm) # variance non-constant among groups
-distribution_prob(clar_lm)
-#' residuals and response very long tailed
-leveneTest(residuals(clar_lm) ~ amf_fam_ma$field_type)
-#' Levene's p>0.05, null of equal variance not rejected
-#' Look to gamma to reduce outlier and remain consistent with this model set
-clar_glm <- glm(Clrdg_mass ~ field_type, family = Gamma(link = "log"), data = amf_fam_ma)
-#' Diagnostics
-clar_glm_diag <- glm.diag(clar_glm)
-glm.diag.plots(clar_glm, clar_glm_diag) # qqplot shows strong fit; no outlier point
-#+ cm4,warning=FALSE,fig.width=7,fig.height=9
-check_model(clar_glm) # corroborates
-performance::check_overdispersion(clar_glm) # not detected
-#' Gamma glm is the best choice; no high-leverage point
-#' 
-#' Model results, group means, and post-hoc
-anova(clar_glm) # Decline in residual deviance worth the cost in df
-clar_em <- emmeans(clar_glm, ~ field_type, type = "response")
-#' 
-#' ### Paraglomeraceae
-para_lm <- lm(Clrdg_mass ~ field_type, data = amf_fam_ma)
-par(mfrow = c(2,2))
-plot(para_lm) # variance non-constant among groups
-distribution_prob(para_lm)
-#' residuals and response very long tailed
-leveneTest(residuals(para_lm) ~ amf_fam_ma$field_type)
-#' Levene's p>0.05, null of equal variance not rejected
-#' Look to gamma to reduce outlier and remain consistent with this model set
-para_glm <- glm(Prglm_mass ~ field_type, family = Gamma(link = "log"), data = amf_fam_ma)
-#' Diagnostics
-para_glm_diag <- glm.diag(para_glm)
-glm.diag.plots(para_glm, para_glm_diag) # qqplot shows strong fit; no outlier point
-#+ cm5,warning=FALSE,fig.width=7,fig.height=9
-check_model(para_glm) # corroborates
-performance::check_overdispersion(para_glm) # not detected
-#' Gamma glm is the best choice; no high-leverage point
-#' 
-#' Model results, group means, and post-hoc
-anova(para_glm) # field_type not significant
-para_em <- emmeans(para_glm, ~ field_type, type = "response")
-#' Pairwise significance not appropriate due to overall variable NS
-#' 
-#' ### Diversisporaceae
-diver_glm <- glm(Dvrss_mass ~ field_type, family = Gamma(link = "log"), data = amf_fam_ma)
-#' Diagnostics
-diver_glm_diag <- glm.diag(diver_glm)
-glm.diag.plots(diver_glm, diver_glm_diag) # qqplot shows strong fit; no outlier point
-#+ cm6,warning=FALSE,fig.width=7,fig.height=9
-check_model(diver_glm) # corroborates
-performance::check_overdispersion(diver_glm) # not detected
-#' Gamma glm is the best choice; no high-leverage point
-#' Model results, group means, and post-hoc
-anova(diver_glm) # Decline in residual deviance worth the cost in df
-diver_em <- emmeans(diver_glm, ~ field_type, type = "response")
-#' 
-#' ### Gigasporaceae and others
-#' Zeroes in data; comparison not warranted
-#' 
-#' ### Results table
-#' Combine later with confidence intervals and corrected p values
-amf_fam_diff <- 
-  amf_fam_ma %>% 
-  pivot_longer(Glmrc_mass:Dvrss_mass, names_to = "family", values_to = "mass") %>% 
-  group_by(field_type, family) %>% 
-  summarize(mass = mean(mass), .groups = "drop") %>% 
-  pivot_wider(names_from = field_type, values_from = mass) %>% 
-  mutate(total = rowSums(across(where(is.numeric))), across(where(is.numeric), ~ round(.x, 2))) %>% 
-  arrange(-total) %>% select(-total) %>% 
-  left_join(
-    list(
-      Glmrc_mass = glom_em,
-      Clrdg_mass = clar_em,
-      Prglm_mass = para_em,
-      Dvrss_mass = diver_em
-    ) %>% map(\(df) df %>% as.data.frame() %>% select(field_type, lower.CL, upper.CL) %>% 
-                pivot_wider(names_from = field_type, values_from = c(lower.CL, upper.CL), names_glue = "{field_type}_{.value}")) %>% 
-      bind_rows(.id = "family") %>% 
-      mutate(across(where(is.numeric), ~ round(.x, 2))),
-    by = join_by(family)
-  ) %>% 
-  mutate(corn_ci = paste(corn_lower.CL, corn_upper.CL, sep = "–"),
-         restored_ci = paste(restored_lower.CL, restored_upper.CL, sep = "–"),
-         remnant_ci = paste(remnant_lower.CL, remnant_upper.CL, sep = "–")) %>% 
-  select(family, corn, corn_ci, restored, restored_ci, remnant, remnant_ci)
-kable(amf_fam_diff, format = "pandoc", caption = "Table: AMF mass in families across field types")
-#' Pairwise contrasts
-#' Paraglomeraceae model was NS; no pairwise indicated
-list(glom = glom_em, clar = clar_em, diver = diver_em) %>% 
-  map(\(df) pairs(df, adjust = "tukey"))
-#' Model results
-list(glom = glom_glm, clar = clar_glm, para = para_glm, diver = diver_glm) %>% 
-  map(\(df) df %>% anova() %>% as.data.frame()) %>% 
-  bind_rows(.id = "family") %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr") %>% round(., 5))
-#' 
-#' ## Indicator species analysis
-amf_ind <- inspan(spe=amf_avg_ma, meta=amf_meta, guild=NULL, site_dat=sites)
-amf_ind %>% 
-  select(field_type, family, taxon, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
-  filter(taxon != "unidentified") %>% 
-  arrange(field_type) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with avg biomass")
-#' None of the identified species seem relevant for further discussion...
-#' 
-
-#' 
-#' ### Variation partitioning
+#' ## Variation partitioning
 ## Varpart ———————— ####
-#' Partial RDAs on testable fractions of variation
+#' Conducted as a series of partial RDAs on testable fractions of variation where soil and
+#' plant vars jointly and independently explain fungal communities. 
+#' 
+#' ### ITS fungi
+#' Variation partitioning was not informative with the entire genomic library.
+#' 
+#' ### AM fungi
 #' soil + plant shared
 amf_m_ac <- rda(spe_amf_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
 #' plant + soil shared
@@ -2207,57 +2007,7 @@ tibble(
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
 #' 
-#' ## AM fungi and plant community correlations
-#' Data for these tests
-amf_resto <- amf_div %>% 
-  left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
-  left_join(sites, by = join_by(field_name, field_type)) %>% 
-  left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, amf_ab = depth, amf_mass, gf_axis, pl_rich, pl_shan) 
-#' 
-#' ### Plant richness and fungal biomass
-#' Is plant richness related to am fungal mass?
-amfa_prich_lm <- lm(amf_mass ~ pl_rich, data = amf_resto)
-summary(amfa_prich_lm)
-#' AM fungal mass and plant richness are nearly perfectly unrelated. 
-#' 
-#' Is plant diversity related to am fungal mass?
-amfa_pshan_lm <- lm(amf_mass ~ pl_shan, data = amf_resto)
-summary(amfa_pshan_lm)
-#' AM fungal biomass and plant diversity are positively related but only weakly so,
-#' no further testing warranted. 
-#' 
-#' ### AM fungal biomass and grass/forb composition
-#' Inspect simple linear relationship. Naïve model.
-amma_rest_m <- lm(amf_mass ~ gf_axis, data = amf_resto)
-#+ cm7,warning=FALSE,fig.width=7,fig.height=9
-check_model(amma_rest_m)
-summary(amma_rest_m)
-#' AM fungal mass increases with grass-forb index slightly with p value just 
-#' above 0.95 alpha cutoff. 
-
-#' 
-#' # Plant pathogens
-# Plant pathogens ———————— ####
-#' 
-#' 
-#' ## Diversity Indices
-#' 
-#' ### Richness
-#' ### Shannon diversity
-#' 
-#' ## Beta Diversity
-#' Community distances handled similarly to previous
-#' 
-
-
-
-#' 
-#' ### Variation partitioning
-## Varpart ———————— ####
-#' Partial RDAs on testable fractions of variation
+#' ### Pathogens
 #' soil + plant shared
 patho_m_ac <- rda(spe_patho_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
 #' plant + soil shared
@@ -2292,7 +2042,109 @@ tibble(
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
 #' 
-#' ## Pathogen and plant community correlations
+#' ### Saprotrophs
+#' soil + plant shared
+sapro_m_ac <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+#' plant + soil shared
+sapro_m_bc <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil + plant + shared
+sapro_m_abc <- rda(spe_sapro_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+#' soil only
+sapro_m_a <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+#' plant only
+sapro_m_b <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+#' shared only
+RsquareAdj(sapro_m_abc)$adj.r.squared - RsquareAdj(sapro_m_a)$adj.r.squared - RsquareAdj(sapro_m_b)$adj.r.squared
+#' Results
+sapro_varptes <- list(
+  `soil + plant shared`   = sapro_m_ac, 
+  `plant + soil shared`   = sapro_m_bc, 
+  `soil + plant + shared` = sapro_m_abc, 
+  `soil only`             = sapro_m_a, 
+  `plant only`            = sapro_m_b
+)
+tibble(
+  fraction = names(sapro_varptes),
+  model = unname(sapro_varptes)
+) %>%
+  mutate(
+    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
+    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
+    df = map_int(anova, \(a) a[["Df"]][1]),
+    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
+    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
+    p.val = format.pval(p, digits = 2, eps = 0.001)
+  ) %>%
+  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
+
+#' 
+#' # Fungal abundance and the enviroment
+# FungAbund-env corr ———————— ####
+#' 
+#' Plant community establishment has varied over time. How do plant communities relate
+#' to fungal abundance/proportion in restored and remnant fields?
+#' 
+#' ## ITS fungi
+#' Data for these tests
+fungi_resto <- its_div %>% 
+  left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
+  left_join(sites, by = join_by(field_name, field_type)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
+  left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(field_name, fungi_ab = depth, fungi_mass, gf_axis, pl_rich, pl_shan)
+#' 
+#' ### Plant alpha diversity and fungal biomass
+#' Is plant richness related to pathogen mass?
+fa_prich_lm <- lm(fungi_mass ~ pl_rich, data = fungi_resto)
+summary(fa_prich_lm)
+#' Fungal mass and plant richness are weakly correlated but driven by a high-leverage point (not shown).
+#' When seq proportion is a response and log(mass) included as a covariate, no relationship 
+#' is detected (not shown).  
+#' 
+#' Is plant diversity related to fungal mass?
+fa_pshan_lm <- lm(fungi_mass ~ pl_shan, data = fungi_resto)
+summary(fa_pshan_lm)
+#' Fungal biomass and plant diversity are negatively related but the correlation 
+#' is not significant. It's driven almost entirely by KORP (not shown) and wouldn't be close to 
+#' significant otherwise, no further testing warranted. 
+#' 
+#' ### Fungal biomass and grass/forb composition
+#' Inspect simple linear relationship.
+fuma_rest_m <- lm(fungi_mass ~ gf_axis, data = fungi_resto)
+summary(fuma_rest_m)
+#' The relationship is poor and needs no further analysis
+#' 
+#' ## AM fungi
+#' Data for these tests
+amf_resto <- amf_div %>% 
+  left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
+  left_join(sites, by = join_by(field_name, field_type)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% 
+  left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(field_name, amf_ab = depth, amf_mass, gf_axis, pl_rich, pl_shan) 
+#' 
+#' ### Plant richness and fungal biomass
+#' Is plant richness related to am fungal mass?
+amfa_prich_lm <- lm(amf_mass ~ pl_rich, data = amf_resto)
+summary(amfa_prich_lm)
+#' AM fungal mass and plant richness are nearly perfectly unrelated. 
+#' 
+#' Is plant diversity related to am fungal mass?
+amfa_pshan_lm <- lm(amf_mass ~ pl_shan, data = amf_resto)
+summary(amfa_pshan_lm)
+#' AM fungal biomass and plant diversity are positively related but only weakly so,
+#' no further testing warranted. 
+#' 
+#' ### AM fungal biomass and grass/forb composition
+#' Inspect simple linear relationship. Naïve model.
+amma_rest_m <- lm(amf_mass ~ gf_axis, data = amf_resto)
+summary(amma_rest_m)
+#' AM fungal mass increases with grass-forb index slightly with p value just 
+#' above 0.95 alpha cutoff. 
+#' 
+#' ## Pathogens
 #' Data for these tests
 patho_resto <- its_guild %>% 
   filter(field_type != "corn", region != "FL") %>% 
@@ -2441,6 +2293,10 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
 
+
+
+
+
 # What pathogen species are shared across these sites?
 
 patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% 
@@ -2452,57 +2308,11 @@ patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>%
 
 
 
-#' 
-#' # Saprotrophs
-# Saprotrophs ———————— ####
-#' 
-#' 
-#' ### Richness
-#' ## Beta Diversity
-#' Community distance handled similarly to previous
-#' 
 
 
 
-#' 
-#' ### Variation partitioning
-## Varpart ———————— ####
-#' Partial RDAs on testable fractions of variation
-#' soil + plant shared
-sapro_m_ac <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
-#' plant + soil shared
-sapro_m_bc <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-#' soil + plant + shared
-sapro_m_abc <- rda(spe_sapro_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-#' soil only
-sapro_m_a <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
-#' plant only
-sapro_m_b <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
-#' shared only
-RsquareAdj(sapro_m_abc)$adj.r.squared - RsquareAdj(sapro_m_a)$adj.r.squared - RsquareAdj(sapro_m_b)$adj.r.squared
-#' Results
-sapro_varptes <- list(
-  `soil + plant shared`   = sapro_m_ac, 
-  `plant + soil shared`   = sapro_m_bc, 
-  `soil + plant + shared` = sapro_m_abc, 
-  `soil only`             = sapro_m_a, 
-  `plant only`            = sapro_m_b
-)
-tibble(
-  fraction = names(sapro_varptes),
-  model = unname(sapro_varptes)
-) %>%
-  mutate(
-    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
-    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
-    df = map_int(anova, \(a) a[["Df"]][1]),
-    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
-    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
-    p.val = format.pval(p, digits = 2, eps = 0.001)
-  ) %>%
-  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-#' 
-#' ## Saprotroph and plant community correlations
+
+#' ## Saprotrophs
 #' Data for these tests
 sapro_resto <- its_guild %>% 
   filter(field_type != "corn", region != "FL") %>% 
@@ -2656,6 +2466,15 @@ sapro_gf_glm <- glm(sapro_prop ~ fungi_mass_lc + gf_axis,
                     weights = fungi_abund)
 summary(sapro_gf_glm)
 #' NS
+
+
+
+
+
+
+
+
+
 #' 
 #' ### Plant species and saprotroph abundance
 #' Field age and restored vs. remnant status don't appear to relate with 
@@ -2689,15 +2508,6 @@ sapro_plant_summary <- plant %>%
   mutate(p.adj = p.adjust(p.value, "fdr"), across(where(is.numeric), ~ round(.x, 3))) %>% 
   arrange(desc(plcvr_hsap)) # Sort by high-sapro indicators first
 kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low or high saprotroph sites")
-
-
-
-
-
-
-# Summaries (old) ####
-
-
 
 
 
