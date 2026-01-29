@@ -1407,6 +1407,42 @@ fig3
 ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
        width = 18, height = 18, units = "cm")
 
+
+
+
+
+
+#' ## Pathogen Indicator Species
+#' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
+#' research may make the indicator stats less appropriate for other use. Using biomass-weighted relative
+#' abundance for this differential analysis. 
+patho_ind <- inspan(its_avg_ma, its_meta, "plant_pathogen", sites)
+patho_ind %>% 
+  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
+  filter(species != "unidentified") %>% 
+  arrange(field_type, p_val_adj) %>% 
+  mutate(across(A:p_val_adj, ~ round(.x, 3)),
+         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
+
+#' ## Saprotroph Indicator Species
+sapro_ind <- inspan(its_avg_ma, its_meta, "saprotroph", sites)
+sapro_ind %>% 
+  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
+  filter(species != "unidentified") %>% 
+  arrange(field_type, p_val_adj) %>% 
+  mutate(across(A:p_val_adj, ~ round(.x, 3)),
+         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
+  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
+#' 
+
+
+
+
+
+
+
+
 #' 
 #' # Environmental correlations
 # Environmental correlations ———————— ####
@@ -2217,18 +2253,6 @@ summary(amma_rest_m)
 #' 
 
 
-#' ## Pathogen Indicator Species
-#' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
-#' research may make the indicator stats less appropriate for other use. Using biomass-weighted relative
-#' abundance for this differential analysis. 
-patho_ind <- inspan(its_avg_ma, its_meta, "plant_pathogen", sites)
-patho_ind %>% 
-  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
-  filter(species != "unidentified") %>% 
-  arrange(field_type, p_val_adj) %>% 
-  mutate(across(A:p_val_adj, ~ round(.x, 3)),
-         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
 
 #' 
 #' ### Variation partitioning
@@ -2417,6 +2441,17 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
 
+# What pathogen species are shared across these sites?
+
+patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% 
+  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+
+
+
+
+
 #' 
 #' # Saprotrophs
 # Saprotrophs ———————— ####
@@ -2428,16 +2463,6 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 #' 
 
 
-#' ## Saprotroph Indicator Species
-sapro_ind <- inspan(its_avg_ma, its_meta, "saprotroph", sites)
-sapro_ind %>% 
-  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
-  filter(species != "unidentified") %>% 
-  arrange(field_type, p_val_adj) %>% 
-  mutate(across(A:p_val_adj, ~ round(.x, 3)),
-         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
-#' 
 
 #' 
 #' ### Variation partitioning
