@@ -2303,111 +2303,11 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) %>%
-  mutate(across(starts_wit, ~ as.integer(round(.x * 10))))# Converting to sums, integers needed.
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
 
 gf_axis # the covar, assume it will be in a tibble with field_name and covar only
 
-aldex_gradient <- function(
-    spe_tbl,
-    covar_tbl,
-    covar_col,
-    field_col = "field_name",
-    replicate_multiplier = 10,
-    mc.samples = 256,
-    denom = "all",
-    seed = 20260129,
-    fdr.method = "BH",
-    candidate_q = 0.20,
-    candidate_abs_rho = 0.50,
-    strict_q = 0.10,
-    verbose = FALSE
-) {
-  stopifnot(requireNamespace("dplyr", quietly = TRUE))
-  stopifnot(requireNamespace("tibble", quietly = TRUE))
-  stopifnot(requireNamespace("ALDEx2", quietly = TRUE))
-  
-  # --- 1) Build integer OTU matrix (samples x features) ---
-  otu_mat <- spe_tbl %>% 
-    select(-all_of(field_col)) %>% 
-    mutate(across(everything(), ~ as.integer(round(.x * replicate_multiplier))
-    )) %>% 
-    as.matrix()
-  
-  rownames(otu_mat) <- spe_tbl[[field_col]]
-  
-  stopifnot(is.integer(otu_mat))
-  stopifnot(all(otu_mat >= 0))
-  
-  # --- 2) Align covariate vector to matrix rows ---
-  cov_vec <- covar_tbl %>% 
-    filter(.[[field_col]] %in% rownames(otu_mat)) %>% 
-    arrange(match(.[[field_col]], rownames(otu_mat))) %>% 
-    pull({{ covar_col }})
-  
-  # store aligned covariate tibble (rename to standard 'covar')
-  covar_aligned <- tibble(
-    !!field_col := rownames(otu_mat),
-    covar = cov_vec
-  )
-  
-  mm <- model.matrix(~ covar, data = covar_aligned)
-  
-  # --- 3) ALDEx2 ---
-  set.seed(seed)
-  x <- aldex.clr(reads = t(otu_mat), conds = mm, mc.samples = mc.samples,
-                 denom = denom, verbose = verbose)
-  
-  glm_res <- aldex.glm(x, fdr.method = fdr.method) %>% 
-    as.data.frame() %>% 
-    rownames_to_column("otu") 
-  
-  corr_res <- aldex.corr(x, cont.var = covar_aligned$covar) %>% 
-    as.data.frame() %>% 
-    rownames_to_column("otu") %>% 
-    select(otu, spearman.erho, spearman.ep, spearman.eBH, pearson.ecor, pearson.ep, pearson.eBH,
-           kendall.etau, kendall.ep, kendall.eBH)
-  
-  # --- 4) Join + derived fields ---
-  res <- glm_res %>% 
-    left_join(corr_res %>% select(otu, spearman.erho, spearman.ep, spearman.eBH), 
-              by = join_by(otu)) %>% 
-    mutate(
-      abs_est = abs(`covar:Est`),
-      abs_rho = abs(spearman.erho)
-    )
-  
-  # --- 5) Convenience outputs ---
-  hit_strict <- res %>% 
-    filter(`covar:pval.padj` < strict_q) %>% 
-    arrange(`covar:pval.padj`, desc(abs_est))
-  
-  hit_candidates <- res %>% 
-    filter(`covar:pval.padj` < candidate_q, abs_rho >= candidate_abs_rho) %>% 
-    arrange(`covar:pval.padj`, desc(abs_rho))
-  
-  ranked <- res %>% 
-    transmute(
-      otu,
-      cov_est = `covar:Est`,
-      cov_se  = `covar:SE`,
-      cov_t   = `covar:t.val`,
-      cov_p   = `covar:pval`,
-      cov_q   = `covar:pval.padj`,
-      rho     = spearman.erho,
-      rho_p   = spearman.ep,
-      rho_q   = spearman.eBH
-    ) %>% 
-    arrange(cov_q, desc(abs(rho)))
-  
-  list(
-    ranked = ranked,
-    hit_strict = hit_strict,
-    hit_candidates = hit_candidates,
-    full = res,
-    covar_aligned = covar_aligned
-  )
-}
+
 
 
 
@@ -2426,7 +2326,8 @@ patho_gf_specor$ranked %>%
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
             by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3)))
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  as_tibble()
 
 
 
@@ -2560,6 +2461,51 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
+
+
+
+
+
+
+
+
+
+
+sapro_wi <- guildseq(its_avg, its_meta, "saprotroph") %>% # spe matrix
+  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+
+prich # the covar, assume it will be in a tibble with field_name and covar only
+
+
+sapro_rich_specor <- aldex_gradient(
+  spe_tbl = sapro_wi,
+  covar_tbl = prich %>% select(field_name, pl_rich),
+  covar_col = "pl_rich",
+  replicate_multiplier = 10,
+  mc.samples = 256,
+  denom = "all",
+  seed = 20260129
+)
+
+
+sapro_rich_specor$ranked %>% 
+  left_join(its_meta %>% 
+              select(-otu_ID, -phylum, -primary_lifestyle), 
+            by = join_by(otu == otu_num)) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  as_tibble()
+
+
+
+
+
+
+
+
+
+
 #' 
 #' ### Plant diversity and saprotrophs
 #' Is plant diversity related to saprotroph mass?

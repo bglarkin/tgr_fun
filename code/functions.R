@@ -412,6 +412,105 @@ inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
   
 }
 #' 
+#' ## Perform ALDEx2 species correlation
+#' Function `aldex_gradient` correlates species with linear model results 
+#' in guilds while handling compositionality and difficult distribution shapes
+#+ aldex_gradient_function
+aldex_gradient <- function(
+    spe_tbl,
+    covar_tbl,
+    covar_col,
+    field_col = "field_name",
+    replicate_multiplier = 10,
+    mc.samples = 256,
+    denom = "all",
+    seed = 20260129,
+    fdr.method = "BH",
+    candidate_q = 0.20,
+    candidate_abs_rho = 0.50,
+    strict_q = 0.10,
+    verbose = FALSE
+) {
+  stopifnot(requireNamespace("dplyr", quietly = TRUE))
+  stopifnot(requireNamespace("tibble", quietly = TRUE))
+  stopifnot(requireNamespace("ALDEx2", quietly = TRUE))
+  
+  otu_mat <- spe_tbl %>% 
+    select(-all_of(field_col)) %>% 
+    mutate(across(everything(), ~ as.integer(round(.x * replicate_multiplier))
+    )) %>% 
+    as.matrix()
+  
+  rownames(otu_mat) <- spe_tbl[[field_col]]
+  
+  stopifnot(is.integer(otu_mat))
+  stopifnot(all(otu_mat >= 0))
+  
+  cov_vec <- covar_tbl %>% 
+    filter(.[[field_col]] %in% rownames(otu_mat)) %>% 
+    arrange(match(.[[field_col]], rownames(otu_mat))) %>% 
+    pull({{ covar_col }})
+  
+  covar_aligned <- tibble(
+    !!field_col := rownames(otu_mat),
+    covar = cov_vec
+  )
+  
+  mm <- model.matrix(~ covar, data = covar_aligned)
+  
+  set.seed(seed)
+  x <- aldex.clr(reads = t(otu_mat), conds = mm, mc.samples = mc.samples,
+                 denom = denom, verbose = verbose)
+  
+  glm_res <- aldex.glm(x, fdr.method = fdr.method) %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu") 
+  
+  corr_res <- aldex.corr(x, cont.var = covar_aligned$covar) %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu") %>% 
+    select(otu, spearman.erho, spearman.ep, spearman.eBH, pearson.ecor, pearson.ep, pearson.eBH,
+           kendall.etau, kendall.ep, kendall.eBH)
+  
+  res <- glm_res %>% 
+    left_join(corr_res %>% select(otu, spearman.erho, spearman.ep, spearman.eBH), 
+              by = join_by(otu)) %>% 
+    mutate(
+      abs_est = abs(`covar:Est`),
+      abs_rho = abs(spearman.erho)
+    )
+  
+  hit_strict <- res %>% 
+    filter(`covar:pval.padj` < strict_q) %>% 
+    arrange(`covar:pval.padj`, desc(abs_est))
+  
+  hit_candidates <- res %>% 
+    filter(`covar:pval.padj` < candidate_q, abs_rho >= candidate_abs_rho) %>% 
+    arrange(`covar:pval.padj`, desc(abs_rho))
+  
+  ranked <- res %>% 
+    transmute(
+      otu,
+      cov_est = `covar:Est`,
+      cov_se  = `covar:SE`,
+      cov_t   = `covar:t.val`,
+      cov_p   = `covar:pval`,
+      cov_q   = `covar:pval.padj`,
+      rho     = spearman.erho,
+      rho_p   = spearman.ep,
+      rho_q   = spearman.eBH
+    ) %>% 
+    arrange(cov_q, desc(abs(rho)))
+  
+  list(
+    ranked = ranked,
+    hit_strict = hit_strict,
+    hit_candidates = hit_candidates,
+    full = res,
+    covar_aligned = covar_aligned
+  )
+}
+#' 
 #' ## Calculate pairwise distances among sites and present summary statistics
 #' Function `reg_dist_stats()` requires a haversine distance matrix, site metadata, 
 #' and is filtered by regions to produce the desired output. 
