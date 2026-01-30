@@ -2304,93 +2304,9 @@ patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) %>%
-  mutate(across(everything(), ~ as.integer(round(.x * 10))))# Converting to sums, integers needed.
+  mutate(across(starts_wit, ~ as.integer(round(.x * 10))))# Converting to sums, integers needed.
 
 gf_axis # the covar, assume it will be in a tibble with field_name and covar only
-
-
-spe_tbl
-covar_tbl
-
-otu_mat <- spe_tbl %>%
-  select(-field_name)
-  as.matrix()
-rownames(otu_mat) <- spe_tbl$field_name
-
-gf_vec <- covar_tbl %>%
-  filter(field_name %in% rownames(otu_mat)) %>%
-  arrange(match(field_name, rownames(otu_mat))) %>%
-  pull(gf_axis)
-
-covar <- tibble(field_name = rownames(otu_mat), gf_axis = gf_vec)
-
-mm <- model.matrix(~ gf_axis, data = covar)
-
-set.seed(20260129)
-x <- aldex.clr(t(otu_mat), conds = mm, mc.samples = 256, denom = "all", verbose = FALSE)
-
-glm_res <- aldex.glm(x, fdr.method = "BH")  # ask for BH rather than default holm
-corr_res <- aldex.corr(x, cont.var = covar$gf_axis) %>%
-  as.data.frame() %>%
-  rownames_to_column("otu")
-
-res <- glm_res %>%
-  inner_join(
-    corr_res %>%
-      select(otu, spearman.erho, spearman.ep, spearman.eBH),
-    by = "otu"
-  ) %>%
-  mutate(
-    direction = if_else(`gf_axis:Est` > 0, "increases with forb axis", "increases with grass axis"),
-    abs_est = abs(`gf_axis:Est`),
-    abs_rho = abs(spearman.erho)
-  )
-
-hit_strict <- res %>%
-  filter(`gf_axis:pval.padj` < 0.10) %>%          # or 0.05 if you want very strict
-  arrange(`gf_axis:pval.padj`, desc(abs_est))
-
-hit_candidates <- res %>%
-  filter(`gf_axis:pval.padj` < 0.20) %>%          # relaxed FDR
-  filter(abs_rho >= 0.50) %>%                     # monotonic support threshold
-  arrange(`gf_axis:pval.padj`, desc(abs_rho))
-
-ranked <- res %>%
-  transmute(
-    otu,
-    gf_est = `gf_axis:Est`,
-    gf_se  = `gf_axis:SE`,
-    gf_t   = `gf_axis:t.val`,
-    gf_p   = `gf_axis:pval`,
-    gf_q   = `gf_axis:pval.padj`,
-    rho    = spearman.erho,
-    rho_p  = spearman.ep,
-    rho_q  = spearman.eBH,
-    direction
-  ) %>%
-  arrange(gf_q, desc(abs(rho)))
-
-# Ranked is I think the only output...or maybe the previous hit tables too, your call
-
-
-ranked %>% left_join(its_meta, by = join_by(otu == otu_num))
-
-
-
-patho_gf_specor <- aldex_gradient(
-  spe_tbl = patho_wi,
-  covar_tbl = gf_axis,
-  covar_col = "gf_axis",
-  replicate_multiplier = 10,
-  mc.samples = 256,
-  denom = "all",
-  seed = 20260129
-)
-patho_gf_specor
-
-
-
-
 
 aldex_gradient <- function(
     spe_tbl,
@@ -2440,7 +2356,7 @@ aldex_gradient <- function(
   # --- 3) ALDEx2 ---
   set.seed(seed)
   x <- aldex.clr(reads = t(otu_mat), conds = mm, mc.samples = mc.samples,
-    denom = denom, verbose = verbose)
+                 denom = denom, verbose = verbose)
   
   glm_res <- aldex.glm(x, fdr.method = fdr.method) %>% 
     as.data.frame() %>% 
@@ -2457,7 +2373,6 @@ aldex_gradient <- function(
     left_join(corr_res %>% select(otu, spearman.erho, spearman.ep, spearman.eBH), 
               by = join_by(otu)) %>% 
     mutate(
-      direction = if_else(`covar:Est` > 0, "increases with covariate", "decreases with covariate"),
       abs_est = abs(`covar:Est`),
       abs_rho = abs(spearman.erho)
     )
@@ -2481,8 +2396,7 @@ aldex_gradient <- function(
       cov_q   = `covar:pval.padj`,
       rho     = spearman.erho,
       rho_p   = spearman.ep,
-      rho_q   = spearman.eBH,
-      direction
+      rho_q   = spearman.eBH
     ) %>% 
     arrange(cov_q, desc(abs(rho)))
   
@@ -2494,6 +2408,31 @@ aldex_gradient <- function(
     covar_aligned = covar_aligned
   )
 }
+
+
+
+patho_gf_specor <- aldex_gradient(
+  spe_tbl = patho_wi,
+  covar_tbl = gf_axis,
+  covar_col = "gf_axis",
+  replicate_multiplier = 10,
+  mc.samples = 256,
+  denom = "all",
+  seed = 20260129
+)
+
+
+patho_gf_specor$ranked %>% 
+  left_join(its_meta %>% 
+              select(-otu_ID, -phylum, -primary_lifestyle), 
+            by = join_by(otu == otu_num)) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+
+
+
+
+
 
 
 
