@@ -1570,15 +1570,19 @@ mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
 #' ## AM fungi
+#' ### Standard analysis
+#' Relative sequence abundance
 #' Env covars processed in the ITS section (see above)
-spe_amf_wi_resto <- amf_avg %>%
-  filter(field_name %in% rownames(env_expl)) %>%
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
+amf_ps_wi <- prune_samples(
+  sites %>% filter(region != "FL", field_type != "corn") %>% pull(field_name), 
+  amf_ps
+) %>% 
+  prune_taxa(taxa_sums(.) > 0, .)
 
-amf_mod_null <- dbrda(spe_amf_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-amf_mod_full <- dbrda(spe_amf_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+d_amf_wi <- UniFrac(amf_ps_wi, weighted = TRUE, normalized = TRUE)
+
+amf_mod_null <- dbrda(d_amf_wi ~ 1 + Condition(env_cov), data = env_expl)
+amf_mod_full <- dbrda(d_amf_wi ~ . + Condition(env_cov), data = env_expl)
 amf_mod_step <- ordistep(amf_mod_null,
                          scope = formula(amf_mod_full),
                          direction = "forward",
@@ -1598,8 +1602,8 @@ amf_mod_step$anova %>%
 #' Based on permutation tests with n=1999 permutations, 
 #' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
 #' correlation between the site ordination on fungal communities
-#' and the selected explanatory variables (p<0.001). The first two constrained axes are
-#' also significant (p<0.001, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=`r round(amf_mod_r2$adj.r.squared, 3) * 100` of the community
+#' and the selected explanatory variables (p<0.002). The first two constrained axes are
+#' also significant (p<0.01, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=`r round(amf_mod_r2$adj.r.squared, 3) * 100` of the community
 #' variation. Selected explanatory variables are pH and the grass-forb index; see table for
 #' individual p values and statistics.
 #' 
@@ -1636,6 +1640,36 @@ amf_mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
+#' 
+#' ### Biomass-aware analysis
+#' Biomass-scaled abundance
+#' Env covars processed in the ITS section (see above)
+spe_amf_ma_wi_resto <- amf_avg_ma %>%
+  filter(field_name %in% rownames(env_expl)) %>%
+  data.frame(row.names = 1) %>%
+  select(where(~ sum(.x) > 0)) %>% 
+  decostand("total")
+
+amf_ma_mod_null <- dbrda(spe_amf_ma_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+amf_ma_mod_full <- dbrda(spe_amf_ma_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+amf_ma_mod_step <- ordistep(amf_ma_mod_null,
+                         scope = formula(amf_ma_mod_full),
+                         direction = "forward",
+                         permutations = 1999,
+                         trace = FALSE)
+#' 
+#' ### Constrained Analysis Results
+amf_ma_mod_step
+(amf_ma_mod_r2   <- RsquareAdj(amf_ma_mod_step, permutations = 1999))
+(amf_ma_mod_glax <- anova(amf_ma_mod_step, permutations = 1999))
+(amf_ma_mod_inax <- anova(amf_ma_mod_step, by = "axis", permutations = 1999))
+(amf_ma_mod_axpct <- round(100 * amf_ma_mod_step$CCA$eig / sum(amf_ma_mod_step$CCA$eig), 1))
+amf_ma_mod_step$anova %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' Results are highly consistent with those obtained with relative sequence abundance 
+#' and Unifrac distance.
 #' 
 #' ## Pathogens
 #' Env covars processed in the ITS section (see above)
