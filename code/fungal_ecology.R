@@ -367,20 +367,18 @@ source(root_path("code", "functions.R"))
 
 
 #' 
-#' # Guild composition
+#' # Composition in guilds
+# Composition in guilds ———————— ####
+#' 
+#' ## Fungi
 its_meta %>% 
   count(primary_lifestyle) %>% 
   mutate(composition = round(n / sum(n) * 100, 1)) %>% 
   arrange(-composition) %>% 
   kable(format = "pandoc", caption = "ITS-detectable fungi: composition in guilds")
-
-
-
 #' 
-#' # Arbuscular mycorrhizal fungi
-# AM fungi ———————— ####
-#' 
-#' ## Family composition
+#' ## AM fungi
+#' Composition in families
 amf_meta %>% 
   count(family) %>% 
   mutate(composition = round(n / sum(n) * 100, 1)) %>% 
