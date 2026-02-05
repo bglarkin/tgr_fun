@@ -1777,7 +1777,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'>forb'", "'OM'")),
+    mutate(envlabs = c("'OM'", "'>forb'")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
@@ -1793,7 +1793,7 @@ sapro_mod_scor_bp <- bind_rows(
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
-#' ## Constrained analysis unifiec summary
+#' ## Constrained analysis unified summary
 ## Constr. cor results ———————— ####
 #' Environmental drivers were identified via partial distance-based Redundancy Analysis (db-RDA) 
 #' using forward selection. 
@@ -1832,6 +1832,7 @@ list(
   mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ ")) %>% 
   select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  arrange(guild, p.adj) %>% 
   kable(format = "pandoc")
 #' 
 #' ### Global tests
@@ -1899,13 +1900,13 @@ fig4a <-
 #' AMF
 #+ fig4b
 fig4b <-
-  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  ggplot(amf_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
   geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
+               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = amf_mod_scor_bp,
-            aes(x = labx, y = laby, label = envlabs),
+            aes(x = -1 * labx, y = laby, label = envlabs),
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
