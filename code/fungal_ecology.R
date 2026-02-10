@@ -1777,7 +1777,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'OM'", "'>forb'")),
+    mutate(envlabs = c("'>forb'", "'OM'")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
@@ -2039,6 +2039,7 @@ tibble(
     p.val = format.pval(p, digits = 2, eps = 0.001)
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
+#' Soil and plant individual fractions are significant with moderate explanatory power.
 #' 
 #' ### Pathogens
 #' soil + plant shared
@@ -2074,6 +2075,7 @@ tibble(
     p.val = format.pval(p, digits = 2, eps = 0.001)
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
+#' No fractions are significant.
 #' 
 #' ### Saprotrophs
 #' soil + plant shared
@@ -2109,6 +2111,7 @@ tibble(
     p.val = format.pval(p, digits = 2, eps = 0.001)
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
+#' Soil and plant fractions are significant with low-moderate explanatory power.
 
 #' 
 #' # Fungal abundance and the enviroment
@@ -2331,7 +2334,7 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 
 
 
-# What pathogen species are shared across these sites?
+# What pathogen species co-vary with gf axis?
 
 patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
