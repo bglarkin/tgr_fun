@@ -499,7 +499,7 @@ aldex_gradient <- function(
     as.data.frame() %>% 
     rownames_to_column("otu") 
   
-  corr_res <- aldex.corr(x, cont.var = covar_aligned$covar) %>% 
+  corr_res <- suppressWarnings(aldex.corr(x, cont.var = covar_aligned$covar)) %>% 
     as.data.frame() %>% 
     rownames_to_column("otu") %>% 
     select(otu, spearman.erho, spearman.ep, spearman.eBH, pearson.ecor, pearson.ep, pearson.eBH,
