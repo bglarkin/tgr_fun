@@ -19,7 +19,7 @@
 #' based on soil properties.
 #' 
 #' # Packages and libraries
-packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted", "permute")
+packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted", "permute", "geosphere")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -108,35 +108,9 @@ soil_ord_scores <-
     rownames_to_column(var = "field_name") %>%
     left_join(sites, by = join_by(field_name))
 
-# soil_ord_reg_centers <- soil_ord_scores %>%
-#   group_by(region) %>%
-#   summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
-#   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
-#          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
-# segs_regions <- soil_ord_scores %>%
-#   left_join(soil_ord_reg_centers, by = join_by(region)) %>%
-#   select(x = PC1, y = PC2, xend = mean_PC1, yend = mean_PC2)
-# 
-# soil_ord_regions <-
-#   ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-#   geom_segment(data = segs_regions, aes(x = x, y = y, xend = xend, yend = yend), color = "gray30", linewidth = .4, alpha = .7) +
-#   geom_label(data = soil_ord_reg_centers, aes(x = mean_PC1, y = mean_PC2, label = region), size = 3) +
-#     geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = FALSE, shape = TRUE)) +
-#     scale_fill_manual(name = "Field type", values = ft_pal) +
-#     scale_shape_manual(name = "Region", values = c(22:25)) +
-#   xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
-#   ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
-#     theme_ord +
-#   guides(fill = guide_legend(override.aes = list(shape = 21))) +
-#   theme(legend.title = element_text(size = 8), legend.position = "top",
-#         plot.tag = element_text(size = 14, face = 1),
-#         plot.tag.position = c(0.03, 0.90))
-
-
 #' 
 #' ### PERMANOVA on field type
 d_soil = dist(soil_z, method = "euclidean")
-
 mva_soil <- soilperm(d = d_soil, env = sites)
 #+ soil_ord_results
 mva_soil$dispersion_test
@@ -144,31 +118,12 @@ mva_soil$permanova
 mva_soil$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-
-
-
-
-
-
-#' ### PERMANOVA, differences on field type
-#' soilperm_ft <- soilperm(soil_ord_scores, "field_type")
-#' soilperm_ft$mvdisper
-#' soilperm_ft$gl_permtest
-#' soilperm_ft$contrasts %>% kable(format = "pandoc", caption = "Pairwise PERMANOVA results")
-#' 
-#' #' ### PERMANOVA, differences on region
-#' soilperm_reg <- soilperm(soil_ord_scores, "region")
-#' soilperm_reg$mvdisper
-#' soilperm_reg$gl_permtest
-#' soilperm_reg$contrasts %>% kable(format = "pandoc", caption = "Pairwise PERMANOVA results")
-
 #' ### Plotting and Fig S2
 soil_ord_ft_centers <- soil_ord_scores %>%
   group_by(field_type) %>%
   summarize(across(starts_with("PC"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
-
 soil_ord_ftypes <-
     ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
     geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
@@ -185,7 +140,6 @@ soil_ord_ftypes <-
   theme(legend.title = element_text(size = 8), legend.position = "top",
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(-0.03, 0.90))
-
 #+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
 figS4 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
   plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
