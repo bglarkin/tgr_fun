@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 10 February, 2026
+Last updated: 11 February, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -40,16 +40,11 @@ Last updated: 10 February, 2026
   - [Saprotrophs](#saprotrophs-3)
   - [Beta diversity summary](#beta-diversity-summary)
 - [Fungal communities and the
-  enviroment](#fungal-communities-and-the-enviroment)
-  - [ITS fungi](#its-fungi-3)
-  - [AM fungi](#am-fungi-4)
-  - [Pathogens](#pathogens-4)
-  - [Saprotrophs](#saprotrophs-4)
-  - [Constrained analysis unified
-    summary](#constrained-analysis-unified-summary)
+  environment](#fungal-communities-and-the-environment)
   - [Variation partitioning](#variation-partitioning)
+  - [Constrained analyses](#constrained-analyses)
 - [Fungal abundance and the
-  enviroment](#fungal-abundance-and-the-enviroment)
+  environment](#fungal-abundance-and-the-environment)
   - [ITS fungi](#its-fungi-5)
   - [AM fungi](#am-fungi-6)
   - [Pathogens](#pathogens-6)
@@ -862,8 +857,7 @@ check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
 ```
 
     ## Model has interaction terms. VIFs might be inflated.
-    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a
-    ##   model without interaction terms.
+    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction terms.
 
     ## # Check for Multicollinearity
     ## 
@@ -3197,14 +3191,269 @@ fig3
 
 ![](resources/fungal_ecology_files/figure-gfm/betadiv_fig-1.png)<!-- -->
 
-# Fungal communities and the enviroment
+# Fungal communities and the environment
 
 ``` r
 # FungComm-env corr ———————— ####
 ```
 
-Do environmental and plant community variables explain variation in
-fungal communities among guilds?
+Do soil properties and plant communities explain variation in fungal
+communities? What is the relative explanatory power of each, and which
+particular variable correlate with fungal communities?
+
+Restored and remnant prairies in Wisconsin are used to explore these
+questions.
+
+## Variation partitioning
+
+``` r
+## Varpart ———————— ####
+```
+
+What is the relative explanatory power of soil properties or plant
+communities?
+
+Conducted as a series of partial RDAs on testable fractions of variation
+where soil and plant vars jointly and independently explain fungal
+communities.
+
+### ITS fungi
+
+Variation partitioning was not informative with the entire genomic
+library.
+
+### AM fungi
+
+soil + plant shared
+
+``` r
+amf_m_ac <- rda(spe_amf_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+```
+
+plant + soil shared
+
+``` r
+amf_m_bc <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+```
+
+soil + plant + shared
+
+``` r
+amf_m_abc <- rda(spe_amf_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+```
+
+soil only
+
+``` r
+amf_m_a <- rda(spe_amf_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+```
+
+plant only
+
+``` r
+amf_m_b <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+```
+
+shared only
+
+``` r
+RsquareAdj(amf_m_abc)$adj.r.squared - RsquareAdj(amf_m_a)$adj.r.squared - RsquareAdj(amf_m_b)$adj.r.squared
+```
+
+    ## [1] -0.06406953
+
+Results
+
+``` r
+amf_varptes <- list(
+  `soil + plant shared`   = amf_m_ac, 
+  `plant + soil shared`   = amf_m_bc, 
+  `soil + plant + shared` = amf_m_abc, 
+  `soil only`             = amf_m_a, 
+  `plant only`            = amf_m_b
+)
+tibble(
+  fraction = names(amf_varptes),
+  model = unname(amf_varptes)
+) %>%
+  mutate(
+    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
+    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
+    df = map_int(anova, \(a) a[["Df"]][1]),
+    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
+    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
+    p.val = format.pval(p, digits = 2, eps = 0.001)
+  ) %>%
+  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
+```
+
+| fraction              | r2adj |    F |  df | p.val |
+|:----------------------|------:|-----:|----:|:------|
+| soil + plant shared   |  0.08 | 1.49 |   2 | 0.116 |
+| plant + soil shared   |  0.19 | 2.34 |   2 | 0.006 |
+| soil + plant + shared |  0.34 | 2.43 |   4 | 0.003 |
+| soil only             |  0.14 | 2.00 |   2 | 0.022 |
+| plant only            |  0.26 | 2.78 |   2 | 0.007 |
+
+Soil and plant individual fractions are significant with moderate
+explanatory power.
+
+### Pathogens
+
+soil + plant shared
+
+``` r
+patho_m_ac <- rda(spe_patho_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+```
+
+plant + soil shared
+
+``` r
+patho_m_bc <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+```
+
+soil + plant + shared
+
+``` r
+patho_m_abc <- rda(spe_patho_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+```
+
+soil only
+
+``` r
+patho_m_a <- rda(spe_patho_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+```
+
+plant only
+
+``` r
+patho_m_b <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+```
+
+shared only
+
+``` r
+RsquareAdj(patho_m_abc)$adj.r.squared - RsquareAdj(patho_m_a)$adj.r.squared - RsquareAdj(patho_m_b)$adj.r.squared
+```
+
+    ## [1] -0.03458065
+
+Results
+
+``` r
+patho_varptes <- list(
+  `soil + plant shared`   = patho_m_ac, 
+  `plant + soil shared`   = patho_m_bc, 
+  `soil + plant + shared` = patho_m_abc, 
+  `soil only`             = patho_m_a, 
+  `plant only`            = patho_m_b
+)
+tibble(
+  fraction = names(patho_varptes),
+  model = unname(patho_varptes)
+) %>%
+  mutate(
+    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
+    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
+    df = map_int(anova, \(a) a[["Df"]][1]),
+    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
+    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
+    p.val = format.pval(p, digits = 2, eps = 0.001)
+  ) %>%
+  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
+```
+
+| fraction              | r2adj |    F |  df | p.val |
+|:----------------------|------:|-----:|----:|:------|
+| soil + plant shared   |  0.10 | 1.62 |   2 | 0.20  |
+| plant + soil shared   |  0.07 | 1.41 |   2 | 0.24  |
+| soil + plant + shared |  0.20 | 1.72 |   4 | 0.15  |
+| soil only             |  0.13 | 1.79 |   2 | 0.18  |
+| plant only            |  0.10 | 1.61 |   2 | 0.20  |
+
+No fractions are significant.
+
+### Saprotrophs
+
+soil + plant shared
+
+``` r
+sapro_m_ac <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+```
+
+plant + soil shared
+
+``` r
+sapro_m_bc <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+```
+
+soil + plant + shared
+
+``` r
+sapro_m_abc <- rda(spe_sapro_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+```
+
+soil only
+
+``` r
+sapro_m_a <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+```
+
+plant only
+
+``` r
+sapro_m_b <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+```
+
+shared only
+
+``` r
+RsquareAdj(sapro_m_abc)$adj.r.squared - RsquareAdj(sapro_m_a)$adj.r.squared - RsquareAdj(sapro_m_b)$adj.r.squared
+```
+
+    ## [1] -0.03684788
+
+Results
+
+``` r
+sapro_varptes <- list(
+  `soil + plant shared`   = sapro_m_ac, 
+  `plant + soil shared`   = sapro_m_bc, 
+  `soil + plant + shared` = sapro_m_abc, 
+  `soil only`             = sapro_m_a, 
+  `plant only`            = sapro_m_b
+)
+tibble(
+  fraction = names(sapro_varptes),
+  model = unname(sapro_varptes)
+) %>%
+  mutate(
+    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
+    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
+    df = map_int(anova, \(a) a[["Df"]][1]),
+    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
+    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
+    p.val = format.pval(p, digits = 2, eps = 0.001)
+  ) %>%
+  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
+```
+
+| fraction              | r2adj |    F |  df | p.val |
+|:----------------------|------:|-----:|----:|:------|
+| soil + plant shared   |  0.08 | 1.48 |   2 | 0.041 |
+| plant + soil shared   |  0.10 | 1.63 |   2 | 0.019 |
+| soil + plant + shared |  0.22 | 1.78 |   4 | 0.001 |
+| soil only             |  0.12 | 1.68 |   2 | 0.009 |
+| plant only            |  0.14 | 1.81 |   2 | 0.009 |
+
+Soil and plant fractions are significant with low-moderate explanatory
+power.
+
+## Constrained analyses
+
+``` r
+## db-RDA ———————— ####
+```
 
 Test explanatory variables for correlation with site ordination. Using
 plant data, so the analysis is restricted to Wisconsin sites. Edaphic
@@ -3212,7 +3461,7 @@ variables are too numerous to include individually, so transform micro
 nutrients using PCA. Forb and grass cover is highly collinear; use the
 grass-forb index produced previously with PCA.
 
-## ITS fungi
+### ITS fungi
 
 ``` r
 soil_micro_pca <- 
@@ -3305,15 +3554,14 @@ mod_step <- ordistep(mod_null,
                      trace = FALSE)
 ```
 
-### Constrained Analysis Results
+Results
 
 ``` r
 mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_axis + pH + pl_rich, data = env_expl,
-    ## distance = "bray")
+    ## Call: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_axis + pH + pl_rich, data = env_expl, distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total         3.24768    1.00000     
@@ -3368,8 +3616,8 @@ mod_step
     ## Model: dbrda(formula = spe_its_wi_resto ~ Condition(env_cov) + gf_axis + pH + pl_rich, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)    
     ## dbRDA1    1  0.62597 3.1334 0.0005 ***
-    ## dbRDA2    1  0.40825 2.2990 0.0025 ** 
-    ## dbRDA3    1  0.30305 1.8962 0.0025 ** 
+    ## dbRDA2    1  0.40825 2.2990 0.0035 ** 
+    ## dbRDA3    1  0.30305 1.8962 0.0035 ** 
     ## Residual  8  1.59816                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -3390,9 +3638,9 @@ anova(mod_step, by = "margin", permutations = 1999) %>%
 
 |          |  Df |  SumOfSqs |        F | Pr(\>F) |   p.adj |
 |----------|----:|----------:|---------:|--------:|--------:|
-| gf_axis  |   1 | 0.5247019 | 2.626531 |  0.0010 | 0.00300 |
-| pH       |   1 | 0.4396163 | 2.200613 |  0.0075 | 0.01125 |
-| pl_rich  |   1 | 0.3356568 | 1.680217 |  0.0345 | 0.03450 |
+| gf_axis  |   1 | 0.5247019 | 2.626531 |  0.0005 | 0.00150 |
+| pH       |   1 | 0.4396163 | 2.200613 |  0.0065 | 0.00975 |
+| pl_rich  |   1 | 0.3356568 | 1.680217 |  0.0360 | 0.03600 |
 | Residual |   8 | 1.5981593 |       NA |      NA |      NA |
 
 Based on permutation tests with n=1999 permutations, the model shows a
@@ -3439,7 +3687,7 @@ mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
 
-## AM fungi
+### AM fungi
 
 Relative sequence abundance Env covars processed in the ITS section (see
 above)
@@ -3462,7 +3710,7 @@ amf_mod_step <- ordistep(amf_mod_null,
                          trace = FALSE)
 ```
 
-### Constrained Analysis Results
+Results
 
 ``` r
 amf_mod_step
@@ -3507,7 +3755,7 @@ amf_mod_step
     ## 
     ## Model: dbrda(formula = d_amf_wi ~ Condition(env_cov) + gf_axis + pH, data = env_expl)
     ##          Df SumOfSqs      F Pr(>F)    
-    ## Model     2  0.15351 3.8103  0.001 ***
+    ## Model     2  0.15351 3.8103  5e-04 ***
     ## Residual  9  0.18130                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -3523,8 +3771,8 @@ amf_mod_step
     ## 
     ## Model: dbrda(formula = d_amf_wi ~ Condition(env_cov) + gf_axis + pH, data = env_expl)
     ##          Df SumOfSqs      F Pr(>F)    
-    ## dbRDA1    1 0.110753 5.4979 0.0005 ***
-    ## dbRDA2    1 0.042759 2.3585 0.0230 *  
+    ## dbRDA1    1 0.110753 5.4979  0.001 ***
+    ## dbRDA2    1 0.042759 2.3585  0.021 *  
     ## Residual  9 0.181302                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -3545,8 +3793,8 @@ amf_mod_step$anova %>%
 
 |            |  Df |       AIC |        F | Pr(\>F) |  p.adj |
 |------------|----:|----------:|---------:|--------:|-------:|
-| \+ gf_axis |   1 | -13.88446 | 4.266805 |  0.0015 | 0.0030 |
-| \+ pH      |   1 | -15.23927 | 2.649782 |  0.0285 | 0.0285 |
+| \+ gf_axis |   1 | -13.88446 | 4.266805 |  0.0020 | 0.0040 |
+| \+ pH      |   1 | -15.23927 | 2.649782 |  0.0225 | 0.0225 |
 
 Based on permutation tests with n=1999 permutations, after accounting
 for inter-site pairwise distance as a covariate, the model shows a
@@ -3595,7 +3843,7 @@ amf_mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
 
-## Pathogens
+### Pathogens
 
 Env covars processed in the ITS section (see above)
 
@@ -3619,27 +3867,29 @@ patho_mod_step <- ordistep(patho_mod_null,
     ## Start: spe_patho_wi_resto ~ 1 + Condition(env_cov) 
     ## 
     ##                Df    AIC      F Pr(>F)  
-    ## + OM            1 5.2459 3.0074 0.0160 *
-    ## + pH            1 5.6164 2.6419 0.0295 *
-    ## + gf_axis       1 6.8349 1.5108 0.1940  
-    ## + pl_rich       1 7.2949 1.1106 0.3545  
-    ## + soil_micro_2  1 7.6425 0.8175 0.5430  
-    ## + NO3           1 7.9807 0.5398 0.7990  
-    ## + P             1 8.3386 0.2535 0.9785  
+    ## + OM            1 5.2459 3.0074 0.0175 *
+    ## + pH            1 5.6164 2.6419 0.0250 *
+    ## + gf_axis       1 6.8349 1.5108 0.1925  
+    ## + pl_rich       1 7.2949 1.1106 0.3360  
+    ## + soil_micro_2  1 7.6425 0.8175 0.5350  
+    ## + NO3           1 7.9807 0.5398 0.7920  
+    ## + P             1 8.3386 0.2535 0.9800  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Step: spe_patho_wi_resto ~ Condition(env_cov) + OM 
     ## 
-    ##                Df    AIC      F Pr(>F)
-    ## + gf_axis       1 4.7454 1.9088 0.1075
-    ## + pl_rich       1 5.2111 1.5249 0.1900
-    ## + pH            1 5.3231 1.4347 0.2255
-    ## + soil_micro_2  1 5.7904 1.0662 0.3490
-    ## + NO3           1 6.2146 0.7431 0.6095
-    ## + P             1 6.8892 0.2504 0.9855
+    ##                Df    AIC      F Pr(>F)  
+    ## + gf_axis       1 4.7454 1.9088 0.0990 .
+    ## + pl_rich       1 5.2111 1.5249 0.1795  
+    ## + pH            1 5.3231 1.4347 0.2005  
+    ## + soil_micro_2  1 5.7904 1.0662 0.3815  
+    ## + NO3           1 6.2146 0.7431 0.5995  
+    ## + P             1 6.8892 0.2504 0.9890  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-### Constrained Analysis Results
+Results
 
 ``` r
 patho_mod_step
@@ -3684,7 +3934,7 @@ patho_mod_step
     ## 
     ## Model: dbrda(formula = spe_patho_wi_resto ~ Condition(env_cov) + OM, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)  
-    ## Model     1  0.30744 3.0074 0.0175 *
+    ## Model     1  0.30744 3.0074  0.015 *
     ## Residual 10  1.02228                
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -3700,7 +3950,7 @@ patho_mod_step
     ## 
     ## Model: dbrda(formula = spe_patho_wi_resto ~ Condition(env_cov) + OM, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)  
-    ## dbRDA1    1  0.30744 3.0074  0.019 *
+    ## dbRDA1    1  0.30744 3.0074  0.018 *
     ## Residual 10  1.02228                
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -3719,9 +3969,9 @@ patho_mod_step$anova %>%
   kable(, format = "pandoc")
 ```
 
-|       |  Df |      AIC |        F | Pr(\>F) | p.adj |
-|-------|----:|---------:|---------:|--------:|------:|
-| \+ OM |   1 | 5.245899 | 3.007433 |   0.016 | 0.016 |
+|       |  Df |      AIC |        F | Pr(\>F) |  p.adj |
+|-------|----:|---------:|---------:|--------:|-------:|
+| \+ OM |   1 | 5.245899 | 3.007433 |  0.0175 | 0.0175 |
 
 Based on permutation tests with n=1999 permutations, after accounting
 for inter-site pairwise distance as a covariate, the model shows no
@@ -3756,7 +4006,7 @@ patho_mod_scor_bp <-
     laby = 0)
 ```
 
-## Saprotrophs
+### Saprotrophs
 
 Env covars processed in the ITS section (see above)
 
@@ -3776,15 +4026,14 @@ sapro_mod_step <- ordistep(sapro_mod_null,
                            trace = FALSE)
 ```
 
-### Constrained Analysis Results
+Results
 
 ``` r
 sapro_mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + gf_axis + OM, data = env_expl, distance =
-    ## "bray")
+    ## Call: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + gf_axis + OM, data = env_expl, distance = "bray")
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.4587     1.0000     
@@ -3838,8 +4087,8 @@ sapro_mod_step
     ## 
     ## Model: dbrda(formula = spe_sapro_wi_resto ~ Condition(env_cov) + gf_axis + OM, data = env_expl, distance = "bray")
     ##          Df SumOfSqs      F Pr(>F)   
-    ## dbRDA1    1  0.55580 2.4118  0.002 **
-    ## dbRDA2    1  0.46976 2.2650  0.003 **
+    ## dbRDA1    1  0.55580 2.4118 0.0020 **
+    ## dbRDA2    1  0.46976 2.2650 0.0025 **
     ## Residual  9  2.07401                 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -3858,10 +4107,10 @@ sapro_mod_step$anova %>%
   kable(, format = "pandoc")
 ```
 
-|            |  Df |      AIC |        F | Pr(\>F) | p.adj |
-|------------|----:|---------:|---------:|--------:|------:|
-| \+ gf_axis |   1 | 17.35576 | 1.944684 |   0.006 | 0.006 |
-| \+ OM      |   1 | 16.44276 | 2.260504 |   0.002 | 0.004 |
+|            |  Df |      AIC |        F | Pr(\>F) |  p.adj |
+|------------|----:|---------:|---------:|--------:|-------:|
+| \+ gf_axis |   1 | 17.35576 | 1.944684 |  0.0045 | 0.0045 |
+| \+ OM      |   1 | 16.44276 | 2.260504 |  0.0015 | 0.0030 |
 
 Based on permutation tests with n=1999 permutations, after accounting
 for inter-site pairwise distance as a covariate, the model shows
@@ -3907,11 +4156,7 @@ sapro_mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 ```
 
-## Constrained analysis unified summary
-
-``` r
-## Constr. cor results ———————— ####
-```
+### Constrained analysis unified summary
 
 Environmental drivers were identified via partial distance-based
 Redundancy Analysis (db-RDA) using forward selection. Geographic
@@ -3937,7 +4182,7 @@ dbrda_rdf <- data.frame(
 )
 ```
 
-### Global tests
+#### Global tests
 
 ``` r
 list(
@@ -3961,11 +4206,11 @@ list(
 | guild       | term  | pseudo_F\_(df) | r2adj | p.value |  p.adj |
 |:------------|:------|:---------------|------:|--------:|-------:|
 | all_fungi   | Model | 2.23 (3, 8)    | 0.248 |  0.0005 | 0.0005 |
-| amf         | Model | 3.81 (2, 9)    | 0.336 |  0.0010 | 0.0010 |
-| pathogens   | Model | 3.01 (1, 10)   | 0.137 |  0.0175 | 0.0175 |
+| amf         | Model | 3.81 (2, 9)    | 0.336 |  0.0005 | 0.0005 |
+| pathogens   | Model | 3.01 (1, 10)   | 0.137 |  0.0150 | 0.0150 |
 | saprotrophs | Model | 2.23 (2, 9)    | 0.178 |  0.0005 | 0.0005 |
 
-### Component axes
+#### Component axes
 
 ``` r
 list(
@@ -3989,15 +4234,15 @@ list(
 | guild       | term   | pseudo_F\_(df) | p.value |  p.adj |
 |:------------|:-------|:---------------|--------:|-------:|
 | all_fungi   | dbRDA1 | 3.13 (1, 8)    |  0.0005 | 0.0015 |
-| all_fungi   | dbRDA2 | 2.3 (1, 8)     |  0.0025 | 0.0025 |
-| all_fungi   | dbRDA3 | 1.9 (1, 8)     |  0.0025 | 0.0025 |
-| amf         | dbRDA1 | 5.5 (1, 9)     |  0.0005 | 0.0010 |
-| amf         | dbRDA2 | 2.36 (1, 9)    |  0.0230 | 0.0230 |
-| pathogens   | dbRDA1 | 3.01 (1, 10)   |  0.0190 | 0.0190 |
-| saprotrophs | dbRDA1 | 2.41 (1, 9)    |  0.0020 | 0.0030 |
-| saprotrophs | dbRDA2 | 2.27 (1, 9)    |  0.0030 | 0.0030 |
+| all_fungi   | dbRDA2 | 2.3 (1, 8)     |  0.0035 | 0.0035 |
+| all_fungi   | dbRDA3 | 1.9 (1, 8)     |  0.0035 | 0.0035 |
+| amf         | dbRDA1 | 5.5 (1, 9)     |  0.0010 | 0.0020 |
+| amf         | dbRDA2 | 2.36 (1, 9)    |  0.0210 | 0.0210 |
+| pathogens   | dbRDA1 | 3.01 (1, 10)   |  0.0180 | 0.0180 |
+| saprotrophs | dbRDA1 | 2.41 (1, 9)    |  0.0020 | 0.0025 |
+| saprotrophs | dbRDA2 | 2.27 (1, 9)    |  0.0025 | 0.0025 |
 
-### Selected constraining variables
+#### Selected constraining variables
 
 ``` r
 list(
@@ -4021,16 +4266,16 @@ list(
 
 | guild       | term    | pseudo_F\_(df) | p.value |  p.adj |
 |:------------|:--------|:---------------|--------:|-------:|
-| all_fungi   | gf_axis | 2.2977 (1, 8)  |  0.0030 | 0.0075 |
-| all_fungi   | pH      | 2.109 (1, 8)   |  0.0050 | 0.0075 |
-| all_fungi   | pl_rich | 1.6802 (1, 8)  |  0.0385 | 0.0385 |
-| amf         | gf_axis | 4.2668 (1, 9)  |  0.0015 | 0.0030 |
-| amf         | pH      | 2.6498 (1, 9)  |  0.0285 | 0.0285 |
-| pathogens   | OM      | 3.0074 (1, 10) |  0.0160 | 0.0160 |
-| saprotrophs | OM      | 2.2605 (1, 9)  |  0.0020 | 0.0040 |
-| saprotrophs | gf_axis | 1.9447 (1, 9)  |  0.0060 | 0.0060 |
+| all_fungi   | gf_axis | 2.2977 (1, 8)  |  0.0015 | 0.0045 |
+| all_fungi   | pH      | 2.109 (1, 8)   |  0.0065 | 0.0098 |
+| all_fungi   | pl_rich | 1.6802 (1, 8)  |  0.0360 | 0.0360 |
+| amf         | gf_axis | 4.2668 (1, 9)  |  0.0020 | 0.0040 |
+| amf         | pH      | 2.6498 (1, 9)  |  0.0225 | 0.0225 |
+| pathogens   | OM      | 3.0074 (1, 10) |  0.0175 | 0.0175 |
+| saprotrophs | OM      | 2.2605 (1, 9)  |  0.0015 | 0.0030 |
+| saprotrophs | gf_axis | 1.9447 (1, 9)  |  0.0045 | 0.0045 |
 
-### Biplot panels
+#### Biplot panels
 
 All soil fungi
 
@@ -4174,249 +4419,7 @@ respectively, along the index. The black arrows show other significant
 constraining variables. Points show locations of restored fields (green)
 and remnant fields (blue) in Wisconsin.
 
-## Variation partitioning
-
-``` r
-## Varpart ———————— ####
-```
-
-Conducted as a series of partial RDAs on testable fractions of variation
-where soil and plant vars jointly and independently explain fungal
-communities.
-
-### ITS fungi
-
-Variation partitioning was not informative with the entire genomic
-library.
-
-### AM fungi
-
-soil + plant shared
-
-``` r
-amf_m_ac <- rda(spe_amf_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
-```
-
-plant + soil shared
-
-``` r
-amf_m_bc <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-```
-
-soil + plant + shared
-
-``` r
-amf_m_abc <- rda(spe_amf_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-```
-
-soil only
-
-``` r
-amf_m_a <- rda(spe_amf_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
-```
-
-plant only
-
-``` r
-amf_m_b <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
-```
-
-shared only
-
-``` r
-RsquareAdj(amf_m_abc)$adj.r.squared - RsquareAdj(amf_m_a)$adj.r.squared - RsquareAdj(amf_m_b)$adj.r.squared
-```
-
-    ## [1] -0.06406953
-
-Results
-
-``` r
-amf_varptes <- list(
-  `soil + plant shared`   = amf_m_ac, 
-  `plant + soil shared`   = amf_m_bc, 
-  `soil + plant + shared` = amf_m_abc, 
-  `soil only`             = amf_m_a, 
-  `plant only`            = amf_m_b
-  )
-tibble(
-  fraction = names(amf_varptes),
-  model = unname(amf_varptes)
-) %>%
-  mutate(
-    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
-    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
-    df = map_int(anova, \(a) a[["Df"]][1]),
-    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
-    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
-    p.val = format.pval(p, digits = 2, eps = 0.001)
-  ) %>%
-  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-```
-
-| fraction              | r2adj |    F |  df | p.val |
-|:----------------------|------:|-----:|----:|:------|
-| soil + plant shared   |  0.08 | 1.49 |   2 | 0.127 |
-| plant + soil shared   |  0.19 | 2.34 |   2 | 0.005 |
-| soil + plant + shared |  0.34 | 2.43 |   4 | 0.001 |
-| soil only             |  0.14 | 2.00 |   2 | 0.023 |
-| plant only            |  0.26 | 2.78 |   2 | 0.008 |
-
-Soil and plant individual fractions are significant with moderate
-explanatory power.
-
-### Pathogens
-
-soil + plant shared
-
-``` r
-patho_m_ac <- rda(spe_patho_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
-```
-
-plant + soil shared
-
-``` r
-patho_m_bc <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-```
-
-soil + plant + shared
-
-``` r
-patho_m_abc <- rda(spe_patho_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-```
-
-soil only
-
-``` r
-patho_m_a <- rda(spe_patho_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
-```
-
-plant only
-
-``` r
-patho_m_b <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
-```
-
-shared only
-
-``` r
-RsquareAdj(patho_m_abc)$adj.r.squared - RsquareAdj(patho_m_a)$adj.r.squared - RsquareAdj(patho_m_b)$adj.r.squared
-```
-
-    ## [1] -0.03458065
-
-Results
-
-``` r
-patho_varptes <- list(
-  `soil + plant shared`   = patho_m_ac, 
-  `plant + soil shared`   = patho_m_bc, 
-  `soil + plant + shared` = patho_m_abc, 
-  `soil only`             = patho_m_a, 
-  `plant only`            = patho_m_b
-)
-tibble(
-  fraction = names(patho_varptes),
-  model = unname(patho_varptes)
-) %>%
-  mutate(
-    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
-    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
-    df = map_int(anova, \(a) a[["Df"]][1]),
-    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
-    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
-    p.val = format.pval(p, digits = 2, eps = 0.001)
-  ) %>%
-  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-```
-
-| fraction              | r2adj |    F |  df | p.val |
-|:----------------------|------:|-----:|----:|:------|
-| soil + plant shared   |  0.10 | 1.62 |   2 | 0.17  |
-| plant + soil shared   |  0.07 | 1.41 |   2 | 0.23  |
-| soil + plant + shared |  0.20 | 1.72 |   4 | 0.14  |
-| soil only             |  0.13 | 1.79 |   2 | 0.18  |
-| plant only            |  0.10 | 1.61 |   2 | 0.19  |
-
-No fractions are significant.
-
-### Saprotrophs
-
-soil + plant shared
-
-``` r
-sapro_m_ac <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
-```
-
-plant + soil shared
-
-``` r
-sapro_m_bc <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-```
-
-soil + plant + shared
-
-``` r
-sapro_m_abc <- rda(spe_sapro_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-```
-
-soil only
-
-``` r
-sapro_m_a <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
-```
-
-plant only
-
-``` r
-sapro_m_b <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
-```
-
-shared only
-
-``` r
-RsquareAdj(sapro_m_abc)$adj.r.squared - RsquareAdj(sapro_m_a)$adj.r.squared - RsquareAdj(sapro_m_b)$adj.r.squared
-```
-
-    ## [1] -0.03684788
-
-Results
-
-``` r
-sapro_varptes <- list(
-  `soil + plant shared`   = sapro_m_ac, 
-  `plant + soil shared`   = sapro_m_bc, 
-  `soil + plant + shared` = sapro_m_abc, 
-  `soil only`             = sapro_m_a, 
-  `plant only`            = sapro_m_b
-)
-tibble(
-  fraction = names(sapro_varptes),
-  model = unname(sapro_varptes)
-) %>%
-  mutate(
-    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
-    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
-    df = map_int(anova, \(a) a[["Df"]][1]),
-    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
-    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
-    p.val = format.pval(p, digits = 2, eps = 0.001)
-  ) %>%
-  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-```
-
-| fraction              | r2adj |    F |  df | p.val  |
-|:----------------------|------:|-----:|----:|:-------|
-| soil + plant shared   |  0.08 | 1.48 |   2 | 0.0460 |
-| plant + soil shared   |  0.10 | 1.63 |   2 | 0.0200 |
-| soil + plant + shared |  0.22 | 1.78 |   4 | 0.0025 |
-| soil only             |  0.12 | 1.68 |   2 | 0.0075 |
-| plant only            |  0.14 | 1.81 |   2 | 0.0115 |
-
-Soil and plant fractions are significant with low-moderate explanatory
-power.
-
-# Fungal abundance and the enviroment
+# Fungal abundance and the environment
 
 ``` r
 # FungAbund-env corr ———————— ####
@@ -5134,10 +5137,6 @@ patho_gf_specor <- aldex_gradient(
 )
 ```
 
-    ## operating in serial mode
-
-    ## computing center with all features
-
 ``` r
 patho_gf_specor$ranked %>% 
   left_join(its_meta %>% 
@@ -5148,18 +5147,18 @@ patho_gf_specor$ranked %>%
 ```
 
     ## # A tibble: 153 × 14
-    ##    otu     cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class           order         family   genus species
-    ##    <chr>     <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>           <chr>         <chr>    <chr> <chr>  
-    ##  1 otu_68     6.66   1.90  3.52 0.005 0.301  0.64  0.023 0.451 Dothideomycetes Pleosporales  Phaeosp… Para… uniden…
-    ##  2 otu_65     5.97   1.82  3.30 0.008 0.325  0.613 0.034 0.466 Sordariomycetes Hypocreales   Nectria… Gibb… Gibber…
-    ##  3 otu_332    9.94   3.34  3.02 0.019 0.42   0.465 0.117 0.612 Sordariomycetes Glomerellales Plectos… Plec… uniden…
-    ##  4 otu_391    9.35   3.31  2.99 0.035 0.48   0.679 0.019 0.394 Dothideomycetes Pleosporales  Torulac… Dend… uniden…
-    ##  5 otu_315   11.9    4.21  2.95 0.034 0.481  0.594 0.045 0.488 Sordariomycetes Glomerellales Glomere… Coll… uniden…
-    ##  6 otu_559    8.21   3.61  2.36 0.071 0.652  0.473 0.12  0.601 Sordariomycetes Glomerellales Glomere… Coll… uniden…
-    ##  7 otu_21     8.42   4.12  2.11 0.076 0.75   0.64  0.023 0.448 Dothideomycetes Pleosporales  Phaeosp… Seto… Setoph…
-    ##  8 otu_408    7.69   4.14  1.98 0.147 0.761  0.455 0.172 0.607 Dothideomycetes Pleosporales  Leptosp… Lept… Leptos…
-    ##  9 otu_289    9.81   4.95  2.03 0.096 0.765  0.37  0.231 0.687 Sordariomycetes Glomerellales Plectos… Plec… Plecto…
-    ## 10 otu_200   -9.79   4.04 -2.55 0.057 0.809 -0.521 0.115 0.552 Dothideomycetes Pleosporales  Phaeosp… Ophi… uniden…
+    ##    otu     cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class           order         family               genus            species                  
+    ##    <chr>     <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>           <chr>         <chr>                <chr>            <chr>                    
+    ##  1 otu_68     6.66   1.90  3.52 0.005 0.301  0.64  0.023 0.451 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Paraphoma        unidentified             
+    ##  2 otu_65     5.97   1.82  3.30 0.008 0.325  0.613 0.034 0.466 Sordariomycetes Hypocreales   Nectriaceae          Gibberella       Gibberella_baccata       
+    ##  3 otu_332    9.94   3.34  3.02 0.019 0.42   0.465 0.117 0.612 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella unidentified             
+    ##  4 otu_391    9.35   3.31  2.99 0.035 0.48   0.679 0.019 0.394 Dothideomycetes Pleosporales  Torulaceae           Dendryphion      unidentified             
+    ##  5 otu_315   11.9    4.21  2.95 0.034 0.481  0.594 0.045 0.488 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified             
+    ##  6 otu_559    8.21   3.61  2.36 0.071 0.652  0.473 0.12  0.601 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified             
+    ##  7 otu_21     8.42   4.12  2.11 0.076 0.75   0.64  0.023 0.448 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Setophoma        Setophoma_terrestris     
+    ##  8 otu_408    7.69   4.14  1.98 0.147 0.761  0.455 0.172 0.607 Dothideomycetes Pleosporales  Leptosphaeriaceae    Leptosphaeria    Leptosphaeria_sclerotioi…
+    ##  9 otu_289    9.81   4.95  2.03 0.096 0.765  0.37  0.231 0.687 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella Plectosphaerella_cucumer…
+    ## 10 otu_200   -9.79   4.04 -2.55 0.057 0.809 -0.521 0.115 0.552 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Ophiosphaerella  unidentified             
     ## # ℹ 143 more rows
 
 ## Saprotrophs
@@ -5211,7 +5210,7 @@ distribution_prob(saprofa_prich_lm)
 check_model(saprofa_prich_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-175-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-174-1.png)<!-- -->
 
 Passes visual diagnostics
 
@@ -5298,7 +5297,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-179-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-178-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5404,7 +5403,7 @@ covariate than the test variable.
 avPlots(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-183-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-182-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear behavior is obvious, increasing spread with fungal
@@ -5552,14 +5551,6 @@ sapro_rich_specor <- aldex_gradient(
 )
 ```
 
-    ## integer matrix provided
-
-    ## using all features for denominator
-
-    ## operating in serial mode
-
-    ## computing center with all features
-
 ``` r
 sapro_rich_specor$ranked %>% 
   left_join(its_meta %>% 
@@ -5570,18 +5561,18 @@ sapro_rich_specor$ranked %>%
 ```
 
     ## # A tibble: 564 × 14
-    ##    otu      cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class              order       family genus species
-    ##    <chr>      <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>              <chr>       <chr>  <chr> <chr>  
-    ##  1 otu_703    0.238  0.079  3.21 0.024 0.79   0.757 0.005 0.393 Dothideomycetes    Pleosporal… Didym… Para… uniden…
-    ##  2 otu_195   -0.311  0.095 -3.38 0.014 0.84  -0.733 0.009 0.439 Mortierellomycetes Mortierell… Morti… Mort… uniden…
-    ##  3 otu_1373   0.155  0.092  1.87 0.184 0.939  0.405 0.249 0.838 Leotiomycetes      Helotiales  Hyalo… Clat… Clathr…
-    ##  4 otu_586    0.14   0.083  1.84 0.195 0.943  0.42  0.242 0.828 Agaricomycetes     Agaricales  Clava… Clav… uniden…
-    ##  5 otu_47    -0.326  0.124 -2.72 0.037 0.95  -0.58  0.06  0.698 Geoglossomycetes   Geoglossal… Geogl… Geog… uniden…
-    ##  6 otu_180   -0.202  0.097 -2.21 0.104 0.958 -0.231 0.431 0.906 Geoglossomycetes   Geoglossal… Geogl… Leuc… uniden…
-    ##  7 otu_885    0.138  0.089  1.70 0.214 0.962  0.392 0.266 0.848 Mortierellomycetes Mortierell… Morti… Mort… Mortie…
-    ##  8 otu_1383   0.14   0.086  1.76 0.198 0.962  0.404 0.248 0.846 Geoglossomycetes   Geoglossal… Geogl… Geog… uniden…
-    ##  9 otu_572    0.188  0.092  2.12 0.088 0.963  0.557 0.058 0.754 Sordariomycetes    Coniochaet… Conio… Coni… Conioc…
-    ## 10 otu_1401   0.122  0.084  1.60 0.253 0.964  0.398 0.26  0.842 Sordariomycetes    Hypocreales Stach… Myxo… uniden…
+    ##    otu      cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class              order          family             genus             species              
+    ##    <chr>      <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>              <chr>          <chr>              <chr>             <chr>                
+    ##  1 otu_703    0.238  0.079  3.21 0.024 0.79   0.757 0.005 0.393 Dothideomycetes    Pleosporales   Didymosphaeriaceae Paraphaeosphaeria unidentified         
+    ##  2 otu_195   -0.311  0.095 -3.38 0.014 0.84  -0.733 0.009 0.439 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       unidentified         
+    ##  3 otu_1373   0.155  0.092  1.87 0.184 0.939  0.405 0.249 0.838 Leotiomycetes      Helotiales     Hyaloscyphaceae    Clathrosphaerina  Clathrosphaerina_zal…
+    ##  4 otu_586    0.14   0.083  1.84 0.195 0.943  0.42  0.242 0.828 Agaricomycetes     Agaricales     Clavariaceae       Clavaria          unidentified         
+    ##  5 otu_47    -0.326  0.124 -2.72 0.037 0.95  -0.58  0.06  0.698 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified         
+    ##  6 otu_180   -0.202  0.097 -2.21 0.104 0.958 -0.231 0.431 0.906 Geoglossomycetes   Geoglossales   Geoglossaceae      Leucoglossum      unidentified         
+    ##  7 otu_885    0.138  0.089  1.70 0.214 0.962  0.392 0.266 0.848 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       Mortierella_globulif…
+    ##  8 otu_1383   0.14   0.086  1.76 0.198 0.962  0.404 0.248 0.846 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified         
+    ##  9 otu_572    0.188  0.092  2.12 0.088 0.963  0.557 0.058 0.754 Sordariomycetes    Coniochaetales Coniochaetaceae    Coniochaeta       Coniochaeta_decumbens
+    ## 10 otu_1401   0.122  0.084  1.60 0.253 0.964  0.398 0.26  0.842 Sordariomycetes    Hypocreales    Stachybotryaceae   Myxospora         unidentified         
     ## # ℹ 554 more rows
 
 ### Plant diversity and saprotrophs
@@ -5612,7 +5603,7 @@ distribution_prob(saprofa_pshan_lm)
 check_model(saprofa_pshan_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-189-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-187-1.png)<!-- -->
 
 ``` r
 summary(saprofa_pshan_lm)
