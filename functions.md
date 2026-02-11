@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 21 January, 2026
+Last updated: 10 February, 2026
 
 - [Description](#description)
   - [Sequence data processing
@@ -17,6 +17,8 @@ Last updated: 21 January, 2026
   - [Filter spe to a guild](#filter-spe-to-a-guild)
   - [Perform Indicator Species
     Analysis](#perform-indicator-species-analysis)
+  - [Perform ALDEx2 species
+    correlation](#perform-aldex2-species-correlation)
   - [Calculate pairwise distances among sites and present summary
     statistics](#calculate-pairwise-distances-among-sites-and-present-summary-statistics)
   - [Site mapping functions](#site-mapping-functions)
@@ -273,68 +275,101 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
 Simplified version of `mva()` for use with the soil properties data
 
 ``` r
-soilperm <- function(ord_scores, clust_var, nperm = 1999, seed = 20251103) {
-  # Distance object
-  soil_d <- ord_scores %>%
-    select(field_name, PC1, PC2) %>%
-    column_to_rownames("field_name") %>%
-    dist()
-  
-  # Clusters
-  clust_vec <- ord_scores %>% pull({{clust_var}})
-  g_chr <- as.character(clust_vec)
-  
-  # Control and reproducibility
-  set.seed(seed)
-  ctrl <- how(nperm = nperm)  
-  
-  # Homogeneity of multivariate dispersion
-  soil_disper <- betadisper(soil_d, clust_vec, bias.adjust = TRUE)
-  soil_mvdisper <- permutest(soil_disper, pairwise = TRUE, permutations = ctrl)
-  
-  # Global PERMANOVA
-  perm_glob <- shuffleSet(n = attr(soil_d, "Size"), control = ctrl)
-  soil_gl_permtest <- adonis2(soil_d ~ clust_vec,
-                              permutations = perm_glob,
-                              by = "terms",
-                              parallel = 1)  # force serial for determinism
-  
-  # Pairwise PERMANOVA
-  lev <- sort(unique(g_chr))
-  pairs <- t(combn(lev, 2))
-  res <- vector("list", nrow(pairs))
-  
-  for (i in seq_len(nrow(pairs))) {
-    keep <- g_chr %in% pairs[i, ]
-    d_sub <- as.dist(as.matrix(soil_d)[keep, keep])
-    g_sub <- g_chr[keep]
-    
-    perm_pw <- shuffleSet(n = attr(d_sub, "Size"), control = ctrl)
-    
-    fit <- adonis2(d_sub ~ g_sub,
-                   permutations = perm_pw,
-                   by = "terms",
-                   parallel = 1)
-    
-    res[[i]] <- data.frame(
-      group1  = pairs[i, 1],
-      group2  = pairs[i, 2],
-      R2      = unname(fit$R2[1]),
-      F_value = unname(fit$F[1]),
-      df1     = unname(fit$Df[1]),
-      df2     = unname(fit$Df[nrow(fit)]),
-      p_value = unname(fit$`Pr(>F)`[1])
-    )
+soilperm <- function(d, env, nperm = 1999, seed = 20251103) {
+  stopifnot(is.data.frame(env))
+  if (!all(c("field_type", "dist_axis_1") %in% names(env))) {
+    stop("`env` must contain columns `field_type` and `dist_axis_1`.")
   }
   
-  soil_contrasts <- bind_rows(res) %>%
-    mutate(p_value_adj = p.adjust(p_value, method = "fdr"))
+  # Distance labels and env alignment
+  if (inherits(d, "dist")) {
+    lab <- attr(d, "Labels")
+  } else if (is.matrix(d)) {
+    if (is.null(rownames(d))) stop("Distance matrix `d` must have row names.")
+    lab <- rownames(d)
+    d <- as.dist(d)  # coerce for betadisper/pcoa convenience
+  } else {
+    stop("`d` must be a 'dist' or a symmetric distance matrix.")
+  }
+  
+  # Align feature names across data sources
+  env <- as.data.frame(env)
+  if ("field_name" %in% names(env)) rownames(env) <- env$field_name
+  if (!setequal(rownames(env), lab)) {
+    miss_env <- setdiff(lab, rownames(env))
+    miss_d   <- setdiff(rownames(env), lab)
+    stop("Sample mismatch between `d` and `env`.\n",
+         "In d not in env: ", paste(miss_env, collapse = ", "),
+         "\nIn env not in d: ", paste(miss_d, collapse = ", "))
+  }
+  env <- env[lab, , drop = FALSE]  
+  
+  # Set grouping variables
+  g_chr     <- as.character(env$field_type)
+  g_levels  <- sort(unique(g_chr))         # deterministic order
+  clust_vec <- factor(g_chr, levels = g_levels)
+  
+  # Homogeneity of multivariate dispersion
+  disper <- betadisper(d, clust_vec, bias.adjust = TRUE)
+  if (!is.null(seed)) set.seed(seed + 2L)
+  mvdisper <- permutest(disper, pairwise = TRUE, permutations = nperm)
+  
+  # Global PERMANOVA
+  if (!is.null(seed)) set.seed(seed + 3L)
+  gl_permtest <- adonis2(
+    d ~ dist_axis_1 + field_type,
+    data = env,
+    permutations = nperm,
+    by = "terms"
+  )
+  
+  # Pairwise PERMANOVA
+  groups <- combn(g_levels, m = 2) %>%  t() %>%  as.data.frame()
+  names(groups) <- c("V1", "V2")
+  
+  contrasts <- data.frame(
+    group1   = groups$V1,
+    group2   = groups$V2,
+    R2       = NA_real_,
+    F_value  = NA_real_,
+    df1      = NA_integer_,
+    df2      = NA_integer_,
+    p_value  = NA_real_
+  )
+  
+  d_mat <- as.matrix(d)
+  for (i in seq_len(nrow(contrasts))) {
+    g1 <- contrasts$group1[i]
+    g2 <- contrasts$group2[i]
+    keep <- clust_vec %in% c(g1, g2)
+    
+    contrast_mat <- d_mat[keep, keep, drop = FALSE]
+    
+    if (!is.null(seed)) set.seed(seed + 100L + i)
+    
+    fit <- adonis2(
+      contrast_mat ~ env$dist_axis_1[keep] + factor(g_chr[keep]),
+      permutations = nperm,
+      by = "terms"
+    )
+    
+    rn <- rownames(fit)
+    term_row <- grep("factor\\(g_chr\\[keep\\]\\)", rn, fixed = FALSE)
+    if (length(term_row) != 1L) term_row <- grep("g_chr", rn, fixed = TRUE)
+    
+    contrasts$R2[i]      <- round(fit[term_row, "R2"], 3)
+    contrasts$F_value[i] <- round(fit[term_row, "F"], 3)
+    contrasts$df1[i]     <- fit[term_row, "Df"]
+    contrasts$df2[i]     <- fit[grep("Residual", rn), "Df"]
+    contrasts$p_value[i] <- fit[term_row, 5]
+  }
+  contrasts$p_value_adj <- p.adjust(contrasts$p_value, method = "fdr") %>% round(4)
   
   # Results
   list(
-    mvdisper    = soil_mvdisper,
-    gl_permtest = soil_gl_permtest,
-    contrasts   = soil_contrasts
+    dispersion_test    = mvdisper,
+    permanova          = gl_permtest,
+    pairwise_contrasts = contrasts
   )
 }
 ```
@@ -454,6 +489,109 @@ inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
   
   return(out)
   
+}
+```
+
+## Perform ALDEx2 species correlation
+
+Function `aldex_gradient` correlates species with linear model results
+in guilds while handling compositionality and difficult distribution
+shapes
+
+``` r
+aldex_gradient <- function(
+    spe_tbl,
+    covar_tbl,
+    covar_col,
+    field_col = "field_name",
+    replicate_multiplier = 10,
+    mc.samples = 256,
+    denom = "all",
+    seed = 20260129,
+    fdr.method = "BH",
+    candidate_q = 0.20,
+    candidate_abs_rho = 0.50,
+    strict_q = 0.10,
+    verbose = FALSE
+) {
+  stopifnot(requireNamespace("dplyr", quietly = TRUE))
+  stopifnot(requireNamespace("tibble", quietly = TRUE))
+  stopifnot(requireNamespace("ALDEx2", quietly = TRUE))
+  
+  otu_mat <- spe_tbl %>% 
+    select(-all_of(field_col)) %>% 
+    mutate(across(everything(), ~ as.integer(round(.x * replicate_multiplier))
+    )) %>% 
+    as.matrix()
+  
+  rownames(otu_mat) <- spe_tbl[[field_col]]
+  
+  stopifnot(is.integer(otu_mat))
+  stopifnot(all(otu_mat >= 0))
+  
+  cov_vec <- covar_tbl %>% 
+    filter(.[[field_col]] %in% rownames(otu_mat)) %>% 
+    arrange(match(.[[field_col]], rownames(otu_mat))) %>% 
+    pull({{ covar_col }})
+  
+  covar_aligned <- tibble(
+    !!field_col := rownames(otu_mat),
+    covar = cov_vec
+  )
+  
+  mm <- model.matrix(~ covar, data = covar_aligned)
+  
+  set.seed(seed)
+  x <- aldex.clr(reads = t(otu_mat), conds = mm, mc.samples = mc.samples,
+                 denom = denom, verbose = verbose)
+  
+  glm_res <- aldex.glm(x, fdr.method = fdr.method) %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu") 
+  
+  corr_res <- aldex.corr(x, cont.var = covar_aligned$covar) %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu") %>% 
+    select(otu, spearman.erho, spearman.ep, spearman.eBH, pearson.ecor, pearson.ep, pearson.eBH,
+           kendall.etau, kendall.ep, kendall.eBH)
+  
+  res <- glm_res %>% 
+    left_join(corr_res %>% select(otu, spearman.erho, spearman.ep, spearman.eBH), 
+              by = join_by(otu)) %>% 
+    mutate(
+      abs_est = abs(`covar:Est`),
+      abs_rho = abs(spearman.erho)
+    )
+  
+  hit_strict <- res %>% 
+    filter(`covar:pval.padj` < strict_q) %>% 
+    arrange(`covar:pval.padj`, desc(abs_est))
+  
+  hit_candidates <- res %>% 
+    filter(`covar:pval.padj` < candidate_q, abs_rho >= candidate_abs_rho) %>% 
+    arrange(`covar:pval.padj`, desc(abs_rho))
+  
+  ranked <- res %>% 
+    transmute(
+      otu,
+      cov_est = `covar:Est`,
+      cov_se  = `covar:SE`,
+      cov_t   = `covar:t.val`,
+      cov_p   = `covar:pval`,
+      cov_q   = `covar:pval.padj`,
+      rho     = spearman.erho,
+      rho_p   = spearman.ep,
+      rho_q   = spearman.eBH
+    ) %>% 
+    arrange(cov_q, desc(abs(rho)))
+  
+  list(
+    ranked = ranked,
+    hit_strict = hit_strict,
+    hit_candidates = hit_candidates,
+    full = res,
+    covar_aligned = covar_aligned
+  )
 }
 ```
 

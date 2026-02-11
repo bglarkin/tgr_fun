@@ -1004,11 +1004,11 @@ leveneTest(residuals(sapro_ma_lm) ~ sapro_div$field_type) %>% as.data.frame() %>
 #' Produce model results, group means, and post-hoc, with arithmetic means from emmeans
 anova(sapro_ma_lm)
 sapro_ma_em <- emmeans(sapro_ma_lm, ~ field_type, type = "response")
-#+ sapro_ab_em_summary,echo=FALSE
+#+ sapro_ma_em_summary,echo=FALSE
 kable(summary(sapro_ma_em),
       format = "pandoc",
       caption = "Confidence level used: 0.95")
-#+ sapro_ab_fig,fig.width=4,fig.height=4
+#+ sapro_ma_fig,fig.width=4,fig.height=4
 sapro_ma_fig <- 
   ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
