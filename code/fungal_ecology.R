@@ -2270,6 +2270,7 @@ patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
   filter(field_type != "corn", region != "FL") %>% 
   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
 #' Uses function `aldex_gradient()`
+#+ patho_aldex_fun,message=FALSE,warning=FALSE
 patho_gf_specor <- aldex_gradient(
   spe_tbl = patho_wi,
   covar_tbl = gf_axis,
@@ -2417,6 +2418,7 @@ sapro_wi <- guildseq(its_avg, its_meta, "saprotroph") %>% # spe matrix
   filter(field_type != "corn", region != "FL") %>% 
   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) # Back-transform to field sums
 #' Using function `aldex_gradient`.
+#+ sapro_aldex_fun,message=FALSE,warning=FALSE
 sapro_rich_specor <- aldex_gradient(
   spe_tbl = sapro_wi,
   covar_tbl = prich %>% select(field_name, pl_rich),
