@@ -22,7 +22,8 @@
 #'  1. homogeneity test diagnostics 
 #'  1. PERMANOVA (+ pairwise) 
 #' 
-#' Cartesian inter‑site distance enters models as a covariate per [Redondo 2020](https://doi.org/10.1093/femsec/fiaa082).
+#' Inter‑site distance enters models as a covariate per [Redondo 2020](https://doi.org/10.1093/femsec/fiaa082); 
+#' Moran's eigenvalues tested and used where significant.
 #' 
 #' # Packages and libraries
 # Libraries ———————— ####
@@ -30,8 +31,8 @@
 packages_needed <- c(
   # Analysis
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
-  "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot", 
-  "indicspecies", "MASS", "DHARMa", "broom", "ALDEx2",
+  "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot",
+  "MASS", "DHARMa", "broom", "ALDEx2", "adespatial",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
@@ -57,23 +58,133 @@ conflicts_prefer(
 #+ graphics_styles
 source(root_path("resources", "styles.R"))
 #' 
+#' # Functions
+#' Executed from a separate script to save lines here; to view the function navigate to 
+#' `functions.R` in the code folder, accessible from the root dir of the repo.
+# Functions ———————— ####
+source(root_path("code", "functions.R"))
 
+#' 
 #' # Data
 # Data ———————— ####
+#' Loading order reflects downstream dependencies
 #' 
-#' ## Site metadata and design
+#' ## Site metadata
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+sites_wi <- sites %>% 
+  filter(region != "FL", field_type != "corn")
 #' 
-#' ### Wrangle site metadata
-#' Intersite geographic distance will be used as a covariate in clustering. 
-#' Raw coordinates in data file aren't distances; convert to distance matrix and summarize with PCoA
-field_dist <- as.dist(distm(sites[, c("long", "lat")], fun = distHaversine))
-field_dist_pcoa <- pcoa(field_dist)
-field_dist_pcoa$values[c(1,2), c(1,2)] %>% 
-  kable(format = "pandoc")
-#' First axis of geographic distance PCoA explains 91% of the variation among sites. 
-sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
+#' ## Sites-species tables
+#' CSV files were produced in `sequence_data.R`. Average sequence abundance at sites included here.
+#' Amf_avg_uni table is in species-samples format to enable use of `Unifrac()` later.
+its_avg = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE)
+its_wi  = its_avg %>% 
+  filter(field_name %in% sites_wi$field_name) %>% 
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+amf_avg = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE)
+amf_wi  = amf_avg %>% 
+  filter(field_name %in% sites_wi$field_name) %>% 
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+#' 
+#' ### Microbial species metadata
+its_meta = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
+  mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph",
+                                       str_detect(primary_lifestyle, "unspecified_path") ~ "unidentified",
+                                       TRUE ~ primary_lifestyle),
+         across(everything(), ~ replace_na(., "unidentified")))
+amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
+  mutate(across(everything(), ~ replace_na(., "unidentified")))
+#' 
+#' ### Spe subsets for guilds, regions
+patho <- guildseq(its_avg, its_meta, "plant_pathogen")
+patho_wi <- guildseq(its_wi, its_meta, "plant_pathogen")
+sapro <- guildseq(its_avg, its_meta, "saprotroph")
+sapro_wi <- guildseq(its_wi, its_meta, "saprotroph")
+#' 
+#' ## Inter-site distance
+#' Inter-site geographic distance will be considered as a covariate in clustering and 
+#' regression analyses. Compute and use Moran's eigenvalues separately for all sites
+#' and restored+remnant in Wisconsin. 
+#' 
+#' ### All sites
+#' db-MEM
+coord_tbl <- sites %>% 
+  select(long, lat) %>% 
+  as.matrix()
+rownames(coord_tbl) <- sites$field_name
+mem <- dbmem(coord_tbl) %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "field_name")
+setequal(its_avg$field_name, mem$field_name)
+setequal(amf_avg$field_name, mem$field_name)
+#+ dbmem_sel_its,warning=FALSE
+forward.sel(
+  Y = data.frame(its_avg, row.names = 1), X = data.frame(mem, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+  ) # MEM1
+#+ dbmem_sel_amf,warning=FALSE
+forward.sel(
+  Y = data.frame(amf_avg, row.names = 1), X = data.frame(mem, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+) # None
+#+ dbmem_sel_patho,warning=FALSE
+forward.sel(
+  Y = data.frame(patho, row.names = 1), X = data.frame(mem, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+) # None
+#+ dbmem_sel_sapro,warning=FALSE
+forward.sel(
+  Y = data.frame(sapro, row.names = 1), X = data.frame(mem, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+) # MEM1
+#' Spatial structure found with one eigenvalue for ITS and Saprotrophs
+sites <- sites %>% left_join(mem %>% select(field_name, MEM1), by = join_by(field_name))
+#' 
+#' ### Wisconsin sites
+#' db-MEM
+coord_tbl_wi <- sites_wi %>% 
+  select(long, lat) %>% 
+  as.matrix()
+rownames(coord_tbl_wi) <- sites_wi %>% 
+  pull(field_name)
+mem_wi <- dbmem(coord_tbl_wi) %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "field_name")
+setequal(its_wi$field_name, mem_wi$field_name)
+setequal(amf_wi$field_name, mem_wi$field_name)
+setequal(patho_wi$field_name, mem_wi$field_name)
+setequal(sapro_wi$field_name, mem_wi$field_name)
+#+ dbmem_sel_its_wi,warning=FALSE
+forward.sel(
+  Y = data.frame(its_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+) # None
+#+ dbmem_sel_amf_wi,warning=FALSE
+forward.sel(
+  Y = data.frame(amf_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+) # None
+#+ dbmem_sel_patho_wi,warning=FALSE
+forward.sel(
+  Y = data.frame(patho_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+) # None
+#+ dbmem_sel_sapro_wi,warning=FALSE
+forward.sel(
+  Y = data.frame(sapro_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
+  alpha = 0.05,
+  nperm = 1999
+) # MEM1
+#' Spatial structure found only for saprotrophs
+sites_wi <- sites_wi %>% left_join(mem_wi %>% select(field_name, MEM1), by = join_by(field_name))
 #' 
 #' ## Fatty Acids: Biomass
 #' Use only 18.2 for soil fungi
@@ -85,23 +196,8 @@ fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>%
     by = join_by(field_name)
   )
 #' 
-#' ## Sites-species tables
-#' CSV files were produced in `sequence_data.R`. Average sequence abundance at sites included here.
-#' Amf_avg_uni table is in species-samples format to enable use of `Unifrac()` later.
-its_avg     = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE)
-amf_avg     = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE)
-#' 
-#' ## Microbial species metadata
-its_meta = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
-  mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph",
-                                       str_detect(primary_lifestyle, "unspecified_path") ~ "unidentified",
-                                       TRUE ~ primary_lifestyle),
-         across(everything(), ~ replace_na(., "unidentified")))
-amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
-  mutate(across(everything(), ~ replace_na(., "unidentified")))
-#' 
 #' ### Wrangle additional species and metadata objects
-# SpeData wrangling ———————— ####
+## SpeData wrangling ———————— ####
 #' 
 #' 1. Proportional species abundance corrected for site biomass
 #' 1. Unifrac products for AMF
@@ -129,6 +225,7 @@ amf_avg_uni <- amf_avg %>%
   left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
   select(otu_ID, everything(), -otu_num) %>% 
   as_tibble()
+#+ amf_ps_object,message=FALSE,warning=FALSE
 amf_ps <- phyloseq(
   otu_table(data.frame(amf_avg_uni, row.names = 1), taxa_are_rows = TRUE),
   tax_table(as.matrix(data.frame(amf_meta, row.names = 2))),
@@ -137,27 +234,24 @@ amf_ps <- phyloseq(
   sample_data(sites %>% column_to_rownames(var = "field_name"))
 )
 #' 
-#' ## Plant data
+#' ## Environmental data
+## Env data ———————— ####
+#' 
+#' ### Plant communities
+#' #### Plant functional groups
 #' Abundance in functional groups and by species are only available from Wisconsin sites. 
 #' Only C4_grass and forbs are used. Others: C3_grass, legume, and shrubTree were found 
 #' previously to have high VIF in models or were not chosen in forward selection. 
 pfg <- read_csv(root_path("clean_data", "plant_traits.csv"), show_col_types = FALSE) 
 #' 
-#' ## Soil properties
-soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
-#' 
-#' # Species, environment, and metadata
-# Metadata wrangling ———————— ####
-#' 
-#' ## Plant communities
-#' ### Plant species richness
+#' #### Plant species and richness
 plant <- read_csv(root_path("clean_data/plant_avg.csv"), show_col_types = FALSE)
 prich <- plant %>% 
   select(-BARESOIL, -LITTER, -ROSA, -SALIX) %>% # remove non-species entries
   rowwise() %>% 
   mutate(pl_rich = sum(c_across(where(is.numeric)) > 0),
          pl_shan = exp(diversity(c_across(where(is.numeric))))
-         ) %>% 
+  ) %>% 
   select(field_name = SITE, pl_rich, pl_shan) %>% 
   left_join(sites, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
@@ -165,11 +259,7 @@ prich <- plant %>%
 with(prich[-c(3,6,9), ], cor.test(yr_since, pl_rich)) # Remnant fields don't have an age
 #' Years since restoration isn't obviously related to plant species richness.
 #' 
-#' ## Plant functional groups
-#' C4 grass and forb cover are transformed into a single index using PCA in restored sites only.
-#' Abundance data are also joined with site and env paramaters to facilitate downstream analyses.
-#' 
-#' ### Grass-forb index
+#' #### Grass-forb axis
 #' C4 grass and forb cover are highly correlated (*r* = `r round(cor(pfg$forb, pfg$C4_grass), 2)`) 
 #' in restored prairies. In models or constrained ordinations, they are collinear and cannot be
 #' used simultaneously. An index of grass-forb cover is created to solve this problem. 
@@ -210,7 +300,7 @@ fs8_xlab <- pfg %>%
   group_by(field_type) %>% 
   mutate(xlab = case_when(field_type == "restored" ~ paste("RS", 1:n(), sep = "-"),
                           field_type == "remnant"  ~ paste("RM", 1:n(), sep = "-"))
-         ) %>% 
+  ) %>% 
   ungroup() %>% 
   select(field_name, xlab)
 plt_div <- 
@@ -296,7 +386,10 @@ pfg_pct_fig
 ggsave(root_path("figs", "figS6.svg"), plot = pfg_pct_fig, device = svglite::svglite,
        width = 7.5, height = 7, units = "in")
 #' 
-#' ## ITS-detectable fungi
+#' ### Soil properties
+soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
+#' 
+#' ### Omnibus spe, env, and metadata files
 #' Wrangle data to produce proportional biomass in guilds for its and families for amf
 its_guild_ma <- # guild biomass (proportion of total biomass)
   its_avg_ma %>%
@@ -356,17 +449,7 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
 
-#' 
-#' # Functions
-#' Executed from a separate script to save lines here; to view the function navigate to 
-#' `functions.R` in the code folder, accessible from the root dir of the repo.
-# Functions ———————— ####
-source(root_path("code", "functions.R"))
-
-
-
-
-#' 
+#'  
 #' # Composition in guilds
 # Composition in guilds ———————— ####
 #' 
@@ -385,16 +468,6 @@ amf_meta %>%
   arrange(-composition) %>% 
   kable(format = "pandoc", caption = "AM fungi: composition in families")
 
-
-
-
-
-
-
-
-
-
-
 #' 
 #' # Alpha diversity
 # Alpha diversity ———————— ####
@@ -406,11 +479,9 @@ its_div <- calc_div(its_avg, sites) %>%
 amf_div <- calc_div(amf_avg, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #+ patho_diversity
-patho <- guildseq(its_avg, its_meta, "plant_pathogen")
 patho_div <- calc_div(patho, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 #+ sapro_diversity
-sapro <- guildseq(its_avg, its_meta, "saprotroph")
 sapro_div <- calc_div(sapro, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 
@@ -1111,13 +1182,15 @@ ggsave(root_path("figs", "figS3.svg"), plot = figS3, device = svglite::svglite,
 #' UNIFRAC distance, and because biomass did differ among field types, the UNIFRAC results are 
 #' constrasted with B-C dissimilarity of abundance-scaled biomass. 
 #' 
+#' Inter-site distance covariate needed for ITS fungi and saprotrophs
+#' 
 #' ## ITS fungi
 #+ its_ord
 d_its <- its_avg %>% 
   data.frame(row.names = 1) %>%
   decostand("total") %>%
   vegdist("bray")
-mva_its <- mva(d = d_its, env = sites)
+mva_its <- mva(d = d_its, env = sites, covar = "MEM1")
 #+ its_ord_results
 mva_its$dispersion_test
 mva_its$permanova
@@ -1156,10 +1229,30 @@ its_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' 
 #' ## AM fungi
 #' ### Standard ordination
-#' Using sequence-based relative abundance, unifrac distance
+#' Using sequence-based relative abundance, unifrac distance. No inter-site distance covariate.
 #+ amf_ord
 d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
 mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
@@ -1424,6 +1517,56 @@ ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
 #' 
 #' Restored and remnant prairies in Wisconsin are used to explore these questions.
 #' 
+#' ## Data wrangling
+soil_micro_pca <- 
+  soil %>% 
+  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(field_name, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na, -field_key, -field_type, -region) %>% 
+  column_to_rownames(var = "field_name") %>% 
+  decostand(method = "standardize") %>% 
+  rda()
+summary(soil_micro_pca) # 70% on first two axes
+soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites") %>% 
+  data.frame() %>% 
+  rename(soil_micro_1 = PC1, soil_micro_2 = PC2) %>% 
+  rownames_to_column(var = "field_name")
+soil_macro <- 
+  soil %>% 
+  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(-c(field_key, field_type, region, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na))
+#' 
+#' Assemble explanatory variables and begin iterative selection process. 
+#' Plant functional groups and traits not included here were eliminated in previous forward selection
+#' procedures (not shown). 
+#' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
+#' detected. Then run forward selection in `dbrda()`. 
+#' 
+env_vars <- sites %>% 
+  filter(field_type != "corn", region != "FL") %>% 
+  select(field_name, dist_axis_1) %>% # 90% on axis 1
+  left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
+  left_join(soil_macro, by = join_by(field_name)) %>% 
+  left_join(gf_axis, by = join_by(field_name)) %>% # 92% on axis 1
+  left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name)) %>% # plant richness
+  select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1, K removed based on initial VIF check
+  column_to_rownames(var = "field_name") %>% 
+  as.data.frame()
+env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
+env_expl <- env_vars[, setdiff(colnames(env_vars), "dist_axis_1"), drop = FALSE] %>% 
+  decostand("standardize")
+#' Check VIF
+env_expl %>% scale() %>% cor() %>% solve() %>% diag() %>% sort() %>% round(2)
+#' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
+#' Removing soil_micro_1 and K maintained OM in the model.
+
+
+
+
+
+
+#' 
 #' ## Variation partitioning
 ## Varpart ———————— ####
 #' What is the relative explanatory power of soil properties or plant communities? 
@@ -1551,48 +1694,11 @@ tibble(
 #' cover is highly collinear; use the grass-forb index produced previously with PCA.
 #' 
 #' ### ITS fungi
-soil_micro_pca <- 
-  soil %>% 
-  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na, -field_key, -field_type, -region) %>% 
-  column_to_rownames(var = "field_name") %>% 
-  decostand(method = "standardize") %>% 
-  rda()
-summary(soil_micro_pca) # 70% on first two axes
-soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites") %>% 
-  data.frame() %>% 
-  rename(soil_micro_1 = PC1, soil_micro_2 = PC2) %>% 
-  rownames_to_column(var = "field_name")
-soil_macro <- 
-  soil %>% 
-  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(-c(field_key, field_type, region, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na))
-#' 
-#' Assemble explanatory variables and begin iterative selection process. 
-#' Plant functional groups and traits not included here were eliminated in previous forward selection
-#' procedures (not shown). 
-#' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
-#' detected. Then run forward selection in `dbrda()`. 
-#' 
-env_vars <- sites %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, dist_axis_1) %>% # 90% on axis 1
-  left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
-  left_join(soil_macro, by = join_by(field_name)) %>% 
-  left_join(gf_axis, by = join_by(field_name)) %>% # 92% on axis 1
-  left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name)) %>% # plant richness
-  select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1, K removed based on initial VIF check
-  column_to_rownames(var = "field_name") %>% 
-  as.data.frame()
-env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
-env_expl <- env_vars[, setdiff(colnames(env_vars), "dist_axis_1"), drop = FALSE] %>% 
-  decostand("standardize")
-#' Check VIF
-env_expl %>% scale() %>% cor() %>% solve() %>% diag() %>% sort() %>% round(2)
-#' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
-#' Removed soil_micro_1 and K to maintain OM in the model.
+
+
+
+
+
 #' No overfitting detected in full model; proceed with forward selection. 
 spe_its_wi_resto <- its_avg %>% 
   filter(field_name %in% rownames(env_expl)) %>% 
@@ -2267,10 +2373,10 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 #' #### PFG and pathogen species
 #' Test which species co-vary with grass-forb axis across sites using a compositionality-aware
 #' robust test.
-patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
-  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+# patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
+#   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+#   filter(field_type != "corn", region != "FL") %>% 
+#   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
 #' Uses function `aldex_gradient()`
 #+ patho_aldex_fun,message=FALSE,warning=FALSE
 patho_gf_specor <- aldex_gradient(
