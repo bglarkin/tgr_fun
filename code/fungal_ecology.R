@@ -299,16 +299,16 @@ ggsave(root_path("figs", "figS6.svg"), plot = pfg_pct_fig, device = svglite::svg
 #' ## ITS-detectable fungi
 #' Wrangle data to produce proportional biomass in guilds for its and families for amf
 its_guild_ma <- # guild biomass (proportion of total biomass)
-  its_avg_ma %>% 
-  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-  left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
-  group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
-  arrange(field_name, -abund) %>% 
-  pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
-  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>% 
-  left_join(pfg, by = join_by(field_name)) %>% 
-  left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  its_avg_ma %>%
+  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>%
+  left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>%
+  group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>%
+  arrange(field_name, -abund) %>%
+  pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>%
+  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>%
+  left_join(pfg, by = join_by(field_name)) %>%
+  left_join(gf_axis, by = join_by(field_name)) %>%
+  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>%
   select(field_name, field_type, yr_since, region, everything())
 #' Wrangle a second set to compare raw sequence abundances and proportion of biomass values together
 its_guild <- 
@@ -1414,42 +1414,6 @@ fig3
 ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
        width = 18, height = 18, units = "cm")
 
-
-
-
-
-
-#' ## Pathogen Indicator Species
-#' Use as a tool to find species for discussion. Unbalanced design and bias to agricultural soil
-#' research may make the indicator stats less appropriate for other use. Using biomass-weighted relative
-#' abundance for this differential analysis. 
-patho_ind <- inspan(its_avg_ma, its_meta, "plant_pathogen", sites)
-patho_ind %>% 
-  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
-  filter(species != "unidentified") %>% 
-  arrange(field_type, p_val_adj) %>% 
-  mutate(across(A:p_val_adj, ~ round(.x, 3)),
-         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
-
-#' ## Saprotroph Indicator Species
-sapro_ind <- inspan(its_avg_ma, its_meta, "saprotroph", sites)
-sapro_ind %>% 
-  select(A, B, stat, p_val_adj, field_type, species, starts_with("corn"), starts_with("restor"), starts_with("rem")) %>% 
-  filter(species != "unidentified") %>% 
-  arrange(field_type, p_val_adj) %>% 
-  mutate(across(A:p_val_adj, ~ round(.x, 3)),
-         across(corn_avg:remnant_ci, ~ num(.x, notation = "sci"))) %>% 
-  kable(format = "pandoc", caption = "Indicator species analysis results with biomass-aware relative abundances in field types")
-#' 
-
-
-
-
-
-
-
-
 #' 
 #' # Fungal communities and the enviroment
 # FungComm-env corr ———————— ####
@@ -1570,7 +1534,6 @@ mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
 #' ## AM fungi
-#' ### Standard analysis
 #' Relative sequence abundance
 #' Env covars processed in the ITS section (see above)
 amf_ps_wi <- prune_samples(
@@ -1640,36 +1603,6 @@ amf_mod_scor_bp <- bind_rows(
     dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
-#' 
-#' ### Biomass-aware analysis
-#' Biomass-scaled abundance
-#' Env covars processed in the ITS section (see above)
-spe_amf_ma_wi_resto <- amf_avg_ma %>%
-  filter(field_name %in% rownames(env_expl)) %>%
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
-
-amf_ma_mod_null <- dbrda(spe_amf_ma_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-amf_ma_mod_full <- dbrda(spe_amf_ma_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
-amf_ma_mod_step <- ordistep(amf_ma_mod_null,
-                         scope = formula(amf_ma_mod_full),
-                         direction = "forward",
-                         permutations = 1999,
-                         trace = FALSE)
-#' 
-#' ### Constrained Analysis Results
-amf_ma_mod_step
-(amf_ma_mod_r2   <- RsquareAdj(amf_ma_mod_step, permutations = 1999))
-(amf_ma_mod_glax <- anova(amf_ma_mod_step, permutations = 1999))
-(amf_ma_mod_inax <- anova(amf_ma_mod_step, by = "axis", permutations = 1999))
-(amf_ma_mod_axpct <- round(100 * amf_ma_mod_step$CCA$eig / sum(amf_ma_mod_step$CCA$eig), 1))
-amf_ma_mod_step$anova %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' Results are highly consistent with those obtained with relative sequence abundance 
-#' and Unifrac distance.
 #' 
 #' ## Pathogens
 #' Env covars processed in the ITS section (see above)
@@ -1801,39 +1734,17 @@ sapro_mod_scor_bp <- bind_rows(
 #' Radj2 represents the cumulative variance explained by the final selected model. 
 #' P-values are based on 1,999 permutations; Padj reflects FDR correction within the guild.
 #' 
-#' ### Adjusted R2
 #' Produce objects with explanatory power and degrees of freedom for reporting
 #+ dbrda_r2
-data.frame(
+dbrda_r2 <- data.frame(
   guild = c("all_fungi", "amf", "pathogens", "saprotrophs"),
-  r2    = round(c(mod_r2$adj.r.squared, amf_mod_r2$adj.r.squared, patho_mod_r2$adj.r.squared, sapro_mod_r2$adj.r.squared), 3)
-) %>% 
-  kable(format = "pandoc")
+  r2adj    = round(c(mod_r2$adj.r.squared, amf_mod_r2$adj.r.squared, patho_mod_r2$adj.r.squared, sapro_mod_r2$adj.r.squared), 3)
+)
 #+ rdf
-rdf <- data.frame(
+dbrda_rdf <- data.frame(
   guild = c("all_fungi", "amf", "pathogens", "saprotrophs"),
   rdf   = c(mod_inax["Residual", "Df"], amf_mod_inax["Residual", "Df"], patho_mod_inax["Residual", "Df"], sapro_mod_inax["Residual", "Df"])
 )
-#' 
-#' ### Selected constraining variables
-#+ dbrda_var_summary
-list(
-  all_fungi   = mod_step$anova,
-  amf         = amf_mod_step$anova,
-  pathogens   = patho_mod_step$anova,
-  saprotrophs = sapro_mod_step$anova
-) %>% 
-  map(\(df) df %>% 
-        tidy() %>% 
-        mutate(p.adj = p.adjust(p.value, "fdr"),
-               across(where(is.numeric), ~ round(.x, 4)))) %>% 
-  bind_rows(.id = "guild") %>% 
-  left_join(rdf, by = join_by(guild)) %>% 
-  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
-         term = str_remove(term, "\\+ ")) %>% 
-  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
-  arrange(guild, p.adj) %>% 
-  kable(format = "pandoc")
 #' 
 #' ### Global tests
 #+ dbrda_global_summary,message=FALSE,warning=FALSE
@@ -1849,8 +1760,9 @@ list(
                    across(where(is.numeric), ~ round(.x, 4)))) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(rdf, by = join_by(guild)) %>% 
+  left_join(dbrda_r2, by = join_by(guild)) %>% 
   mutate(`pseudo_F_(df)` = paste0(round(statistic, 2), " (", df, ", ", rdf, ")")) %>% 
-  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  select(guild, term, `pseudo_F_(df)`, r2adj, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
 #' ### Component axes
@@ -1870,6 +1782,26 @@ list(
   mutate(`pseudo_F_(df)` = paste0(round(statistic, 2), " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ ")) %>% 
   select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  kable(format = "pandoc")
+#' 
+#' ### Selected constraining variables
+#+ dbrda_var_summary
+list(
+  all_fungi   = mod_step$anova,
+  amf         = amf_mod_step$anova,
+  pathogens   = patho_mod_step$anova,
+  saprotrophs = sapro_mod_step$anova
+) %>% 
+  map(\(df) df %>% 
+        tidy() %>% 
+        mutate(p.adj = p.adjust(p.value, "fdr"),
+               across(where(is.numeric), ~ round(.x, 4)))) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(dbrda_rdf, by = join_by(guild)) %>% 
+  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ ")) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  arrange(guild, p.adj) %>% 
   kable(format = "pandoc")
 #' 
 #' ### Biplot panels
@@ -2329,24 +2261,15 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-
-
-
-
-
-# What pathogen species co-vary with gf axis?
-
+#' 
+#' #### PFG and pathogen species
+#' Test which species co-vary with grass-forb axis across sites using a compositionality-aware
+#' robust test.
 patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
-
-gf_axis # the covar, assume it will be in a tibble with field_name and covar only
-
-
-
-
-
+#' Uses function `aldex_gradient()`
 patho_gf_specor <- aldex_gradient(
   spe_tbl = patho_wi,
   covar_tbl = gf_axis,
@@ -2356,8 +2279,7 @@ patho_gf_specor <- aldex_gradient(
   denom = "all",
   seed = 20260129
 )
-
-
+#+ patho_aldex_results
 patho_gf_specor$ranked %>% 
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
@@ -2365,17 +2287,7 @@ patho_gf_specor$ranked %>%
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
   as_tibble()
 
-
-
-
-
-
-
-
-
-
-
-
+#' 
 #' ## Saprotrophs
 ## Saprotrophs ———————— ####
 #' Data for these tests
@@ -2497,24 +2409,14 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-
-
-
-
-
-
-
-
-
-
+#' 
+#' #### Plant richness and saprotroph species
+#' Identify saprotroph species that co-vary with richness across sites.
 sapro_wi <- guildseq(its_avg, its_meta, "saprotroph") %>% # spe matrix
   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
   filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
-
-prich # the covar, assume it will be in a tibble with field_name and covar only
-
-
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) # Back-transform to field sums
+#' Using function `aldex_gradient`.
 sapro_rich_specor <- aldex_gradient(
   spe_tbl = sapro_wi,
   covar_tbl = prich %>% select(field_name, pl_rich),
@@ -2524,24 +2426,13 @@ sapro_rich_specor <- aldex_gradient(
   denom = "all",
   seed = 20260129
 )
-
-
+#+ sapro_aldex_results
 sapro_rich_specor$ranked %>% 
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
             by = join_by(otu == otu_num)) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
   as_tibble()
-
-
-
-
-
-
-
-
-
-
 #' 
 #' ### Plant diversity and saprotrophs
 #' Is plant diversity related to saprotroph mass?
@@ -2576,52 +2467,6 @@ sapro_gf_glm <- glm(sapro_prop ~ fungi_mass_lc + gf_axis,
                     weights = fungi_abund)
 summary(sapro_gf_glm)
 #' NS
-
-
-
-
-
-
-
-
-
-#' 
-#' ### Plant species and saprotroph abundance
-#' Field age and restored vs. remnant status don't appear to relate with 
-#' saprotroph abundance. 
-#' Do any particular plant species associate with high or low saprotroph sites?
-#' Try an indicator species analysis to find out. 
-sapro_groups <- setNames(ifelse(sapro_resto$sapro_prop > median(sapro_resto$sapro_prop), "hsap", "lsap"), 
-                         sapro_resto$field_name)
-plantsap_ind <- multipatt(
-  x = plant %>% filter(SITE %in% names(sapro_groups)) %>% 
-    column_to_rownames("SITE") %>% select(-BARESOIL, -LITTER, -ROSA, -SALIX),
-  cluster = sapro_groups, 
-  func = "IndVal.g", max.order = 1, control = how(nperm = 1999)
-)
-sapro_sig_codes <- plantsap_ind$sign %>%
-  filter(p.value < 0.1) %>%
-  rownames_to_column("CODE") %>%
-  mutate(group = c("hsap", "lsap")[index]) %>%
-  select(CODE, group, stat, p.value)
-#+ sapro_plant_summary
-sapro_plant_summary <- plant %>%
-  pivot_longer(-SITE, names_to = "CODE", values_to = "pct") %>%
-  filter(SITE %in% names(sapro_groups), CODE %in% sapro_sig_codes$CODE) %>%
-  mutate(grp = sapro_groups[SITE]) %>%
-  group_by(grp, CODE) %>%
-  summarize(mean_pct = mean(pct), .groups = "drop") %>%
-  pivot_wider(names_from = grp, values_from = mean_pct, values_fill = 0) %>%
-  left_join(sapro_sig_codes, by = "CODE") %>%
-  left_join(read_csv(root_path("clean_data/plant_meta.csv"), show_col_types = FALSE), by = "CODE") %>%
-  select(species = NAME, family = FAMILY, life_hist = LIFEHIST, plcvr_hsap = hsap, plcvr_lsap = lsap, stat, p.value) %>%
-  mutate(p.adj = p.adjust(p.value, "fdr"), across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(desc(plcvr_hsap)) # Sort by high-sapro indicators first
-kable(sapro_plant_summary, format = "pandoc", caption = "Plant indicators in low or high saprotroph sites")
-
-
-
-
 #' 
 #' ### Guild-plant relationships
 ## Unified results ———————— ####
@@ -2698,8 +2543,3 @@ fig7
 ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
        width = 18, height = 9, units = "cm")
 #' 
-
-
-
-
-
