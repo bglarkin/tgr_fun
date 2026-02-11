@@ -885,7 +885,7 @@ sapro_div_fig <-
 fig2 <- (its_div_fig / plot_spacer() / amf_div_fig / plot_spacer() / patho_div_fig / plot_spacer() / sapro_div_fig) +
   plot_layout(heights = c(rep(c(1, 0.1), 3), 1), axis_titles = "collect") +
   plot_annotation(tag_levels = 'A')
-#+ div_fig,warning=FALSE,fig.height=7,fig.width=7
+#+ div_fig,warning=FALSE,fig.height=9,fig.width=4.5
 fig2
 #+ div_fig_save,warning=FALSE,echo=FALSE
 ggsave(root_path("figs", "fig2.svg"), plot = fig2, device = svglite::svglite,
