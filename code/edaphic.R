@@ -46,16 +46,6 @@ source(root_path("code", "functions.R"))
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 #' 
-#' ### Wrangle site metadata
-#' Intersite geographic distance will be used as a covariate in clustering. 
-#' Raw coordinates in data file aren't distances; convert to distance matrix and summarize with PCoA
-field_dist <- as.dist(distm(sites[, c("long", "lat")], fun = distHaversine))
-field_dist_pcoa <- pcoa(field_dist)
-field_dist_pcoa$values[c(1,2), c(1,2)] %>% 
-  kable(format = "pandoc")
-#' First axis of geographic distance PCoA explains 91% of the variation among sites. 
-sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
-#' 
 #' ## Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
 soil_units <- read_csv(root_path("clean_data/soil_units.csv"), show_col_types = FALSE)
@@ -116,7 +106,7 @@ mva_soil <- soilperm(d = d_soil, env = sites)
 #+ soil_ord_results
 mva_soil$dispersion_test
 mva_soil$permanova
-mva_soil$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_soil$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' ### Plotting and Fig S2
@@ -126,26 +116,28 @@ soil_ord_ft_centers <- soil_ord_scores %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 soil_ord_ftypes <-
-    ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-    geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
-    geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
-    geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE, shape = TRUE)) +
-  geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = TRUE, shape = FALSE)) +
+  ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
+  geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
+  geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
+  geom_point(data = soil_ord_ft_centers, 
+             aes(x = mean_PC1, y = mean_PC2, fill = field_type), 
+             size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
+  geom_point(aes(fill = field_type), size = sm_size, shape = 21, stroke = lw, show.legend = c(fill = TRUE)) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
-    scale_fill_manual(name = "Field type", values = ft_pal) +
-    scale_shape_manual(name = "Region", values = c(22:25)) +
+  scale_fill_manual(name = "Field type", values = ft_pal) +
   xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
   ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
-    theme_ord +
+  theme_ord +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
-  theme(legend.title = element_text(size = 8), legend.position = "top",
+  theme(legend.position = c(0.98, 0.2),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(-0.03, 0.90))
 #+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
-figS4 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
-  plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
-  plot_annotation(tag_levels = 'A')
-figS4
-ggsave(root_path("figs", "figS4.svg"), plot = figS4, device = svglite::svglite,
+ggsave(root_path("figs", "figS4.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
        width = 7.5, height = 4.25, units = "in")
 

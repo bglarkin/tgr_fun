@@ -75,6 +75,16 @@ sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>%
 sites_wi <- sites %>% 
   filter(region != "FL", field_type != "corn")
 #' 
+#' ## Fatty Acids: Biomass
+#' Use only 18.2 for soil fungi
+fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
+  rename(fungi_18.2 = fa_18.2) %>% 
+  select(field_name, fungi_18.2, amf) %>%
+  left_join(
+    sites %>% select(field_name, field_type),
+    by = join_by(field_name)
+  )
+#' 
 #' ## Sites-species tables
 #' CSV files were produced in `sequence_data.R`. Average sequence abundance at sites included here.
 #' Amf_avg_uni table is in species-samples format to enable use of `Unifrac()` later.
@@ -102,102 +112,7 @@ patho_wi <- guildseq(its_wi, its_meta, "plant_pathogen")
 sapro <- guildseq(its_avg, its_meta, "saprotroph")
 sapro_wi <- guildseq(its_wi, its_meta, "saprotroph")
 #' 
-#' ## Inter-site distance
-#' Inter-site geographic distance will be considered as a covariate in clustering and 
-#' regression analyses. Compute and use Moran's eigenvalues separately for all sites
-#' and restored+remnant in Wisconsin. 
-#' 
-#' ### All sites
-#' db-MEM
-coord_tbl <- sites %>% 
-  select(long, lat) %>% 
-  as.matrix()
-rownames(coord_tbl) <- sites$field_name
-mem <- dbmem(coord_tbl) %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var = "field_name")
-setequal(its_avg$field_name, mem$field_name)
-setequal(amf_avg$field_name, mem$field_name)
-#+ dbmem_sel_its,warning=FALSE
-forward.sel(
-  Y = data.frame(its_avg, row.names = 1), X = data.frame(mem, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-  ) # MEM1
-#+ dbmem_sel_amf,warning=FALSE
-forward.sel(
-  Y = data.frame(amf_avg, row.names = 1), X = data.frame(mem, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-) # None
-#+ dbmem_sel_patho,warning=FALSE
-forward.sel(
-  Y = data.frame(patho, row.names = 1), X = data.frame(mem, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-) # None
-#+ dbmem_sel_sapro,warning=FALSE
-forward.sel(
-  Y = data.frame(sapro, row.names = 1), X = data.frame(mem, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-) # MEM1
-#' Spatial structure found with one eigenvalue for ITS and Saprotrophs
-sites <- sites %>% left_join(mem %>% select(field_name, MEM1), by = join_by(field_name))
-#' 
-#' ### Wisconsin sites
-#' db-MEM
-coord_tbl_wi <- sites_wi %>% 
-  select(long, lat) %>% 
-  as.matrix()
-rownames(coord_tbl_wi) <- sites_wi %>% 
-  pull(field_name)
-mem_wi <- dbmem(coord_tbl_wi) %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var = "field_name")
-setequal(its_wi$field_name, mem_wi$field_name)
-setequal(amf_wi$field_name, mem_wi$field_name)
-setequal(patho_wi$field_name, mem_wi$field_name)
-setequal(sapro_wi$field_name, mem_wi$field_name)
-#+ dbmem_sel_its_wi,warning=FALSE
-forward.sel(
-  Y = data.frame(its_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-) # None
-#+ dbmem_sel_amf_wi,warning=FALSE
-forward.sel(
-  Y = data.frame(amf_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-) # None
-#+ dbmem_sel_patho_wi,warning=FALSE
-forward.sel(
-  Y = data.frame(patho_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-) # None
-#+ dbmem_sel_sapro_wi,warning=FALSE
-forward.sel(
-  Y = data.frame(sapro_wi, row.names = 1), X = data.frame(mem_wi, row.names = 1),
-  alpha = 0.05,
-  nperm = 1999
-) # MEM1
-#' Spatial structure found only for saprotrophs
-sites_wi <- sites_wi %>% left_join(mem_wi %>% select(field_name, MEM1), by = join_by(field_name))
-#' 
-#' ## Fatty Acids: Biomass
-#' Use only 18.2 for soil fungi
-fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
-  rename(fungi_18.2 = fa_18.2) %>% 
-  select(field_name, fungi_18.2, amf) %>%
-  left_join(
-    sites %>% select(field_name, field_type),
-    by = join_by(field_name)
-  )
-#' 
-#' ### Wrangle additional species and metadata objects
-## SpeData wrangling ———————— ####
+#' ### Additional species and metadata objects
 #' 
 #' 1. Proportional species abundance corrected for site biomass
 #' 1. Unifrac products for AMF
@@ -234,7 +149,166 @@ amf_ps <- phyloseq(
   sample_data(sites %>% column_to_rownames(var = "field_name"))
 )
 #' 
-#' ## Environmental data
+#' ### Species distance matrices
+#' #### All sites
+d_all <- list(
+  d_its = its_avg,
+  d_patho = patho,
+  d_sapro = sapro
+) %>% map(\(df) df %>% 
+            data.frame(row.names = 1) %>%
+            decostand("total") %>%
+            vegdist("bray"))
+d_all$d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
+d_all$d_amf_ma <- amf_avg_ma %>% 
+  data.frame(row.names = 1) %>% 
+  vegdist("bray")
+#' 
+#' #### Wisconsin sites
+d_wi <- 
+  list(
+    d_its_wi   = its_wi,
+    d_patho_wi = patho_wi,
+    d_sapro_wi = sapro_wi
+  ) %>% 
+  map(\(df) df %>% 
+        data.frame(row.names = 1) %>% 
+        decostand("total") %>% 
+        vegdist("bray"))
+#+ amf_uni_prune,warning=FALSE,message=FAlSE
+amf_ps_wi <- prune_samples(
+  sites %>% filter(region != "FL", field_type != "corn") %>% pull(field_name), 
+  amf_ps
+) %>% prune_taxa(taxa_sums(.) > 0, .)
+d_wi$d_amf_wi <- UniFrac(amf_ps_wi, weighted = TRUE, normalized = TRUE)
+#' 
+#' ## Inter-site distance
+#' Inter-site geographic distance will be considered as a covariate in clustering and 
+#' regression analyses. Compute and use Moran's eigenvalues separately for all sites
+#' and restored+remnant in Wisconsin. 
+#' 
+#' ### All sites
+#' db-MEM
+coord_tbl <- sites %>% select(long, lat) %>% as.matrix()
+rownames(coord_tbl) <- sites$field_name
+mem <- dbmem(coord_tbl) %>% as.data.frame()
+setequal(rownames(d_all$d_its), rownames(mem))
+setequal(rownames(d_all$d_amf), rownames(mem))
+setequal(rownames(d_all$d_patho), rownames(mem))
+setequal(rownames(d_all$d_sapro), rownames(mem))
+#' 
+#' #### ITS fungi
+mem_null_its <- dbrda(d_all$d_its ~ 1, data = mem)
+mem_full_its <- dbrda(d_all$d_its ~ ., data = mem)
+mem_step_its <- ordistep(mem_null_its, scope = formula(mem_full_its), direction = "forward", 
+                         permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_its, permutations = 1999)$adj.r.squared
+anova(mem_step_its, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' MEM2
+#' 
+#' #### AMF
+#' Unifrac distance
+mem_null_amf <- dbrda(d_all$d_amf ~ 1, data = mem)
+mem_full_amf <- dbrda(d_all$d_amf ~ ., data = mem)
+mem_step_amf <- ordistep(mem_null_amf, scope = formula(mem_full_amf), direction = "forward", 
+                         permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_amf, permutations = 1999)$adj.r.squared
+anova(mem_step_amf, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' None
+#' 
+#' #### Pathogens
+mem_null_patho <- dbrda(d_all$d_patho ~ 1, data = mem)
+mem_full_patho <- dbrda(d_all$d_patho ~ ., data = mem)
+mem_step_patho <- ordistep(mem_null_patho, scope = formula(mem_full_patho), direction = "forward", 
+                         permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_patho, permutations = 1999)$adj.r.squared
+anova(mem_step_patho, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' None
+#' 
+#' #### Saprotrophs
+mem_null_sapro <- dbrda(d_all$d_sapro ~ 1, data = mem)
+mem_full_sapro <- dbrda(d_all$d_sapro ~ ., data = mem)
+mem_step_sapro <- ordistep(mem_null_sapro, scope = formula(mem_full_sapro), direction = "forward", 
+                           permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_sapro, permutations = 1999)$adj.r.squared
+anova(mem_step_sapro, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' MEM1, MEM2, MEM3
+#' Join eigenvectors to sites
+sites <- sites %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+#' 
+#' ### Wisconsin sites
+#' db-MEM
+coord_tbl_wi <- sites_wi %>% select(long, lat) %>% as.matrix()
+rownames(coord_tbl_wi) <- sites_wi$field_name
+mem_wi <- dbmem(coord_tbl_wi) %>% as.data.frame()
+setequal(rownames(d_wi$d_its_wi), rownames(mem_wi))
+setequal(rownames(d_wi$d_amf_wi), rownames(mem_wi))
+setequal(rownames(d_wi$d_patho_wi), rownames(mem_wi))
+setequal(rownames(d_wi$d_sapro_wi), rownames(mem_wi))
+#' 
+#' #### ITS fungi
+mem_null_its_wi <- dbrda(d_wi$d_its_wi ~ 1, data = mem_wi)
+mem_full_its_wi <- dbrda(d_wi$d_its_wi ~ ., data = mem_wi)
+mem_step_its_wi <- ordistep(mem_null_its_wi, scope = formula(mem_full_its_wi), direction = "forward", 
+                         permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_its_wi, permutations = 1999)$adj.r.squared
+anova(mem_step_its_wi, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' MEM2
+#' 
+#' #### AMF
+#' Unifrac distance
+mem_null_amf_wi <- dbrda(d_wi$d_amf_wi ~ 1, data = mem_wi)
+mem_full_amf_wi <- dbrda(d_wi$d_amf_wi ~ ., data = mem_wi)
+mem_step_amf_wi <- ordistep(mem_null_amf_wi, scope = formula(mem_full_amf_wi), direction = "forward", 
+                         permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_amf_wi, permutations = 1999)$adj.r.squared
+anova(mem_step_amf_wi, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' None
+#' 
+#' #### Pathogens
+mem_null_patho_wi <- dbrda(d_wi$d_patho_wi ~ 1, data = mem_wi)
+mem_full_patho_wi <- dbrda(d_wi$d_patho_wi ~ ., data = mem_wi)
+mem_step_patho_wi <- ordistep(mem_null_patho_wi, scope = formula(mem_full_patho_wi), direction = "forward", 
+                           permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_patho_wi, permutations = 1999)$adj.r.squared
+anova(mem_step_patho_wi, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' MEM2
+#' 
+#' #### Saprotrophs
+mem_null_sapro_wi <- dbrda(d_wi$d_sapro_wi ~ 1, data = mem_wi)
+mem_full_sapro_wi <- dbrda(d_wi$d_sapro_wi ~ ., data = mem_wi)
+mem_step_sapro_wi <- ordistep(mem_null_sapro_wi, scope = formula(mem_full_sapro_wi), direction = "forward", 
+                           permutations = 1999, trace = FALSE)
+RsquareAdj(mem_step_sapro_wi, permutations = 1999)$adj.r.squared
+anova(mem_step_sapro_wi, by = "margin", permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' MEM2, MEM1
+#' Join eigenvectors to sites
+sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+#' #' ## Environmental data
 ## Env data ———————— ####
 #' 
 #' ### Plant communities
@@ -1186,15 +1260,11 @@ ggsave(root_path("figs", "figS3.svg"), plot = figS3, device = svglite::svglite,
 #' 
 #' ## ITS fungi
 #+ its_ord
-d_its <- its_avg %>% 
-  data.frame(row.names = 1) %>%
-  decostand("total") %>%
-  vegdist("bray")
-mva_its <- mva(d = d_its, env = sites, covar = "MEM1")
+mva_its <- mva(d = d_all$d_its, env = sites, covar = "MEM1")
 #+ its_ord_results
 mva_its$dispersion_test
 mva_its$permanova
-mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
@@ -1234,12 +1304,11 @@ its_ord <-
 #' ### Standard ordination
 #' Using sequence-based relative abundance, unifrac distance. No inter-site distance covariate.
 #+ amf_ord
-d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
-mva_amf <- mva(d = d_amf, env = sites, corr = "lingoes")
+mva_amf <- mva(d = d_all$d_amf, env = sites, corr = "lingoes")
 #+ amf_ord_results
 mva_amf$dispersion_test
 mva_amf$permanova
-mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes eigenvalue correction was used. The first three relative eigenvalues exceeded broken stick model. 
@@ -1247,10 +1316,7 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
 #' a PERMANOVA test. 
 #' 
-#' Clustering revealed that geographic distance among sites did not significantly explain AMF community variation. 
-#' With geographic distance accounted for, the test variable field type significantly explained 
-#' variation in AMF communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
+#' Clustering revealed that geographic distance among sites did not significantly explain AMF community variation.
 #' 
 #' Plotting the result:
 amf_ord_data <- mva_amf$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
@@ -1264,7 +1330,9 @@ amf_ord <-
   ggplot(amf_ord_data, aes(x = Axis.1 * -1, y = Axis.2)) + # reversed for consistency
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(data = p_amf_centers, 
+             aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), 
+             size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(name = "Field type", values = ft_pal) +
@@ -1284,14 +1352,11 @@ amf_ord <-
 #' ### Biomass-aware ordination
 #' Using abundance-scaled biomass, B-C distance
 #+ amf_ord_ma
-d_amf_ma <- amf_avg_ma %>% 
-  data.frame(row.names = 1) %>% 
-  vegdist("bray")
-mva_amf_ma <- mva(d = d_amf_ma, env = sites, corr = "lingoes")
+mva_amf_ma <- mva(d = d_all$d_amf_ma, env = sites, corr = "lingoes")
 #+ amf_ord_ma_results
 mva_amf_ma$dispersion_test
 mva_amf_ma$permanova
-mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' Lingoes correction was applied to negative eignevalues. Three relative eigenvalues exceeded broken stick model. 
@@ -1340,8 +1405,8 @@ ggsave(root_path("figs", "figS4.svg"), plot = amf_ma_ord, device = svglite::svgl
 #+ amf_protest
 set.seed(20251111)
 amf_protest <- protest(
-  pcoa(d_amf, correction = "lingoes")$vectors[, 1:3],
-  pcoa(d_amf_ma, correction = "lingoes")$vectors[, 1:3],
+  pcoa(d_all$d_amf, correction = "lingoes")$vectors[, 1:3],
+  pcoa(d_all$d_amf_ma, correction = "lingoes")$vectors[, 1:3],
   permutations = 1999
 )
 amf_protest
@@ -1352,15 +1417,11 @@ amf_protest
 #' all diagnostics also the same.
 #' 
 #' ## Pathogens
-d_patho <- patho %>% 
-  data.frame(row.names = 1) %>% 
-  decostand("total") %>%
-  vegdist("bray")
-mva_patho <- mva(d = d_patho, env = sites, corr = "lingoes")
+mva_patho <- mva(d = d_all$d_patho, env = sites, corr = "lingoes")
 #' Diagnostics/results
 mva_patho$dispersion_test
 mva_patho$permanova
-mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 #' 
@@ -1369,9 +1430,6 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
 #' of equal variance among groups is accepted across all clusters and in pairwise comparison of 
 #' clusters (both p>0.05), supporting the application of a PERMANOVA test.
 #' An effect of geographic distance (covariate) on pathogen communities was not supported. 
-#' With geographic distance accounted for, the test variable ‘field type’ significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn 
-#' fields differed from communities in restored and remnant fields.
 #' 
 #' Plot results
 patho_ord_data <- mva_patho$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
@@ -1398,11 +1456,7 @@ patho_ord <-
 #' ## Saprotrophs
 #' Account for spatial effects
 #+ sapro_ord
-d_sapro <- sapro %>%
-  data.frame(row.names = 1) %>%
-  decostand("total") %>%
-  vegdist("bray")
-mva_sapro <- mva(d = d_sapro, env = sites, covar = "MEM1")
+mva_sapro <- mva(d = d_all$d_sapro, env = sites, covar = c("MEM1", "MEM2", "MEM3"))
 #+ sapro_ord_results
 mva_sapro$dispersion_test
 mva_sapro$permanova
@@ -1451,17 +1505,22 @@ sapro_ord <-
 #' P-values for field type were adjusted for multiple comparisons
 #' across fungal groups using the Benjamini-Hochberg procedure.
 #+ unified_permanova_summary,warning=FALSE,message=FALSE
-list(
+gl_perms <- list(
   its   = mva_its$permanova,
   amf   = mva_amf$permanova,
   patho = mva_patho$permanova,
   sapro = mva_sapro$permanova
-) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
+) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value))
+gl_perms_rdf <- gl_perms %>% 
+  map(\(df) df %>% filter(term == "Residual") %>% select(rdf = df)) %>% 
+  bind_rows(.id = "guild")
+gl_perms %>% 
   bind_rows(.id = "guild") %>% 
+  left_join(gl_perms_rdf, by = join_by(guild)) %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
-         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
-  filter(term %in% c("MEM1", "field_type")) %>% 
+         across(where(is.numeric), ~ round(.x, 4)),
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, " ", rdf, ")")) %>% 
+  filter(term %in% c("MEM1", "MEM2", "MEM3", "field_type")) %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc", caption = "PERMANOVA summary")
 #' 
@@ -1472,7 +1531,7 @@ list(amf_ma = mva_amf_ma$permanova) %>%
   bind_rows(.id = "guild") %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 4)),
-         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 22)")) %>% 
   filter(term == "field_type") %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
@@ -1504,19 +1563,6 @@ ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
 #' Restored and remnant prairies in Wisconsin are used to explore these questions. Spatial covariate
 #' needed only with saprotrophs.
 #' 
-#' ## Community distance matrices
-d_wi <- 
-  list(
-    d_its_wi   = its_wi,
-    d_amf_wi   = amf_wi,
-    d_patho_wi = patho_wi,
-    d_sapro_wi = sapro_wi
-  ) %>% 
-  map(\(df) df %>% 
-        data.frame(row.names = 1) %>% 
-        decostand("total") %>% 
-        vegdist("bray"))
-#' 
 #' ## Wrangle explanatory vars
 soil_micro_pca <- 
   soil %>% 
@@ -1542,141 +1588,21 @@ soil_macro <-
 #' detected. Then run forward selection in `dbrda()`. 
 #' 
 env_vars <- sites_wi %>% 
-  select(field_name, MEM1) %>% 
+  select(field_name, MEM1, MEM2) %>% 
   left_join(soil_micro_index, by = join_by(field_name)) %>% 
   left_join(soil_macro, by = join_by(field_name)) %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% # 92% on axis 1
   left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name)) %>% # plant richness
   left_join(pfg %>% select(field_name, C3_grass, legume, shrubTree), by = join_by(field_name)) %>% 
-  select(-soil_micro_2, -shrubTree, -legume, -C3_grass) %>% # variables removed after VIF check
+  select(-soil_micro_1, -shrubTree, -legume, -C3_grass) %>% # variables removed after VIF check
   column_to_rownames(var = "field_name") %>% 
   as.data.frame()
-env_cov <- env_vars[,"MEM1", drop = TRUE]
-env_expl <- env_vars[, setdiff(colnames(env_vars), "MEM1"), drop = FALSE] %>% 
+env_cov <- env_vars[,c("MEM1", "MEM2"), drop = TRUE]
+env_expl <- env_vars[, setdiff(colnames(env_vars), c("MEM1", "MEM2")), drop = FALSE] %>% 
   decostand("standardize")
 #' Check VIF
 env_expl %>% scale() %>% cor() %>% solve() %>% diag() %>% sort() %>% round(2)
 #' High VIF or less informative vars iteratively removed with VIF > 10
-#' 
-#' ## Variation partitioning
-## Varpart ———————— ####
-#' What is the relative explanatory power of soil properties or plant communities? 
-#' 
-#' Conducted as a series of partial RDAs on testable fractions of variation where soil and
-#' plant vars jointly and independently explain fungal communities. 
-#' 
-#' ### ITS fungi
-#' Variation partitioning was not informative with the entire genomic library.
-#' 
-#' ### AM fungi
-#' soil + plant shared
-amf_m_ac <- dbrda(d_wi$d_amf_wi ~ soil_micro_1 + pH + OM + NO3 + P + K, data = env_expl)
-#' plant + soil shared
-amf_m_bc <- dbrda(d_wi$d_amf_wi ~ gf_axis + pl_rich, data = env_expl)
-#' soil + plant + shared
-amf_m_abc <- dbrda(d_wi$d_amf_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + gf_axis + pl_rich, data = env_expl)
-#' soil only
-amf_m_a <- dbrda(d_wi$d_amf_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(gf_axis + pl_rich), data = env_expl)
-#' plant only
-amf_m_b <- dbrda(d_wi$d_amf_wi ~ gf_axis + pl_rich + Condition(soil_micro_1 + pH + OM + NO3 + P + K), data = env_expl)
-#' shared only
-RsquareAdj(amf_m_abc)$adj.r.squared - RsquareAdj(amf_m_a)$adj.r.squared - RsquareAdj(amf_m_b)$adj.r.squared
-#' Rarely informative...
-#' 
-#' Results
-amf_varptes <- list(
-  `soil + plant shared`   = amf_m_ac, 
-  `plant + soil shared`   = amf_m_bc, 
-  `soil + plant + shared` = amf_m_abc, 
-  `soil only`             = amf_m_a, 
-  `plant only`            = amf_m_b
-)
-tibble(
-  fraction = names(amf_varptes),
-  model = unname(amf_varptes)
-) %>%
-  mutate(
-    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
-    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
-    df = map_int(anova, \(a) a[["Df"]][1]),
-    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
-    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
-    p.val = format.pval(p, digits = 2, eps = 0.001)
-  ) %>%
-  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-#' The plant individual fraction is significant or close with moderate explanatory power
-#' 
-#' ### Pathogens
-#' soil + plant shared
-patho_m_ac <- dbrda(d_wi$d_patho_wi ~ soil_micro_1 + pH + OM + NO3 + P + K, data = env_expl)
-#' plant + soil shared
-patho_m_bc <- dbrda(d_wi$d_patho_wi ~ gf_axis + pl_rich, data = env_expl)
-#' soil + plant + shared
-patho_m_abc <- dbrda(d_wi$d_patho_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + gf_axis + pl_rich, data = env_expl)
-#' soil only
-patho_m_a <- dbrda(d_wi$d_patho_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(gf_axis + pl_rich), data = env_expl)
-#' plant only
-patho_m_b <- dbrda(d_wi$d_patho_wi ~ gf_axis + pl_rich + Condition(soil_micro_1 + pH + OM + NO3 + P + K), data = env_expl)
-#' shared only
-RsquareAdj(patho_m_abc)$adj.r.squared - RsquareAdj(patho_m_a)$adj.r.squared - RsquareAdj(patho_m_b)$adj.r.squared
-#' Results
-patho_varptes <- list(
-  `soil + plant shared`   = patho_m_ac, 
-  `plant + soil shared`   = patho_m_bc, 
-  `soil + plant + shared` = patho_m_abc, 
-  `soil only`             = patho_m_a, 
-  `plant only`            = patho_m_b
-)
-tibble(
-  fraction = names(patho_varptes),
-  model = unname(patho_varptes)
-) %>%
-  mutate(
-    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
-    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
-    df = map_int(anova, \(a) a[["Df"]][1]),
-    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
-    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
-    p.val = format.pval(p, digits = 2, eps = 0.001)
-  ) %>%
-  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-#' No individual fractions are significant
-#' 
-#' ### Saprotrophs
-#' soil + plant shared
-sapro_m_ac <- dbrda(d_wi$d_sapro_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(env_cov), data = env_expl)
-#' plant + soil shared
-sapro_m_bc <- dbrda(d_wi$d_sapro_wi ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-#' soil + plant + shared
-sapro_m_abc <- dbrda(d_wi$d_sapro_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
-#' soil only
-sapro_m_a <- dbrda(d_wi$d_sapro_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
-#' plant only
-sapro_m_b <- dbrda(d_wi$d_sapro_wi ~ gf_axis + pl_rich + Condition(soil_micro_1 + pH + OM + NO3 + P + K + env_cov), data = env_expl)
-#' shared only
-RsquareAdj(sapro_m_abc)$adj.r.squared - RsquareAdj(sapro_m_a)$adj.r.squared - RsquareAdj(sapro_m_b)$adj.r.squared
-#' Results
-sapro_varptes <- list(
-  `soil + plant shared`   = sapro_m_ac, 
-  `plant + soil shared`   = sapro_m_bc, 
-  `soil + plant + shared` = sapro_m_abc, 
-  `soil only`             = sapro_m_a, 
-  `plant only`            = sapro_m_b
-)
-tibble(
-  fraction = names(sapro_varptes),
-  model = unname(sapro_varptes)
-) %>%
-  mutate(
-    r2adj = map_dbl(model, \(m) RsquareAdj(m)$adj.r.squared) %>% round(2),
-    anova = map(model, \(m) anova(m, permutations = how(nperm = 1999))),
-    df = map_int(anova, \(a) a[["Df"]][1]),
-    F  = map_dbl(anova, \(a) a[["F"]][1]) %>% round(2),
-    p  = map_dbl(anova, \(a) a[["Pr(>F)"]][1]),
-    p.val = format.pval(p, digits = 2, eps = 0.001)
-  ) %>%
-  select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-#' Individual fractions are not informative
 #' 
 #' ## Constrained analyses
 ## db-RDA ———————— ####
@@ -1686,15 +1612,13 @@ tibble(
 #' to include individually, so transform micro nutrients using PCA. Forb and grass 
 #' cover is highly collinear; use the grass-forb index produced previously with PCA.
 #' 
+#' Geographic distance covariate was significant with ITS (MEM2), pathogens (MEM2), and
+#' saprotrophs (MEM1 & MEM2)
+#' 
 #' ### ITS fungi
-
-
-
-
-
-
-mod_null <- dbrda(d_wi$d_its_wi ~ 1 + Condition(env_cov), data = env_expl)
-mod_full <- dbrda(d_wi$d_its_wi ~ . + Condition(env_cov), data = env_expl)
+#' Condition MEM2
+mod_null <- dbrda(d_wi$d_its_wi ~ 1 + Condition(env_cov[, "MEM2"]), data = env_expl)
+mod_full <- dbrda(d_wi$d_its_wi ~ . + Condition(env_cov[, "MEM2"]), data = env_expl)
 mod_step <- ordistep(mod_null, 
                      scope = formula(mod_full), 
                      direction = "forward", 
@@ -1710,12 +1634,6 @@ anova(mod_step, by = "margin", permutations = 1999) %>%
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
-#' Based on permutation tests with n=1999 permutations, the model shows a significant 
-#' correlation between the site ordination on fungal communities
-#' and the selected explanatory variables (p<0.001). The first two constrained axes are 
-#' also significant (p<0.001, P<0.01). The selected variables explain $R^{2}_{\text{Adj}}$=21.3% of the community 
-#' variation. Selected explanatory variables are pH and the grass-forb index; see table for 
-#' individual p values and statistics. 
 #' 
 #' Create the figure objects. Figure will be produced with panels from other groups. 
 #+ fig6_objects
@@ -1734,7 +1652,7 @@ mod_scor_bp <- bind_rows(
   mod_scor$biplot %>% 
     data.frame() %>% 
     rownames_to_column(var = "envvar") %>% 
-    mutate(envlabs = c(">forb", "pH", "plant spp.")),
+    mutate(envlabs = c(">forb", "plant spp.")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -mod_scor$biplot["gf_axis", 1],
@@ -1753,16 +1671,8 @@ mod_scor_bp <- bind_rows(
 #' ### AM fungi
 #' Relative sequence abundance
 #' Env covars processed in the ITS section (see above)
-amf_ps_wi <- prune_samples(
-  sites %>% filter(region != "FL", field_type != "corn") %>% pull(field_name), 
-  amf_ps
-) %>% 
-  prune_taxa(taxa_sums(.) > 0, .)
-
-d_amf_wi <- UniFrac(amf_ps_wi, weighted = TRUE, normalized = TRUE)
-
-amf_mod_null <- dbrda(d_amf_wi ~ 1 + Condition(env_cov), data = env_expl)
-amf_mod_full <- dbrda(d_amf_wi ~ . + Condition(env_cov), data = env_expl)
+amf_mod_null <- dbrda(d_wi$d_amf_wi ~ 1, data = env_expl)
+amf_mod_full <- dbrda(d_wi$d_amf_wi ~ ., data = env_expl)
 amf_mod_step <- ordistep(amf_mod_null,
                          scope = formula(amf_mod_full),
                          direction = "forward",
@@ -1781,10 +1691,7 @@ amf_mod_step$anova %>%
 #' Based on permutation tests with n=1999 permutations, 
 #' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
 #' correlation between the site ordination on fungal communities
-#' and the selected explanatory variables (p<0.002). The first two constrained axes are
-#' also significant (p<0.01, p<0.02). The selected variables explain $R^{2}_{\text{Adj}}$=`r round(amf_mod_r2$adj.r.squared, 3) * 100` of the community
-#' variation. Selected explanatory variables are pH and the grass-forb index; see table for
-#' individual p values and statistics.
+#' and the selected explanatory variables.
 #' 
 #' #### AMF constrained figure
 #' Produce figure objects. Code for multipanel fig 6 is shown in the saprotroph section.
@@ -1822,19 +1729,13 @@ amf_mod_scor_bp <- bind_rows(
 #' 
 #' ### Pathogens
 #' Env covars processed in the ITS section (see above)
-spe_patho_wi_resto <- patho %>%
-  filter(field_name %in% rownames(env_expl)) %>%
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
-
-patho_mod_null <- dbrda(spe_patho_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-patho_mod_full <- dbrda(spe_patho_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+patho_mod_null <- dbrda(d_wi$d_patho_wi ~ 1 + Condition(env_cov[, "MEM2"]), data = env_expl)
+patho_mod_full <- dbrda(d_wi$d_patho_wi ~ . + Condition(env_cov[, "MEM2"]), data = env_expl)
 patho_mod_step <- ordistep(patho_mod_null,
                            scope = formula(patho_mod_full),
                            direction = "forward",
                            permutations = 1999,
-                           trace = TRUE)
+                           trace = FALSE)
 #' Results
 patho_mod_step
 (patho_mod_r2   <- RsquareAdj(patho_mod_step, permutations = 1999))
@@ -1861,29 +1762,31 @@ patho_mod_scor_site <- patho_mod_scor$sites %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
   left_join(sites, by = join_by(field_name))
-patho_mod_scor_bp <-
+patho_mod_scor_bp <- bind_rows(
   patho_mod_scor$biplot %>%
-  data.frame() %>%
-  rownames_to_column(var = "envvar") %>%
-  mutate(envlabs = "'OM'") %>% 
+    data.frame() %>%
+    rownames_to_column(var = "envvar") %>%
+    mutate(envlabs = c("K", ">forb")),
+  data.frame(
+    envvar = "gf_axis",
+    dbRDA1 = -patho_mod_scor$biplot["gf_axis", 1],
+    dbRDA2 = -patho_mod_scor$biplot["gf_axis", 2],
+    envlabs = ">grass")
+) %>% 
+  arrange(envvar, envlabs) %>% 
   mutate(
     origin = 0,
-    m = dbRDA1,
-    d = dbRDA1,
-    dadd = dbRDA1 * dadd_adj,
-    labx = d+dadd,
-    laby = 0)
+    m = dbRDA2 / dbRDA1,
+    d = sqrt(dbRDA1^2 + dbRDA2^2),
+    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
+    labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
+    laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
 #' ### Saprotrophs
 #' Env covars processed in the ITS section (see above)
-spe_sapro_wi_resto <- sapro %>%
-  filter(field_name %in% rownames(env_expl)) %>%
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
-
-sapro_mod_null <- dbrda(spe_sapro_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-sapro_mod_full <- dbrda(spe_sapro_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+#' Two significant spatial varssapro_mod_null <- dbrda(spe_sapro_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+sapro_mod_null <- dbrda(d_wi$d_sapro_wi ~ 1 + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
+sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + OM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
 sapro_mod_step <- ordistep(sapro_mod_null,
                            scope = formula(sapro_mod_full),
                            direction = "forward",
@@ -1902,11 +1805,7 @@ sapro_mod_step$anova %>%
 #' Based on permutation tests with n=1999 permutations, 
 #' after accounting for inter-site pairwise distance as a covariate, the model shows 
 #' correlations between the site ordination on saprotroph communities
-#' and the selected explanatory variables (p<0.001). The first four constrained axes are
-#' also significant (p<0.05). The selected variables explain $R^{2}_{\text{Adj}}$=
-#' `r round(sapro_mod_r2$adj.r.squared * 100, 1)`% of the community
-#' variation. Selected explanatory variables are SOM, grass-forb index, plant richness,
-#' and nitrate; see table for individual p values and statistics.
+#' and the selected explanatory variables.
 #' 
 #' #### Saprotroph constrained figure
 sapro_mod_step_eig <- round(sapro_mod_step$CCA$eig * 100, 1)
@@ -1966,15 +1865,13 @@ list(
   amf         = amf_mod_glax,
   pathogens   = patho_mod_glax,
   saprotrophs = sapro_mod_glax
-) %>% map(\(df) df %>% 
-            tidy() %>% 
-            filter(term != "Residual") %>% 
-            mutate(p.adj = p.adjust(p.value, "fdr"),
-                   across(where(is.numeric), ~ round(.x, 4)))) %>% 
+) %>% map(\(df) df %>% tidy() %>% filter(term != "Residual")) %>% 
   bind_rows(.id = "guild") %>% 
-  left_join(rdf, by = join_by(guild)) %>% 
+  left_join(dbrda_rdf, by = join_by(guild)) %>% 
   left_join(dbrda_r2, by = join_by(guild)) %>% 
-  mutate(`pseudo_F_(df)` = paste0(round(statistic, 2), " (", df, ", ", rdf, ")")) %>% 
+  mutate(`pseudo_F_(df)` = paste0(round(statistic, 2), " (", df, ", ", rdf, ")"),
+         p.adj = p.adjust(p.value, "fdr"),
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
   select(guild, term, `pseudo_F_(df)`, r2adj, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
@@ -1985,15 +1882,13 @@ list(
   amf         = amf_mod_inax,
   pathogens   = patho_mod_inax,
   saprotrophs = sapro_mod_inax
-) %>% map(\(df) df %>% 
-            tidy() %>% 
-            filter(term != "Residual") %>% 
-            mutate(p.adj = p.adjust(p.value, "fdr"),
-                   across(where(is.numeric), ~ round(.x, 4)))) %>% 
+) %>% map(\(df) df %>% tidy() %>% filter(term != "Residual")) %>% 
   bind_rows(.id = "guild") %>% 
-  left_join(rdf, by = join_by(guild)) %>% 
+  left_join(dbrda_rdf, by = join_by(guild)) %>% 
   mutate(`pseudo_F_(df)` = paste0(round(statistic, 2), " (", df, ", ", rdf, ")"),
-         term = str_remove(term, "\\+ ")) %>% 
+         term = str_remove(term, "\\+ "),
+         p.adj = p.adjust(p.value, "fdr"),
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
   select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
@@ -2005,16 +1900,15 @@ list(
   pathogens   = patho_mod_step$anova,
   saprotrophs = sapro_mod_step$anova
 ) %>% 
-  map(\(df) df %>% 
-        tidy() %>% 
-        mutate(p.adj = p.adjust(p.value, "fdr"),
-               across(where(is.numeric), ~ round(.x, 4)))) %>% 
+  map(\(df) df %>% tidy()) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(dbrda_rdf, by = join_by(guild)) %>% 
   mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
-         term = str_remove(term, "\\+ ")) %>% 
+         term = str_remove(term, "\\+ "),
+         p.adj = p.adjust(p.value, "fdr"),
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
   select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
-  arrange(guild, p.adj) %>% 
+  arrange(guild, p.value) %>% 
   kable(format = "pandoc")
 #' 
 #' #### Biplot panels
@@ -2025,7 +1919,7 @@ fig4a <-
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20", "gray20")) +
+               color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = mod_scor_bp, 
             aes(x = labx, y = laby, label = envlabs), 
             # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
@@ -2045,13 +1939,13 @@ fig4a <-
 #' AMF
 #+ fig4b
 fig4b <-
-  ggplot(amf_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
+  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = amf_mod_scor_bp,
-            aes(x = -1 * labx, y = laby, label = envlabs),
+            aes(x = labx, y = laby, label = envlabs),
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
@@ -2068,20 +1962,20 @@ fig4b <-
 #' Pathogens, PCoA fig
 #+ fig4c
 fig4c <-
-  ggplot(patho_mod_scor_site, aes(x = -1 * dbRDA1, y = MDS1)) +
+  ggplot(patho_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
   geom_segment(data = patho_mod_scor_bp,
-               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = MDS1),
+               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = "gray20") +
+               color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = patho_mod_scor_bp,
-            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
+            aes(x = -1 * labx, y = laby, label = envlabs),
             # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%)"),
-    y = paste0("PCoA 1 (", patho_mod_step_eig[2], "%)")) +
+    y = paste0("db-RDA 2 (", patho_mod_step_eig[2], "%)")) +
   # lims(y = c(-0.5,0.5)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
