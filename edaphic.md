@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 11 February, 2026
+Last updated: 12 February, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -39,28 +39,6 @@ if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
 
-    ## ── Attaching core tidyverse packages ──────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 2.0.0 ──
-    ## ✔ dplyr     1.2.0     ✔ readr     2.1.6
-    ## ✔ forcats   1.0.1     ✔ stringr   1.6.0
-    ## ✔ ggplot2   4.0.2     ✔ tibble    3.3.1
-    ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.2
-    ## ✔ purrr     1.2.1     
-    ## ── Conflicts ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-    ## ✖ dplyr::filter() masks stats::filter()
-    ## ✖ dplyr::lag()    masks stats::lag()
-    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-    ## Loading required package: permute
-    ## 
-    ## This is vegan 2.7-2
-    ## 
-    ## 
-    ## Attaching package: 'ape'
-    ## 
-    ## 
-    ## The following object is masked from 'package:dplyr':
-    ## 
-    ##     where
-
 ## Root path function
 
 ``` r
@@ -86,31 +64,6 @@ source(root_path("code", "functions.R"))
 ``` r
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
-```
-
-### Wrangle site metadata
-
-Intersite geographic distance will be used as a covariate in clustering.
-Raw coordinates in data file aren’t distances; convert to distance
-matrix and summarize with PCoA
-
-``` r
-field_dist <- as.dist(distm(sites[, c("long", "lat")], fun = distHaversine))
-field_dist_pcoa <- pcoa(field_dist)
-field_dist_pcoa$values[c(1,2), c(1,2)] %>% 
-  kable(format = "pandoc")
-```
-
-|  Eigenvalues | Relative_eig |
-|-------------:|-------------:|
-| 146898426293 |    0.9053961 |
-|  15349390146 |    0.0946047 |
-
-First axis of geographic distance PCoA explains 91% of the variation
-among sites.
-
-``` r
-sites$dist_axis_1 <- field_dist_pcoa$vectors[, 1]
 ```
 
 ## Soil properties
@@ -258,26 +211,25 @@ mva_soil$permanova
     ## Permutation: free
     ## Number of permutations: 1999
     ## 
-    ## adonis2(formula = d ~ dist_axis_1 + field_type, data = env, permutations = nperm, by = "terms")
-    ##             Df SumOfSqs      R2      F Pr(>F)   
-    ## dist_axis_1  1   34.814 0.11158 3.3660 0.0075 **
-    ## field_type   2   59.983 0.19225 2.8997 0.0020 **
-    ## Residual    21  217.202 0.69616                 
-    ## Total       24  312.000 1.00000                 
+    ## adonis2(formula = d ~ field_type, data = env, permutations = nperm, by = "terms")
+    ##            Df SumOfSqs      R2      F Pr(>F)   
+    ## field_type  2   60.881 0.19513 2.6668 0.0045 **
+    ## Residual   22  251.119 0.80487                 
+    ## Total      24  312.000 1.00000                 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
-mva_soil$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>% 
+mva_soil$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
 ```
 
-| group1  | group2   | F_value |    R2 | p_value_adj |
-|:--------|:---------|--------:|------:|------------:|
-| corn    | restored |   4.959 | 0.189 |      0.0015 |
-| corn    | remnant  |   2.866 | 0.292 |      0.0142 |
-| remnant | restored |   0.633 | 0.031 |      0.7005 |
+| group1  | group2   | F_value |    R2 | p_value | p_value_adj |
+|:--------|:---------|--------:|------:|--------:|------------:|
+| corn    | restored |   4.534 | 0.193 |  0.0010 |      0.0030 |
+| corn    | remnant  |   2.867 | 0.291 |  0.0165 |      0.0248 |
+| remnant | restored |   0.548 | 0.030 |  0.7770 |      0.7770 |
 
 Pairwise permanova contrasts
 
@@ -290,33 +242,30 @@ soil_ord_ft_centers <- soil_ord_scores %>%
   mutate(across(c(ci_l_PC1, ci_u_PC1), ~ mean_PC1 + .x),
          across(c(ci_l_PC2, ci_u_PC2), ~ mean_PC2 + .x))
 soil_ord_ftypes <-
-    ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
-    geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
-    geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
-    geom_point(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, fill = field_type), size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE, shape = TRUE)) +
-  geom_point(aes(fill = field_type, shape = region), size = sm_size, stroke = lw, show.legend = c(fill = TRUE, shape = FALSE)) +
+  ggplot(soil_ord_scores, aes(x = PC1, y = PC2)) +
+  geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, xmin = ci_l_PC1, xmax = ci_u_PC1), linewidth = lw) +
+  geom_linerange(data = soil_ord_ft_centers, aes(x = mean_PC1, y = mean_PC2, ymin = ci_l_PC2, ymax = ci_u_PC2), linewidth = lw) +
+  geom_point(data = soil_ord_ft_centers, 
+             aes(x = mean_PC1, y = mean_PC2, fill = field_type), 
+             size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
+  geom_point(aes(fill = field_type), size = sm_size, shape = 21, stroke = lw, show.legend = c(fill = TRUE)) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
-    scale_fill_manual(name = "Field type", values = ft_pal) +
-    scale_shape_manual(name = "Region", values = c(22:25)) +
+  scale_fill_manual(name = "Field type", values = ft_pal) +
   xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
   ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
-    theme_ord +
+  theme_ord +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
-  theme(legend.title = element_text(size = 8), legend.position = "top",
+  theme(legend.position = c(0.98, 0.2),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(-0.03, 0.90))
 ```
 
 ``` r
-figS4 <- (soil_ord_regions | plot_spacer() | soil_ord_ftypes) +
-  plot_layout(widths = c(1, 0.1, 1), axis_titles = "collect") +
-  plot_annotation(tag_levels = 'A')
-figS4
-```
-
-![](resources/edaphic_files/figure-gfm/figS4-1.png)<!-- -->
-
-``` r
-ggsave(root_path("figs", "figS4.svg"), plot = figS4, device = svglite::svglite,
+ggsave(root_path("figs", "figS4.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
        width = 7.5, height = 4.25, units = "in")
 ```

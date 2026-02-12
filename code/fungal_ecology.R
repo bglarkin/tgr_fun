@@ -175,7 +175,7 @@ d_wi <-
         data.frame(row.names = 1) %>% 
         decostand("total") %>% 
         vegdist("bray"))
-#+ amf_uni_prune,warning=FALSE,message=FAlSE
+#+ amf_uni_prune,warning=FALSE,message=FALSE
 amf_ps_wi <- prune_samples(
   sites %>% filter(region != "FL", field_type != "corn") %>% pull(field_name), 
   amf_ps
@@ -1784,7 +1784,7 @@ patho_mod_scor_bp <- bind_rows(
 #' 
 #' ### Saprotrophs
 #' Env covars processed in the ITS section (see above)
-#' Two significant spatial varssapro_mod_null <- dbrda(spe_sapro_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
+#' Two significant spatial vars
 sapro_mod_null <- dbrda(d_wi$d_sapro_wi ~ 1 + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
 sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + OM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
 sapro_mod_step <- ordistep(sapro_mod_null,
@@ -1823,12 +1823,12 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("'>forb'", "'OM'")),
+    mutate(envlabs = c(">forb", "OM", "plant spp.")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
     dbRDA2 = -sapro_mod_scor$biplot["gf_axis", 2],
-    envlabs = "'>grass'")
+    envlabs = ">grass")
 ) %>% 
   arrange(envvar, envlabs) %>% 
   mutate(
@@ -1922,16 +1922,15 @@ fig4a <-
                color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = mod_scor_bp, 
             aes(x = labx, y = laby, label = envlabs), 
-            # nudge_x = c(-0.1, 0.1, 0), nudge_y = c(0.06, -0.06, 0),
-            size = 3, color = "black", fontface = 2) +
+            size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
-  lims(x = c(-1.5,1.2)) +
-  scale_fill_manual(values = ft_pal[2:3]) +
+  scale_x_continuous(limits = c(-1.5,1.4), breaks = c(-1, 0, 1)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
+  scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -1946,14 +1945,14 @@ fig4b <-
                color = c("darkblue", "darkblue", "gray20")) +
   geom_text(data = amf_mod_scor_bp,
             aes(x = labx, y = laby, label = envlabs),
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
-  lims(x = c(-1.3,1.2)) +
+  scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
+  scale_y_continuous(limits = c(-0.95, 1.2), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -1966,19 +1965,18 @@ fig4c <-
   geom_segment(data = patho_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
+               color = c("gray20", "darkblue", "darkblue")) +
   geom_text(data = patho_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%)"),
     y = paste0("db-RDA 2 (", patho_mod_step_eig[2], "%)")) +
-  # lims(y = c(-0.5,0.5)) +
+  scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
-  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
@@ -1990,20 +1988,20 @@ fig4d <-
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "darkblue", "darkblue")) +
+               color = c("gray20", "darkblue", "darkblue", "gray20")) +
   geom_text(data = sapro_mod_scor_bp,
-            aes(x = -1 * labx, y = laby, label = paste0("bold(", envlabs, ")")), parse = TRUE,
-            # nudge_x = (c(0.05, 0.2, -0.2)), nudge_y = c(0.1, 0.04, -0.04),
-            size = 3, color = "gray20") +
+            aes(x = -1 * labx, y = laby, label = envlabs),
+            size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
-  lims(x = c(-1.2,2.0)) +
+  lims(x = c(-1.5,1.5)) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_ord +
-  theme(legend.position = c(0.98, 0.5),
+  theme(legend.position = c(0.98, 0.65),
         legend.justification = c(1, 0),
         legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1),

@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 11 February, 2026
+Last updated: 12 February, 2026
 
 - [Description](#description)
   - [Sequence data processing
@@ -15,8 +15,6 @@ Last updated: 11 February, 2026
   - [Model distribution
     probabilities](#model-distribution-probabilities)
   - [Filter spe to a guild](#filter-spe-to-a-guild)
-  - [Perform Indicator Species
-    Analysis](#perform-indicator-species-analysis)
   - [Perform ALDEx2 species
     correlation](#perform-aldex2-species-correlation)
   - [Calculate pairwise distances among sites and present summary
@@ -155,10 +153,27 @@ Args: *d* dist, *env* metadata, *corr* PCoA correction, *nperm*
 permutations.
 
 ``` r
-mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
+mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 20260211) {
+  
   stopifnot(is.data.frame(env))
-  if (!all(c("field_type", "dist_axis_1") %in% names(env))) {
-    stop("`env` must contain columns `field_type` and `dist_axis_1`.")
+  if (!("field_type" %in% names(env))) stop("`env` must contain column `field_type`.")
+  
+  if (is.matrix(d)) {
+    if (!isTRUE(all.equal(d, t(d)))) stop("`d` matrix must be symmetric.")
+    diag(d) <- 0
+  }
+  
+  # covariate checks
+  if (!is.null(covar)) {
+    if (!is.character(covar)) stop("`covar` must be NULL or a character vector of column names.")
+    covar <- unique(covar)
+    if (length(covar) < 1L || length(covar) > 3L) stop("`covar` must be NULL or 1–3 column name strings.")
+    missing_cov <- setdiff(covar, names(env))
+    if (length(missing_cov) > 0L) stop("`env` is missing covariate column(s): ", paste(missing_cov, collapse = ", "))
+    if (anyNA(env[, covar, drop = FALSE])) {
+      bad <- covar[colSums(is.na(env[, covar, drop = FALSE])) > 0]
+      stop("Covariate column(s) contain NA: ", paste(bad, collapse = ", "), "; handle before calling mva().")
+    }
   }
   
   # Distance labels and env alignment
@@ -182,7 +197,8 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
          "In d not in env: ", paste(miss_env, collapse = ", "),
          "\nIn env not in d: ", paste(miss_d, collapse = ", "))
   }
-  env <- env[lab, , drop = FALSE]  
+  env <- env[lab, , drop = FALSE]
+  env$field_name <- rownames(env)
   
   # Set grouping variables
   g_chr     <- as.character(env$field_type)
@@ -191,14 +207,14 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
   
   # Ordination (PCoA)
   p <- pcoa(d, correction = corr)
-  p_vals <- data.frame(p$values) %>% 
-    rownames_to_column(var = "Dim") %>% 
+  p_vals <- data.frame(p$values) %>%
+    rownames_to_column(var = "Dim") %>%
     mutate(Dim = as.integer(Dim))
   p_eig <- p_vals[1:2, grep("Rel", colnames(p_vals))] %>% round(., 3) * 100
   
   p_vec <- data.frame(p$vectors, check.names = FALSE)
-  p_sco <- p_vec[, 1:2, drop = FALSE] %>% 
-    rownames_to_column(var = "field_name") %>% 
+  p_sco <- p_vec[, 1:2, drop = FALSE] %>%
+    rownames_to_column(var = "field_name") %>%
     left_join(env, by = join_by(field_name))
   
   # Homogeneity of multivariate dispersion
@@ -208,15 +224,18 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
   
   # Global PERMANOVA
   if (!is.null(seed)) set.seed(seed + 3L)
+  perm_terms <- c(covar, "field_type")
+  perm_form  <- reformulate(perm_terms, response = "d")
+  
   gl_permtest <- adonis2(
-    d ~ dist_axis_1 + field_type,
+    perm_form,
     data = env,
     permutations = nperm,
     by = "terms"
   )
   
-  # Pairwise PERMANOVA
-  groups <- combn(g_levels, m = 2) %>%  t() %>%  as.data.frame()
+  # Pairwise PERMANOVA 
+  groups <- combn(g_levels, m = 2) %>% t() %>% as.data.frame()
   names(groups) <- c("V1", "V2")
   
   contrasts <- data.frame(
@@ -230,34 +249,44 @@ mva <- function(d, env, corr = "none", nperm = 1999, seed = 20251101) {
   )
   
   d_mat <- as.matrix(d)
+  
   for (i in seq_len(nrow(contrasts))) {
     g1 <- contrasts$group1[i]
     g2 <- contrasts$group2[i]
     keep <- clust_vec %in% c(g1, g2)
     
     contrast_mat <- d_mat[keep, keep, drop = FALSE]
+    env_sub <- env[keep, , drop = FALSE]
+    env_sub$field_type <- droplevels(factor(env_sub$field_type))
     
     if (!is.null(seed)) set.seed(seed + 100L + i)
     
+    perm_terms_pw <- c(covar, "field_type")
+    perm_form_pw  <- reformulate(perm_terms_pw, response = "contrast_mat")
+    
     fit <- adonis2(
-      contrast_mat ~ env$dist_axis_1[keep] + factor(g_chr[keep]),
+      perm_form_pw,
+      data = env_sub,
       permutations = nperm,
       by = "terms"
     )
     
     rn <- rownames(fit)
-    term_row <- grep("factor\\(g_chr\\[keep\\]\\)", rn, fixed = FALSE)
-    if (length(term_row) != 1L) term_row <- grep("g_chr", rn, fixed = TRUE)
+    term_row <- grep("(^field_type$)|field_type", rn)
+    if (length(term_row) != 1L) {
+      stop("Could not uniquely identify `field_type` row in pairwise adonis2 result.\nRows were: ",
+           paste(rn, collapse = ", "))
+    }
     
     contrasts$R2[i]      <- round(fit[term_row, "R2"], 3)
     contrasts$F_value[i] <- round(fit[term_row, "F"], 3)
     contrasts$df1[i]     <- fit[term_row, "Df"]
-    contrasts$df2[i]     <- fit[grep("Residual", rn), "Df"]
-    contrasts$p_value[i] <- fit[term_row, 5]
+    contrasts$df2[i]     <- fit[grep("^Residual", rn), "Df"]
+    contrasts$p_value[i] <- fit[term_row, "Pr(>F)"]
   }
-  contrasts$p_value_adj <- p.adjust(contrasts$p_value, method = "fdr") %>% round(4)
   
-  # Results
+  contrasts$p_value_adj <- round(p.adjust(contrasts$p_value, method = "fdr"), 4)
+  
   list(
     correction_note    = p$note,
     ordination_values  = p_vals[1:min(10, nrow(p_vals)), ],
@@ -276,10 +305,6 @@ Simplified version of `mva()` for use with the soil properties data
 
 ``` r
 soilperm <- function(d, env, nperm = 1999, seed = 20251103) {
-  stopifnot(is.data.frame(env))
-  if (!all(c("field_type", "dist_axis_1") %in% names(env))) {
-    stop("`env` must contain columns `field_type` and `dist_axis_1`.")
-  }
   
   # Distance labels and env alignment
   if (inherits(d, "dist")) {
@@ -317,7 +342,7 @@ soilperm <- function(d, env, nperm = 1999, seed = 20251103) {
   # Global PERMANOVA
   if (!is.null(seed)) set.seed(seed + 3L)
   gl_permtest <- adonis2(
-    d ~ dist_axis_1 + field_type,
+    d ~ field_type,
     data = env,
     permutations = nperm,
     by = "terms"
@@ -348,7 +373,7 @@ soilperm <- function(d, env, nperm = 1999, seed = 20251103) {
     if (!is.null(seed)) set.seed(seed + 100L + i)
     
     fit <- adonis2(
-      contrast_mat ~ env$dist_axis_1[keep] + factor(g_chr[keep]),
+      contrast_mat ~ factor(g_chr[keep]),
       permutations = nperm,
       by = "terms"
     )
@@ -412,83 +437,6 @@ guildseq <- function(spe, meta, guild) {
     select(-primary_lifestyle) %>% 
     pivot_wider(names_from = otu_num, values_from = abund)
   return(guab)
-}
-```
-
-## Perform Indicator Species Analysis
-
-Function `inspan()` takes a combined species and sites data frame and
-filters OTUs for indicators of field types.
-
-``` r
-inspan <- function(spe, meta, guild, site_dat, nperm=1999) {
-  if(is.null(guild)) {
-    data <- spe %>% left_join(site_dat, by = join_by(field_name))
-    spe_g <- data.frame(
-      data %>% select(field_name, starts_with("otu")),
-      row.names = 1)
-    grp <- data$field_type
-  } else {
-    data <- guildseq(spe, meta, guild) %>% 
-      left_join(site_dat, by = join_by(field_name))
-    spe_g <- data.frame(
-      data %>% select(field_name, starts_with("otu")),
-      row.names = 1)
-    grp <- data$field_type
-  }
-  
-  # Indicator species analysis
-  mp <- multipatt(
-    x = spe_g, cluster = grp, func = "IndVal.g", max.order = 1, 
-    control = how(nperm = nperm))
-  si <- mp$sign %>% 
-    select(index, stat, p.value) %>% 
-    mutate(field_type = case_when(index == 1 ~ "corn", 
-                                  index == 2 ~ "restored", 
-                                  index == 3 ~ "remnant"),
-           p_val_adj = p.adjust(p.value, "fdr")) %>% 
-    filter(p.value < 0.05) %>% 
-    rownames_to_column(var = "otu_num") %>%
-    select(-index) %>% 
-    as_tibble()
-  A  <- mp$A %>% 
-    as.data.frame() %>% 
-    rownames_to_column(var = "otu_num") %>% 
-    pivot_longer(cols = corn:remnant, 
-                 names_to = "field_type", 
-                 values_to = "A")
-  B <- mp$B %>% 
-    as.data.frame() %>% 
-    rownames_to_column(var = "otu_num") %>% 
-    pivot_longer(cols = corn:remnant, 
-                 names_to = "field_type", 
-                 values_to = "B")
-  
-  # Join to abundance in field types
-  seq_abund <- 
-    spe_g %>% 
-    rownames_to_column(var = "field_name") %>% 
-    pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-    left_join(site_dat %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-    group_by(field_type, otu_num) %>% 
-    summarize(avg = mean(abund),
-              ci = qnorm(0.975) * sd(abund) / sqrt(n()),
-              .groups = "drop") %>% 
-    pivot_wider(names_from = "field_type", values_from = c("avg", "ci"), names_glue = "{field_type}_{.value}") %>% 
-    select(otu_num, starts_with("corn"), starts_with("restor"), starts_with("rem"))
-  
-  out <- 
-    si %>% 
-    left_join(A, by = join_by(otu_num, field_type)) %>% 
-    left_join(B, by = join_by(otu_num, field_type)) %>% 
-    left_join(meta %>% select(-otu_ID), by = join_by(otu_num)) %>% 
-    left_join(seq_abund, by = join_by(otu_num)) %>% 
-    select(otu_num, A, B, stat, p.value, p_val_adj, 
-           field_type, everything()) %>% 
-    arrange(field_type, -stat)
-  
-  return(out)
-  
 }
 ```
 
