@@ -1229,26 +1229,6 @@ its_ord <-
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #' 
 #' ## AM fungi
 #' ### Standard ordination
@@ -1287,12 +1267,17 @@ amf_ord <-
   geom_point(data = p_amf_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
+  scale_fill_manual(name = "Field type", values = ft_pal) +
   labs(
     x = paste0("PCoA 1 (", mva_amf$axis_pct[1], "%)"),
     y = paste0("PCoA 2 (", mva_amf$axis_pct[2], "%)")) +
   theme_ord +
-  theme(legend.position = "none",
+  theme(legend.position = c(0.98, 0.5),
+        legend.justification = c(1, 0),
+        legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1),
+        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
+        legend.key = element_rect(fill = "white"),
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 #' 
@@ -1411,12 +1396,13 @@ patho_ord <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
 #' ## Saprotrophs
+#' Account for spatial effects
 #+ sapro_ord
 d_sapro <- sapro %>%
   data.frame(row.names = 1) %>%
   decostand("total") %>%
   vegdist("bray")
-mva_sapro <- mva(d = d_sapro, env = sites)
+mva_sapro <- mva(d = d_sapro, env = sites, covar = "MEM1")
 #+ sapro_ord_results
 mva_sapro$dispersion_test
 mva_sapro$permanova
@@ -1466,18 +1452,18 @@ sapro_ord <-
 #' across fungal groups using the Benjamini-Hochberg procedure.
 #+ unified_permanova_summary,warning=FALSE,message=FALSE
 list(
-  its_ma   = mva_its$permanova,
-  amf_ma   = mva_amf$permanova,
-  patho_ma = mva_patho$permanova,
-  sapro_ma = mva_sapro$permanova
+  its   = mva_its$permanova,
+  amf   = mva_amf$permanova,
+  patho = mva_patho$permanova,
+  sapro = mva_sapro$permanova
 ) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
   bind_rows(.id = "guild") %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
          `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
-  filter(term %in% c("dist_axis_1", "field_type")) %>% 
+  filter(term %in% c("MEM1", "field_type")) %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
-  kable(format = "pandoc")
+  kable(format = "pandoc", caption = "PERMANOVA summary")
 #' 
 #' Model summary for biomass-aware AM fungi results
 #+ permanova_summary,warning=FALSE,message=FALSE
@@ -1485,9 +1471,9 @@ list(amf_ma = mva_amf_ma$permanova) %>%
   map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value)) %>% 
   bind_rows(.id = "guild") %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
-         across(where(is.numeric), ~ round(.x, 3)),
+         across(where(is.numeric), ~ round(.x, 4)),
          `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 21)")) %>% 
-  filter(term %in% c("dist_axis_1", "field_type")) %>% 
+  filter(term == "field_type") %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
@@ -1515,27 +1501,39 @@ ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
 #' relative explanatory power of each, and which particular variable correlate with fungal 
 #' communities?
 #' 
-#' Restored and remnant prairies in Wisconsin are used to explore these questions.
+#' Restored and remnant prairies in Wisconsin are used to explore these questions. Spatial covariate
+#' needed only with saprotrophs.
 #' 
-#' ## Data wrangling
+#' ## Community distance matrices
+d_wi <- 
+  list(
+    d_its_wi   = its_wi,
+    d_amf_wi   = amf_wi,
+    d_patho_wi = patho_wi,
+    d_sapro_wi = sapro_wi
+  ) %>% 
+  map(\(df) df %>% 
+        data.frame(row.names = 1) %>% 
+        decostand("total") %>% 
+        vegdist("bray"))
+#' 
+#' ## Wrangle explanatory vars
 soil_micro_pca <- 
   soil %>% 
-  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na, -field_key, -field_type, -region) %>% 
+  filter(field_name %in% sites_wi$field_name) %>% 
+  select(field_name, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na) %>% 
   column_to_rownames(var = "field_name") %>% 
   decostand(method = "standardize") %>% 
   rda()
-summary(soil_micro_pca) # 70% on first two axes
+summary(soil_micro_pca) # 63% on first two axes
 soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites") %>% 
   data.frame() %>% 
   rename(soil_micro_1 = PC1, soil_micro_2 = PC2) %>% 
   rownames_to_column(var = "field_name")
 soil_macro <- 
   soil %>% 
-  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(-c(field_key, field_type, region, SO4, Zn, Fe, Mn, Cu, Ca, Mg, Na))
+  filter(field_name %in% sites_wi$field_name) %>% 
+  select(field_name, pH, OM, NO3, P, K)
 #' 
 #' Assemble explanatory variables and begin iterative selection process. 
 #' Plant functional groups and traits not included here were eliminated in previous forward selection
@@ -1543,29 +1541,22 @@ soil_macro <-
 #' Check the VIF for each explanatory variable to test for collinearity if model overfitting is 
 #' detected. Then run forward selection in `dbrda()`. 
 #' 
-env_vars <- sites %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, dist_axis_1) %>% # 90% on axis 1
-  left_join(soil_micro_index, by = join_by(field_name)) %>% # 70% on first two axes
+env_vars <- sites_wi %>% 
+  select(field_name, MEM1) %>% 
+  left_join(soil_micro_index, by = join_by(field_name)) %>% 
   left_join(soil_macro, by = join_by(field_name)) %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% # 92% on axis 1
   left_join(prich %>% select(field_name, pl_rich), by = join_by(field_name)) %>% # plant richness
-  select(-starts_with("field_key"), -soil_micro_1, -K) %>% # soil_micro_1, K removed based on initial VIF check
+  left_join(pfg %>% select(field_name, C3_grass, legume, shrubTree), by = join_by(field_name)) %>% 
+  select(-soil_micro_2, -shrubTree, -legume, -C3_grass) %>% # variables removed after VIF check
   column_to_rownames(var = "field_name") %>% 
   as.data.frame()
-env_cov <- env_vars[,"dist_axis_1", drop = TRUE]
-env_expl <- env_vars[, setdiff(colnames(env_vars), "dist_axis_1"), drop = FALSE] %>% 
+env_cov <- env_vars[,"MEM1", drop = TRUE]
+env_expl <- env_vars[, setdiff(colnames(env_vars), "MEM1"), drop = FALSE] %>% 
   decostand("standardize")
 #' Check VIF
 env_expl %>% scale() %>% cor() %>% solve() %>% diag() %>% sort() %>% round(2)
-#' OM, K, and soil_micro_1 with high VIF in initial VIF check. 
-#' Removing soil_micro_1 and K maintained OM in the model.
-
-
-
-
-
-
+#' High VIF or less informative vars iteratively removed with VIF > 10
 #' 
 #' ## Variation partitioning
 ## Varpart ———————— ####
@@ -1579,17 +1570,19 @@ env_expl %>% scale() %>% cor() %>% solve() %>% diag() %>% sort() %>% round(2)
 #' 
 #' ### AM fungi
 #' soil + plant shared
-amf_m_ac <- rda(spe_amf_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+amf_m_ac <- dbrda(d_wi$d_amf_wi ~ soil_micro_1 + pH + OM + NO3 + P + K, data = env_expl)
 #' plant + soil shared
-amf_m_bc <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+amf_m_bc <- dbrda(d_wi$d_amf_wi ~ gf_axis + pl_rich, data = env_expl)
 #' soil + plant + shared
-amf_m_abc <- rda(spe_amf_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+amf_m_abc <- dbrda(d_wi$d_amf_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + gf_axis + pl_rich, data = env_expl)
 #' soil only
-amf_m_a <- rda(spe_amf_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+amf_m_a <- dbrda(d_wi$d_amf_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(gf_axis + pl_rich), data = env_expl)
 #' plant only
-amf_m_b <- rda(spe_amf_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+amf_m_b <- dbrda(d_wi$d_amf_wi ~ gf_axis + pl_rich + Condition(soil_micro_1 + pH + OM + NO3 + P + K), data = env_expl)
 #' shared only
 RsquareAdj(amf_m_abc)$adj.r.squared - RsquareAdj(amf_m_a)$adj.r.squared - RsquareAdj(amf_m_b)$adj.r.squared
+#' Rarely informative...
+#' 
 #' Results
 amf_varptes <- list(
   `soil + plant shared`   = amf_m_ac, 
@@ -1611,19 +1604,19 @@ tibble(
     p.val = format.pval(p, digits = 2, eps = 0.001)
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-#' Soil and plant individual fractions are significant with moderate explanatory power.
+#' The plant individual fraction is significant or close with moderate explanatory power
 #' 
 #' ### Pathogens
 #' soil + plant shared
-patho_m_ac <- rda(spe_patho_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+patho_m_ac <- dbrda(d_wi$d_patho_wi ~ soil_micro_1 + pH + OM + NO3 + P + K, data = env_expl)
 #' plant + soil shared
-patho_m_bc <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+patho_m_bc <- dbrda(d_wi$d_patho_wi ~ gf_axis + pl_rich, data = env_expl)
 #' soil + plant + shared
-patho_m_abc <- rda(spe_patho_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+patho_m_abc <- dbrda(d_wi$d_patho_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + gf_axis + pl_rich, data = env_expl)
 #' soil only
-patho_m_a <- rda(spe_patho_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+patho_m_a <- dbrda(d_wi$d_patho_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(gf_axis + pl_rich), data = env_expl)
 #' plant only
-patho_m_b <- rda(spe_patho_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+patho_m_b <- dbrda(d_wi$d_patho_wi ~ gf_axis + pl_rich + Condition(soil_micro_1 + pH + OM + NO3 + P + K), data = env_expl)
 #' shared only
 RsquareAdj(patho_m_abc)$adj.r.squared - RsquareAdj(patho_m_a)$adj.r.squared - RsquareAdj(patho_m_b)$adj.r.squared
 #' Results
@@ -1647,19 +1640,19 @@ tibble(
     p.val = format.pval(p, digits = 2, eps = 0.001)
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-#' No fractions are significant.
+#' No individual fractions are significant
 #' 
 #' ### Saprotrophs
 #' soil + plant shared
-sapro_m_ac <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(env_cov), data = env_expl)
+sapro_m_ac <- dbrda(d_wi$d_sapro_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(env_cov), data = env_expl)
 #' plant + soil shared
-sapro_m_bc <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+sapro_m_bc <- dbrda(d_wi$d_sapro_wi ~ gf_axis + pl_rich + Condition(env_cov), data = env_expl)
 #' soil + plant + shared
-sapro_m_abc <- rda(spe_sapro_wi_resto ~ pH + OM + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
+sapro_m_abc <- dbrda(d_wi$d_sapro_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + gf_axis + pl_rich + Condition(env_cov), data = env_expl)
 #' soil only
-sapro_m_a <- rda(spe_sapro_wi_resto ~ pH + OM + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
+sapro_m_a <- dbrda(d_wi$d_sapro_wi ~ soil_micro_1 + pH + OM + NO3 + P + K + Condition(gf_axis + pl_rich + env_cov), data = env_expl)
 #' plant only
-sapro_m_b <- rda(spe_sapro_wi_resto ~ gf_axis + pl_rich + Condition(pH + OM + env_cov), data = env_expl)
+sapro_m_b <- dbrda(d_wi$d_sapro_wi ~ gf_axis + pl_rich + Condition(soil_micro_1 + pH + OM + NO3 + P + K + env_cov), data = env_expl)
 #' shared only
 RsquareAdj(sapro_m_abc)$adj.r.squared - RsquareAdj(sapro_m_a)$adj.r.squared - RsquareAdj(sapro_m_b)$adj.r.squared
 #' Results
@@ -1683,7 +1676,7 @@ tibble(
     p.val = format.pval(p, digits = 2, eps = 0.001)
   ) %>%
   select(fraction, r2adj, F, df, p.val) %>% kable(format = "pandoc")
-#' Soil and plant fractions are significant with low-moderate explanatory power.
+#' Individual fractions are not informative
 #' 
 #' ## Constrained analyses
 ## db-RDA ———————— ####
@@ -1699,14 +1692,9 @@ tibble(
 
 
 
-#' No overfitting detected in full model; proceed with forward selection. 
-spe_its_wi_resto <- its_avg %>% 
-  filter(field_name %in% rownames(env_expl)) %>% 
-  data.frame(row.names = 1) %>%
-  select(where(~ sum(.x) > 0)) %>% 
-  decostand("total")
-mod_null <- dbrda(spe_its_wi_resto ~ 1 + Condition(env_cov), data = env_expl, distance = "bray")
-mod_full <- dbrda(spe_its_wi_resto ~ . + Condition(env_cov), data = env_expl, distance = "bray")
+
+mod_null <- dbrda(d_wi$d_its_wi ~ 1 + Condition(env_cov), data = env_expl)
+mod_full <- dbrda(d_wi$d_its_wi ~ . + Condition(env_cov), data = env_expl)
 mod_step <- ordistep(mod_null, 
                      scope = formula(mod_full), 
                      direction = "forward", 
