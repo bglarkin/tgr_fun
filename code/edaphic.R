@@ -20,7 +20,7 @@
 #' 
 #' # Packages and libraries
 packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted", 
-                     "permute", "geosphere", "ape")
+                     "permute", "geosphere", "ape", "adespatial")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -49,6 +49,12 @@ sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>%
 #' ## Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
 soil_units <- read_csv(root_path("clean_data/soil_units.csv"), show_col_types = FALSE)
+#' 
+#' ## Distance-based MEM
+coord_tbl <- sites %>% select(long, lat) %>% as.matrix()
+rownames(coord_tbl) <- sites$field_name
+mem <- dbmem(coord_tbl) %>% as.data.frame()
+setequal(sites$field_name, rownames(mem))
 #' 
 #' # Results
 #' ## Averages in field types
@@ -96,6 +102,12 @@ soil_pca <- rda(soil_z)
 summary(soil_pca)
 #' Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6 account for 91%. 
 #' 
+#' ## Test spatial structure on soil data
+#' Using db-MEM
+setequal(rownames(soil_z), rownames(mem))
+forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
+#' MEM3 and MEM1
+#' 
 #' ## Soil variable loadings and correlations
 #' Which soil properties explain the most variation among sites?
 site_sco <- scores(soil_pca, display = "sites", choices = c(1,2))
@@ -105,7 +117,7 @@ soil_cor <-
     arrange(-PCA_correlation) %>% 
     rownames_to_column(var = "soil_property") %>% 
   mutate(across(where(is.numeric), ~ round(.x, 2)))
-
+#' 
 #' Use the variable correlations to sort the soil property averages in a table 
 #' highlighting field types:
 soil_ft_avg %>% 
@@ -126,7 +138,7 @@ soil_ord_scores <-
 #' 
 #' ### PERMANOVA on field type
 d_soil = dist(soil_z, method = "euclidean")
-mva_soil <- soilperm(d = d_soil, env = sites)
+mva_soil <- soilperm(d = d_soil, env = cbind(sites, mem), covar = c("MEM3", "MEM1"))
 #+ soil_ord_results
 mva_soil$dispersion_test
 mva_soil$permanova
