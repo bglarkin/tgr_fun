@@ -106,7 +106,13 @@ summary(soil_pca)
 #' Using db-MEM
 setequal(rownames(soil_z), rownames(mem))
 forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
-#' MEM3 and MEM1
+soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
+round(RsquareAdj(soil_mem_rda)$adj.r.squared, 3)
+anova(soil_mem_rda, permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+#' MEM3 and MEM1 explain 23.6%
 #' 
 #' ## Soil variable loadings and correlations
 #' Which soil properties explain the most variation among sites?
