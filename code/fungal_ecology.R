@@ -2496,7 +2496,7 @@ gfa_fgc <- # grass-forb axis, forb-grass composition
   arrange(gf_axis)
 #+ fig7a_rug,warning=FALSE
 fig5a_rug <- add_fig7_rug(
-  fig7a,
+  fig5a,
   comp_df = gfa_fgc,
   y0 = 0.05,
   h  = 0.010,
