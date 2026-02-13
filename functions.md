@@ -304,7 +304,7 @@ mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 202602
 Simplified version of `mva()` for use with the soil properties data
 
 ``` r
-soilperm <- function(d, env, nperm = 1999, seed = 20251103) {
+soilperm <- function(d, env, covar = NULL, nperm = 1999, seed = 20251103) {
   
   # Distance labels and env alignment
   if (inherits(d, "dist")) {
@@ -341,8 +341,11 @@ soilperm <- function(d, env, nperm = 1999, seed = 20251103) {
   
   # Global PERMANOVA
   if (!is.null(seed)) set.seed(seed + 3L)
+  perm_terms <- c(covar, "field_type")
+  perm_form  <- reformulate(perm_terms, response = "d")
+  
   gl_permtest <- adonis2(
-    d ~ field_type,
+    perm_form,
     data = env,
     permutations = nperm,
     by = "terms"
@@ -369,23 +372,32 @@ soilperm <- function(d, env, nperm = 1999, seed = 20251103) {
     keep <- clust_vec %in% c(g1, g2)
     
     contrast_mat <- d_mat[keep, keep, drop = FALSE]
+    env_sub <- env[keep, , drop = FALSE]
+    env_sub$field_type <- droplevels(factor(env_sub$field_type))
     
     if (!is.null(seed)) set.seed(seed + 100L + i)
     
+    perm_terms_pw <- c(covar, "field_type")
+    perm_form_pw  <- reformulate(perm_terms_pw, response = "contrast_mat")
+    
     fit <- adonis2(
-      contrast_mat ~ factor(g_chr[keep]),
+      perm_form_pw,
+      data = env_sub,
       permutations = nperm,
       by = "terms"
     )
     
     rn <- rownames(fit)
-    term_row <- grep("factor\\(g_chr\\[keep\\]\\)", rn, fixed = FALSE)
-    if (length(term_row) != 1L) term_row <- grep("g_chr", rn, fixed = TRUE)
+    term_row <- grep("(^field_type$)|field_type", rn)
+    if (length(term_row) != 1L) {
+      stop("Could not uniquely identify `field_type` row in pairwise adonis2 result.\nRows were: ",
+           paste(rn, collapse = ", "))
+    }
     
     contrasts$R2[i]      <- round(fit[term_row, "R2"], 3)
     contrasts$F_value[i] <- round(fit[term_row, "F"], 3)
     contrasts$df1[i]     <- fit[term_row, "Df"]
-    contrasts$df2[i]     <- fit[grep("Residual", rn), "Df"]
+    contrasts$df2[i]     <- fit[grep("^Residual", rn), "Df"]
     contrasts$p_value[i] <- fit[term_row, 5]
   }
   contrasts$p_value_adj <- p.adjust(contrasts$p_value, method = "fdr") %>% round(4)

@@ -8,10 +8,14 @@ Last updated: 13 February, 2026
 - [Packages and libraries](#packages-and-libraries)
   - [Root path function](#root-path-function)
   - [Soil properties](#soil-properties)
+  - [Distance-based MEM](#distance-based-mem)
 - [Results](#results)
-  - [Quantities in field types](#quantities-in-field-types)
+  - [Averages in field types](#averages-in-field-types)
+  - [Boxplot displays](#boxplot-displays)
   - [PCA ordination, variable correlations, and
     PERMANOVA](#pca-ordination-variable-correlations-and-permanova)
+  - [Test spatial structure on soil
+    data](#test-spatial-structure-on-soil-data)
   - [Soil variable loadings and
     correlations](#soil-variable-loadings-and-correlations)
 
@@ -32,7 +36,7 @@ and tests differences among field types based on soil properties.
 
 ``` r
 packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted", 
-                     "permute", "geosphere", "ape")
+                     "permute", "geosphere", "ape", "adespatial")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -73,24 +77,64 @@ soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26
 soil_units <- read_csv(root_path("clean_data/soil_units.csv"), show_col_types = FALSE)
 ```
 
+## Distance-based MEM
+
+``` r
+coord_tbl <- sites %>% select(long, lat) %>% as.matrix()
+rownames(coord_tbl) <- sites$field_name
+mem <- dbmem(coord_tbl) %>% as.data.frame()
+setequal(sites$field_name, rownames(mem))
+```
+
+    ## [1] TRUE
+
 # Results
 
-## Quantities in field types
+## Averages in field types
 
 ``` r
 soil_ft_avg <- 
-    soil %>% 
-    left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-    select(-field_key) %>% 
-    pivot_longer(pH:Na, names_to = "soil_property", values_to = "qty") %>% 
-    group_by(field_type, soil_property) %>% 
-    summarize(avg_qty = mean(qty), .groups = "drop") %>% 
-    pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
-    left_join(soil_units, by = join_by(soil_property)) %>% 
-    select(soil_property, units, everything()) %>% 
-  rowwise() %>% mutate(cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)),
-                       across(where(is.numeric), ~ round(.x, 2))) %>% 
+  soil %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  select(-field_key) %>% 
+  pivot_longer(pH:Na, names_to = "soil_property", values_to = "qty") %>% 
+  group_by(field_type, soil_property) %>% 
+  summarize(avg_qty = mean(qty), .groups = "drop") %>% 
+  pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
+  left_join(soil_units, by = join_by(soil_property)) %>% 
+  select(soil_property, units, everything()) %>% 
+  rowwise() %>% 
+  mutate(
+    cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)), across(where(is.numeric), ~ round(.x, 2))
+    ) %>% 
   arrange(-cv)
+```
+
+## Boxplot displays
+
+``` r
+soil_p_main <- 
+  soil %>% 
+  pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  left_join(soil_ft_avg %>% select(soil_property, cv, units), by = join_by(soil_property)) %>% 
+  mutate(facet_labs = paste0(soil_property, " (", units, ")"),
+         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>% 
+  ggplot(aes(x = field_type, y = value)) +
+  facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
+  labs(x = NULL, y = NULL) +
+  geom_boxplot(aes(fill = field_type)) +
+  scale_fill_manual(name = "Field type", values = ft_pal) +
+  theme_corf +
+  theme(legend.position = "none")
+soil_p_legend <- soil_p_main + theme(legend.position = "right")
+```
+
+``` r
+ggsave(root_path("figs", "figS4.svg"), plot = soil_p_main, device = svglite::svglite,
+       width = 19, height = 15, units = "cm")
+ggsave(root_path("figs", "figS4_legend.svg"), plot = soil_p_legend, device = svglite::svglite,
+       width = 19, height = 15, units = "cm")
 ```
 
 ## PCA ordination, variable correlations, and PERMANOVA
@@ -120,6 +164,50 @@ summary(soil_pca)
 
 Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6
 account for 91%.
+
+## Test spatial structure on soil data
+
+Using db-MEM
+
+``` r
+setequal(rownames(soil_z), rownames(mem))
+```
+
+    ## [1] TRUE
+
+``` r
+forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
+```
+
+    ## Testing variable 1
+    ## Testing variable 2
+    ## Testing variable 3
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.263000 (> 0.050000)
+
+    ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
+    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622  5e-04
+    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178  5e-04
+
+``` r
+soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
+round(RsquareAdj(soil_mem_rda)$adj.r.squared, 3)
+```
+
+    ## [1] 0.236
+
+``` r
+anova(soil_mem_rda, permutations = 1999) %>% 
+  as.data.frame() %>% 
+  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
+  kable(, format = "pandoc")
+```
+
+|          |  Df | Variance |        F | Pr(\>F) | p.adj |
+|----------|----:|---------:|---------:|--------:|------:|
+| Model    |   2 | 3.893809 | 4.703603 |   5e-04 | 5e-04 |
+| Residual |  22 | 9.106191 |       NA |      NA |    NA |
+
+MEM3 and MEM1 explain 23.6%
 
 ## Soil variable loadings and correlations
 
@@ -178,7 +266,7 @@ soil_ord_scores <-
 
 ``` r
 d_soil = dist(soil_z, method = "euclidean")
-mva_soil <- soilperm(d = d_soil, env = sites)
+mva_soil <- soilperm(d = d_soil, env = cbind(sites, mem), covar = c("MEM3", "MEM1"))
 ```
 
 ``` r
@@ -211,11 +299,13 @@ mva_soil$permanova
     ## Permutation: free
     ## Number of permutations: 1999
     ## 
-    ## adonis2(formula = d ~ field_type, data = env, permutations = nperm, by = "terms")
-    ##            Df SumOfSqs      R2      F Pr(>F)   
-    ## field_type  2   60.881 0.19513 2.6668 0.0045 **
-    ## Residual   22  251.119 0.80487                 
-    ## Total      24  312.000 1.00000                 
+    ## adonis2(formula = perm_form, data = env, permutations = nperm, by = "terms")
+    ##            Df SumOfSqs      R2      F Pr(>F)    
+    ## MEM3        1   50.604 0.16219 6.1548  5e-04 ***
+    ## MEM1        1   42.847 0.13733 5.2113  5e-04 ***
+    ## field_type  2   54.110 0.17343 3.2906  5e-04 ***
+    ## Residual   20  164.439 0.52705                  
+    ## Total      24  312.000 1.00000                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -227,9 +317,9 @@ mva_soil$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>%
 
 | group1  | group2   | F_value |    R2 | p_value | p_value_adj |
 |:--------|:---------|--------:|------:|--------:|------------:|
-| corn    | restored |   4.534 | 0.193 |  0.0010 |      0.0030 |
-| corn    | remnant  |   2.867 | 0.291 |  0.0165 |      0.0248 |
-| remnant | restored |   0.548 | 0.030 |  0.7770 |      0.7770 |
+| corn    | restored |   5.249 | 0.165 |  0.0005 |      0.0015 |
+| corn    | remnant  |   4.627 | 0.277 |  0.0010 |      0.0015 |
+| remnant | restored |   0.577 | 0.023 |  0.7470 |      0.7470 |
 
 Pairwise permanova contrasts
 
@@ -260,6 +350,6 @@ soil_ord_ftypes <-
 ```
 
 ``` r
-ggsave(root_path("figs", "figS4.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
+ggsave(root_path("figs", "figS5.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
        width = 5.25, height = 4.25, units = "in")
 ```
