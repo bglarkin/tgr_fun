@@ -1381,24 +1381,26 @@ amf_ma_ord <-
   ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) + 
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(data = p_amf_ma_centers, 
+             aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), 
+             size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
+  scale_y_continuous(breaks = c(-0.25, 0, 0.25)) +
+  scale_fill_manual(name = "Field Type", values = ft_pal) +
   labs(
     x = paste0("PCoA 1 (", mva_amf_ma$axis_pct[1], "%)"),
     y = paste0("PCoA 2 (", mva_amf_ma$axis_pct[2], "%)")) +
   theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
+  theme(legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1))
 #' 
 #' ### Supplemental figure
 #+ figS4,warning=FALSE
 amf_ma_ord
 #+ figS4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "figS4.svg"), plot = amf_ma_ord, device = svglite::svglite,
-       width = 3.5, height = 3.5, units = "in")
+ggsave(root_path("figs", "figS5.svg"), plot = amf_ma_ord, device = svglite::svglite,
+       width = 5.25, height = 4.25, units = "in")
 #' 
 #' ### Contrast AMF ordinations
 #' Procrustes test on PCoA values using axes with eigenvalues exceeding a broken stick model
@@ -2462,7 +2464,7 @@ summary(sapro_gf_glm)
 ## Unified results ———————— ####
 #' Create multipanel figure, post-production in editing software will be necessary.
 #+ fig7a,warning=FALSE
-fig7a <-
+fig5a <-
   ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
   geom_line(color = "black", linewidth = lw) +
   geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
@@ -2493,7 +2495,7 @@ gfa_fgc <- # grass-forb axis, forb-grass composition
   select(field_name, gf_axis, forb_comp = pct_comp) %>% 
   arrange(gf_axis)
 #+ fig7a_rug,warning=FALSE
-fig7a_rug <- add_fig7_rug(
+fig5a_rug <- add_fig7_rug(
   fig7a,
   comp_df = gfa_fgc,
   y0 = 0.05,
@@ -2506,7 +2508,7 @@ fig7a_rug <- add_fig7_rug(
                               lab = c(paste0("bold(grass~(C[4]))"), paste0("bold(forb)"))),
             aes(x = x, y = y, label = lab), parse = TRUE, size = 2.8, family = "Helvetica")
 #+ fig7b,warning=FALSE
-fig7b <-
+fig5b <-
   ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
   geom_line(color = "black", linewidth = lw) +
   geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
@@ -2524,12 +2526,12 @@ fig7b <-
         plot.tag = element_text(size = 14, face = 1),
         plot.tag.position = c(0, 1))
 #+ fig7_patchwork
-fig7 <- (fig7a_rug | plot_spacer() | fig7b) +
+fig5 <- (fig5a_rug | plot_spacer() | fig5b) +
   plot_layout(widths = c(0.50, 0.01, 0.50), axis_titles = "collect_y") +
   plot_annotation(tag_levels = 'A')
 #+ fig7_display,warning=FALSE
-fig7
+fig5
 #+ fig7_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig7.svg"), plot = fig7, device = svglite::svglite,
+ggsave(root_path("figs", "fig5.svg"), plot = fig5, device = svglite::svglite,
        width = 18, height = 9, units = "cm")
 #' 
