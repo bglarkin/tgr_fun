@@ -1905,7 +1905,8 @@ list(
   map(\(df) df %>% tidy()) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(dbrda_rdf, by = join_by(guild)) %>% 
-  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+  mutate(statistic = round(statistic, 3),
+         `pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ "),
          p.adj = p.adjust(p.value, "fdr"),
          across(where(is.numeric), ~ round(.x, 4))) %>% 
@@ -2043,7 +2044,13 @@ ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = svglite::svglite,
 #' to fungal abundance/proportion in restored and remnant fields?
 #' 
 #' ## ITS fungi
-#' Data for these tests
+#' 
+#' How variable is biomass across sites?
+(its_ma_cv <- 
+   sd(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) / 
+   mean(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) * 100)
+#' 
+#' Data for tests
 fungi_resto <- its_div %>% 
   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(sites, by = join_by(field_name, field_type)) %>% 
@@ -2074,6 +2081,12 @@ summary(fuma_rest_m)
 #' The relationship is poor and needs no further analysis
 #' 
 #' ## AM fungi
+#' 
+#' How variable is biomass across sites?
+(amf_ma_cv <- 
+    sd(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) / 
+    mean(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) * 100)
+#' 
 #' Data for these tests
 amf_resto <- amf_div %>% 
   left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
@@ -2116,6 +2129,9 @@ patho_resto <- its_guild %>%
   ) %>% 
   select(-sapro_abund, -c(annual:shrubTree)) 
 #' 
+#' How variable is biomass-scaled abundance across sites?
+(patho_ma_cv <- sd(patho_resto$patho_mass) / mean(patho_resto$patho_mass) * 100)
+#' 
 #' ### Plant richness and pathogens
 #' Is plant richness related to pathogen mass or proportion?
 pathofa_prich_lm = lm(patho_mass ~ pl_rich, data = patho_resto)
@@ -2148,11 +2164,7 @@ check_model(patho_gf_lm)
 #' No obvious issues
 summary(patho_gf_lm)
 #' The model shows a positive relationship that isn't significant. 
-#' Diagnostic reveals noisy fit and lots of structure. How much does fungal mass vary 
-#' across sites?
-(fma_cv <- sd(patho_resto$fungi_mass) / mean(patho_resto$fungi_mass) * 100)
-#' Variability in biomass is substantial; disconnect between composition and biomass 
-#' probable, resulting in a poor fit for the compositite variable. 
+#' Diagnostic reveals noisy fit and lots of structure. 
 #' 
 #' #### PFG and pathogen proportion
 #' Note on interpretation: exponentiated coefficients are interpreted as odds ratios 
@@ -2271,13 +2283,25 @@ patho_gf_specor <- aldex_gradient(
   seed = 20260129
 )
 #+ patho_aldex_results
-patho_gf_specor$ranked %>% 
+patho_gf_spe <- 
+  patho_gf_specor$ranked %>% 
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
             by = join_by(otu == otu_num)) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  arrange(rho_p) %>% 
+  select(cov_est, rho:species) %>% 
   as_tibble()
-
+patho_gf_spe %>% 
+  filter(abs(rho) >= 0.4) %>% 
+  arrange(-rho)
+patho_gf_spe %>% 
+  filter(abs(rho) >= 0.4) %>% 
+  summarise(
+    n_total = n(),
+    n_positive = sum(rho > 0),
+    n_negative = sum(rho < 0)
+  )
 #' 
 #' ## Saprotrophs
 ## Saprotrophs ———————— ####
@@ -2292,6 +2316,9 @@ sapro_resto <- its_guild %>%
     fungi_mass_lc = as.numeric(scale(log(fungi_mass), center = TRUE, scale = FALSE))
   ) %>% 
   select(-patho_abund, -c(annual:shrubTree))
+#' 
+#' How variable is biomass-scaled abundance across sites?
+(sapro_ma_cv <- sd(sapro_resto$sapro_mass) / mean(sapro_resto$sapro_mass) * 100)
 #' 
 #' ### Plant richness and saprotrophs
 #' Is plant richness related to saprotroph mass?
