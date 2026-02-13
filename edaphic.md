@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 12 February, 2026
+Last updated: 13 February, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -255,17 +255,11 @@ soil_ord_ftypes <-
   ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +
   theme_ord +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
-  theme(legend.position = c(0.98, 0.2),
-        legend.justification = c(1, 0),
-        legend.title = element_text(size = 9, face = 1),
-        legend.text = element_text(size = 8, face = 1),
-        legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
-        legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(-0.03, 0.90))
+  theme(legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1))
 ```
 
 ``` r
 ggsave(root_path("figs", "figS4.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
-       width = 7.5, height = 4.25, units = "in")
+       width = 5.25, height = 4.25, units = "in")
 ```

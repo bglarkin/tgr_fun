@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 12 February, 2026
+Last updated: 13 February, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -1169,8 +1169,7 @@ check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
 ```
 
     ## Model has interaction terms. VIFs might be inflated.
-    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction
-    ##   terms.
+    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction terms.
 
     ## # Check for Multicollinearity
     ## 
@@ -3160,17 +3159,19 @@ amf_ma_ord <-
   ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) + 
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
   geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  geom_point(data = p_amf_ma_centers, 
+             aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), 
+             size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
-  scale_fill_manual(values = ft_pal) +
+  scale_y_continuous(breaks = c(-0.25, 0, 0.25)) +
+  scale_fill_manual(name = "Field Type", values = ft_pal) +
   labs(
     x = paste0("PCoA 1 (", mva_amf_ma$axis_pct[1], "%)"),
     y = paste0("PCoA 2 (", mva_amf_ma$axis_pct[2], "%)")) +
   theme_ord +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
-        plot.tag.position = c(0, 1))
+  theme(legend.title = element_text(size = 9, face = 1),
+        legend.text = element_text(size = 8, face = 1))
 ```
 
 ### Supplemental figure
@@ -5144,18 +5145,18 @@ patho_gf_specor$ranked %>%
 ```
 
     ## # A tibble: 153 × 14
-    ##    otu     cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class           order         family               genus            species           
-    ##    <chr>     <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>           <chr>         <chr>                <chr>            <chr>             
-    ##  1 otu_68     6.66   1.90  3.52 0.005 0.301  0.64  0.023 0.451 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Paraphoma        unidentified      
-    ##  2 otu_65     5.97   1.82  3.30 0.008 0.325  0.613 0.034 0.466 Sordariomycetes Hypocreales   Nectriaceae          Gibberella       Gibberella_baccata
-    ##  3 otu_332    9.94   3.34  3.02 0.019 0.42   0.465 0.117 0.612 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella unidentified      
-    ##  4 otu_391    9.35   3.31  2.99 0.035 0.48   0.679 0.019 0.394 Dothideomycetes Pleosporales  Torulaceae           Dendryphion      unidentified      
-    ##  5 otu_315   11.9    4.21  2.95 0.034 0.481  0.594 0.045 0.488 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified      
-    ##  6 otu_559    8.21   3.61  2.36 0.071 0.652  0.473 0.12  0.601 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified      
-    ##  7 otu_21     8.42   4.12  2.11 0.076 0.75   0.64  0.023 0.448 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Setophoma        Setophoma_terrest…
-    ##  8 otu_408    7.69   4.14  1.98 0.147 0.761  0.455 0.172 0.607 Dothideomycetes Pleosporales  Leptosphaeriaceae    Leptosphaeria    Leptosphaeria_scl…
-    ##  9 otu_289    9.81   4.95  2.03 0.096 0.765  0.37  0.231 0.687 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella Plectosphaerella_…
-    ## 10 otu_200   -9.79   4.04 -2.55 0.057 0.809 -0.521 0.115 0.552 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Ophiosphaerella  unidentified      
+    ##    otu     cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class           order         family               genus            species                  
+    ##    <chr>     <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>           <chr>         <chr>                <chr>            <chr>                    
+    ##  1 otu_68     6.66   1.90  3.52 0.005 0.301  0.64  0.023 0.451 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Paraphoma        unidentified             
+    ##  2 otu_65     5.97   1.82  3.30 0.008 0.325  0.613 0.034 0.466 Sordariomycetes Hypocreales   Nectriaceae          Gibberella       Gibberella_baccata       
+    ##  3 otu_332    9.94   3.34  3.02 0.019 0.42   0.465 0.117 0.612 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella unidentified             
+    ##  4 otu_391    9.35   3.31  2.99 0.035 0.48   0.679 0.019 0.394 Dothideomycetes Pleosporales  Torulaceae           Dendryphion      unidentified             
+    ##  5 otu_315   11.9    4.21  2.95 0.034 0.481  0.594 0.045 0.488 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified             
+    ##  6 otu_559    8.21   3.61  2.36 0.071 0.652  0.473 0.12  0.601 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified             
+    ##  7 otu_21     8.42   4.12  2.11 0.076 0.75   0.64  0.023 0.448 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Setophoma        Setophoma_terrestris     
+    ##  8 otu_408    7.69   4.14  1.98 0.147 0.761  0.455 0.172 0.607 Dothideomycetes Pleosporales  Leptosphaeriaceae    Leptosphaeria    Leptosphaeria_sclerotioi…
+    ##  9 otu_289    9.81   4.95  2.03 0.096 0.765  0.37  0.231 0.687 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella Plectosphaerella_cucumer…
+    ## 10 otu_200   -9.79   4.04 -2.55 0.057 0.809 -0.521 0.115 0.552 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Ophiosphaerella  unidentified             
     ## # ℹ 143 more rows
 
 ## Saprotrophs
@@ -5558,18 +5559,18 @@ sapro_rich_specor$ranked %>%
 ```
 
     ## # A tibble: 564 × 14
-    ##    otu      cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class              order          family             genus             species       
-    ##    <chr>      <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>              <chr>          <chr>              <chr>             <chr>         
-    ##  1 otu_703    0.238  0.079  3.21 0.024 0.79   0.757 0.005 0.393 Dothideomycetes    Pleosporales   Didymosphaeriaceae Paraphaeosphaeria unidentified  
-    ##  2 otu_195   -0.311  0.095 -3.38 0.014 0.84  -0.733 0.009 0.439 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       unidentified  
-    ##  3 otu_1373   0.155  0.092  1.87 0.184 0.939  0.405 0.249 0.838 Leotiomycetes      Helotiales     Hyaloscyphaceae    Clathrosphaerina  Clathrosphaer…
-    ##  4 otu_586    0.14   0.083  1.84 0.195 0.943  0.42  0.242 0.828 Agaricomycetes     Agaricales     Clavariaceae       Clavaria          unidentified  
-    ##  5 otu_47    -0.326  0.124 -2.72 0.037 0.95  -0.58  0.06  0.698 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified  
-    ##  6 otu_180   -0.202  0.097 -2.21 0.104 0.958 -0.231 0.431 0.906 Geoglossomycetes   Geoglossales   Geoglossaceae      Leucoglossum      unidentified  
-    ##  7 otu_885    0.138  0.089  1.70 0.214 0.962  0.392 0.266 0.848 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       Mortierella_g…
-    ##  8 otu_1383   0.14   0.086  1.76 0.198 0.962  0.404 0.248 0.846 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified  
-    ##  9 otu_572    0.188  0.092  2.12 0.088 0.963  0.557 0.058 0.754 Sordariomycetes    Coniochaetales Coniochaetaceae    Coniochaeta       Coniochaeta_d…
-    ## 10 otu_1401   0.122  0.084  1.60 0.253 0.964  0.398 0.26  0.842 Sordariomycetes    Hypocreales    Stachybotryaceae   Myxospora         unidentified  
+    ##    otu      cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class              order          family             genus             species              
+    ##    <chr>      <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>              <chr>          <chr>              <chr>             <chr>                
+    ##  1 otu_703    0.238  0.079  3.21 0.024 0.79   0.757 0.005 0.393 Dothideomycetes    Pleosporales   Didymosphaeriaceae Paraphaeosphaeria unidentified         
+    ##  2 otu_195   -0.311  0.095 -3.38 0.014 0.84  -0.733 0.009 0.439 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       unidentified         
+    ##  3 otu_1373   0.155  0.092  1.87 0.184 0.939  0.405 0.249 0.838 Leotiomycetes      Helotiales     Hyaloscyphaceae    Clathrosphaerina  Clathrosphaerina_zal…
+    ##  4 otu_586    0.14   0.083  1.84 0.195 0.943  0.42  0.242 0.828 Agaricomycetes     Agaricales     Clavariaceae       Clavaria          unidentified         
+    ##  5 otu_47    -0.326  0.124 -2.72 0.037 0.95  -0.58  0.06  0.698 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified         
+    ##  6 otu_180   -0.202  0.097 -2.21 0.104 0.958 -0.231 0.431 0.906 Geoglossomycetes   Geoglossales   Geoglossaceae      Leucoglossum      unidentified         
+    ##  7 otu_885    0.138  0.089  1.70 0.214 0.962  0.392 0.266 0.848 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       Mortierella_globulif…
+    ##  8 otu_1383   0.14   0.086  1.76 0.198 0.962  0.404 0.248 0.846 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified         
+    ##  9 otu_572    0.188  0.092  2.12 0.088 0.963  0.557 0.058 0.754 Sordariomycetes    Coniochaetales Coniochaetaceae    Coniochaeta       Coniochaeta_decumbens
+    ## 10 otu_1401   0.122  0.084  1.60 0.253 0.964  0.398 0.26  0.842 Sordariomycetes    Hypocreales    Stachybotryaceae   Myxospora         unidentified         
     ## # ℹ 554 more rows
 
 ### Plant diversity and saprotrophs
@@ -5750,7 +5751,7 @@ Create multipanel figure, post-production in editing software will be
 necessary.
 
 ``` r
-fig7a <-
+fig5a <-
   ggplot(paglm_pred, aes(x = gf_axis, y = fit_prob)) +
   geom_line(color = "black", linewidth = lw) +
   geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
@@ -5785,8 +5786,8 @@ gfa_fgc <- # grass-forb axis, forb-grass composition
 ```
 
 ``` r
-fig7a_rug <- add_fig7_rug(
-  fig7a,
+fig5a_rug <- add_fig7_rug(
+  fig5a,
   comp_df = gfa_fgc,
   y0 = 0.05,
   h  = 0.010,
@@ -5800,7 +5801,7 @@ fig7a_rug <- add_fig7_rug(
 ```
 
 ``` r
-fig7b <-
+fig5b <-
   ggplot(saglm_pred, aes(x = pl_rich, y = fit_prob)) +
   geom_line(color = "black", linewidth = lw) +
   geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
@@ -5820,13 +5821,13 @@ fig7b <-
 ```
 
 ``` r
-fig7 <- (fig7a_rug | plot_spacer() | fig7b) +
+fig5 <- (fig5a_rug | plot_spacer() | fig5b) +
   plot_layout(widths = c(0.50, 0.01, 0.50), axis_titles = "collect_y") +
   plot_annotation(tag_levels = 'A')
 ```
 
 ``` r
-fig7
+fig5
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/fig7_display-1.png)<!-- -->

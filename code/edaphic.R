@@ -51,21 +51,45 @@ soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26
 soil_units <- read_csv(root_path("clean_data/soil_units.csv"), show_col_types = FALSE)
 #' 
 #' # Results
-#' ## Quantities in field types
+#' ## Averages in field types
 soil_ft_avg <- 
-    soil %>% 
-    left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-    select(-field_key) %>% 
-    pivot_longer(pH:Na, names_to = "soil_property", values_to = "qty") %>% 
-    group_by(field_type, soil_property) %>% 
-    summarize(avg_qty = mean(qty), .groups = "drop") %>% 
-    pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
-    left_join(soil_units, by = join_by(soil_property)) %>% 
-    select(soil_property, units, everything()) %>% 
-  rowwise() %>% mutate(cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)),
-                       across(where(is.numeric), ~ round(.x, 2))) %>% 
+  soil %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  select(-field_key) %>% 
+  pivot_longer(pH:Na, names_to = "soil_property", values_to = "qty") %>% 
+  group_by(field_type, soil_property) %>% 
+  summarize(avg_qty = mean(qty), .groups = "drop") %>% 
+  pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
+  left_join(soil_units, by = join_by(soil_property)) %>% 
+  select(soil_property, units, everything()) %>% 
+  rowwise() %>% 
+  mutate(
+    cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)), across(where(is.numeric), ~ round(.x, 2))
+    ) %>% 
   arrange(-cv)
-
+#' 
+#' ## Boxplot displays
+soil_p_main <- 
+  soil %>% 
+  pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  left_join(soil_ft_avg %>% select(soil_property, cv, units), by = join_by(soil_property)) %>% 
+  mutate(facet_labs = paste0(soil_property, " (", units, ")"),
+         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>% 
+  ggplot(aes(x = field_type, y = value)) +
+  facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
+  labs(x = NULL, y = NULL) +
+  geom_boxplot(aes(fill = field_type)) +
+  scale_fill_manual(name = "Field type", values = ft_pal) +
+  theme_corf +
+  theme(legend.position = "none")
+soil_p_legend <- soil_p_main + theme(legend.position = "right")
+#+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
+ggsave(root_path("figs", "figS4.svg"), plot = soil_p_main, device = svglite::svglite,
+       width = 19, height = 15, units = "cm")
+ggsave(root_path("figs", "figS4_legend.svg"), plot = soil_p_legend, device = svglite::svglite,
+       width = 19, height = 15, units = "cm")
+#' 
 #' ## PCA ordination, variable correlations, and PERMANOVA
 soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
 soil_pca <- rda(soil_z)
@@ -131,7 +155,7 @@ soil_ord_ftypes <-
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
   theme(legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1))
-#+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
-ggsave(root_path("figs", "figS4.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
+#+ figS5,warning=FALSE,fig.height=3.5,fig.width=6.5
+ggsave(root_path("figs", "figS5.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
        width = 5.25, height = 4.25, units = "in")
 
