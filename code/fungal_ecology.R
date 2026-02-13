@@ -457,7 +457,7 @@ pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS6.svg"), plot = pfg_pct_fig, device = svglite::svglite,
+ggsave(root_path("figs", "figS7.svg"), plot = pfg_pct_fig, device = svglite::svglite,
        width = 7.5, height = 7, units = "in")
 #' 
 #' ### Soil properties
@@ -1399,7 +1399,7 @@ amf_ma_ord <-
 #+ figS4,warning=FALSE
 amf_ma_ord
 #+ figS4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "figS5.svg"), plot = amf_ma_ord, device = svglite::svglite,
+ggsave(root_path("figs", "figS6.svg"), plot = amf_ma_ord, device = svglite::svglite,
        width = 5.25, height = 4.25, units = "in")
 #' 
 #' ### Contrast AMF ordinations
