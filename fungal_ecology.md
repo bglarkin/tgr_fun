@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 13 February, 2026
+Last updated: 15 February, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -1169,7 +1169,8 @@ check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
 ```
 
     ## Model has interaction terms. VIFs might be inflated.
-    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction terms.
+    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction
+    ##   terms.
 
     ## # Check for Multicollinearity
     ## 
@@ -4254,7 +4255,8 @@ list(
   map(\(df) df %>% tidy()) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(dbrda_rdf, by = join_by(guild)) %>% 
-  mutate(`pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+  mutate(statistic = round(statistic, 3),
+         `pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
          term = str_remove(term, "\\+ "),
          p.adj = p.adjust(p.value, "fdr"),
          across(where(is.numeric), ~ round(.x, 4))) %>% 
@@ -4263,17 +4265,17 @@ list(
   kable(format = "pandoc")
 ```
 
-| guild       | term    | pseudo_F\_(df)           | p.value |  p.adj |
-|:------------|:--------|:-------------------------|--------:|-------:|
-| all_fungi   | gf_axis | 2.6892951076911 (1, 9)   |  0.0010 | 0.0045 |
-| all_fungi   | pl_rich | 1.66084274008468 (1, 9)  |  0.0435 | 0.0460 |
-| amf         | gf_axis | 4.68631115029595 (1, 10) |  0.0005 | 0.0045 |
-| amf         | pH      | 2.63401991192245 (1, 10) |  0.0280 | 0.0435 |
-| pathogens   | gf_axis | 2.85661140322129 (1, 9)  |  0.0185 | 0.0416 |
-| pathogens   | K       | 2.38821563199696 (1, 9)  |  0.0290 | 0.0435 |
-| saprotrophs | gf_axis | 2.21366900214683 (1, 7)  |  0.0025 | 0.0075 |
-| saprotrophs | OM      | 1.65373722496717 (1, 7)  |  0.0375 | 0.0460 |
-| saprotrophs | pl_rich | 1.61196415774601 (1, 7)  |  0.0460 | 0.0460 |
+| guild       | term    | pseudo_F\_(df) | p.value |  p.adj |
+|:------------|:--------|:---------------|--------:|-------:|
+| all_fungi   | gf_axis | 2.689 (1, 9)   |  0.0010 | 0.0045 |
+| all_fungi   | pl_rich | 1.661 (1, 9)   |  0.0435 | 0.0460 |
+| amf         | gf_axis | 4.686 (1, 10)  |  0.0005 | 0.0045 |
+| amf         | pH      | 2.634 (1, 10)  |  0.0280 | 0.0435 |
+| pathogens   | gf_axis | 2.857 (1, 9)   |  0.0185 | 0.0416 |
+| pathogens   | K       | 2.388 (1, 9)   |  0.0290 | 0.0435 |
+| saprotrophs | gf_axis | 2.214 (1, 7)   |  0.0025 | 0.0075 |
+| saprotrophs | OM      | 1.654 (1, 7)   |  0.0375 | 0.0460 |
+| saprotrophs | pl_rich | 1.612 (1, 7)   |  0.0460 | 0.0460 |
 
 #### Biplot panels
 
@@ -4285,7 +4287,7 @@ fig4a <-
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
+               color = c(pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(data = mod_scor_bp, 
             aes(x = labx, y = laby, label = envlabs), 
             size = 3, color = "gray20", fontface = 2) +
@@ -4311,7 +4313,7 @@ fig4b <-
   geom_segment(data = amf_mod_scor_bp,
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
+               color = c(pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(data = amf_mod_scor_bp,
             aes(x = labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -4337,7 +4339,7 @@ fig4c <-
   geom_segment(data = patho_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "darkblue", "darkblue")) +
+               color = c("gray20", pfg_col[5], pfg_col[4])) +
   geom_text(data = patho_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -4363,7 +4365,7 @@ fig4d <-
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "darkblue", "darkblue", "gray20")) +
+               color = c("gray20", pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(data = sapro_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -4429,7 +4431,17 @@ remnant fields?
 
 ## ITS fungi
 
-Data for these tests
+How variable is biomass across sites?
+
+``` r
+(its_ma_cv <- 
+   sd(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) / 
+   mean(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) * 100)
+```
+
+    ## [1] 33.02084
+
+Data for tests
 
 ``` r
 fungi_resto <- its_div %>% 
@@ -4536,6 +4548,16 @@ summary(fuma_rest_m)
 The relationship is poor and needs no further analysis
 
 ## AM fungi
+
+How variable is biomass across sites?
+
+``` r
+(amf_ma_cv <- 
+    sd(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) / 
+    mean(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) * 100)
+```
+
+    ## [1] 52.16179
 
 Data for these tests
 
@@ -4657,6 +4679,14 @@ patho_resto <- its_guild %>%
   ) %>% 
   select(-sapro_abund, -c(annual:shrubTree)) 
 ```
+
+How variable is biomass-scaled abundance across sites?
+
+``` r
+(patho_ma_cv <- sd(patho_resto$patho_mass) / mean(patho_resto$patho_mass) * 100)
+```
+
+    ## [1] 48.96966
 
 ### Plant richness and pathogens
 
@@ -4818,18 +4848,7 @@ summary(patho_gf_lm)
     ## F-statistic: 3.157 on 1 and 11 DF,  p-value: 0.1032
 
 The model shows a positive relationship that isn’t significant.
-Diagnostic reveals noisy fit and lots of structure. How much does fungal
-mass vary across sites?
-
-``` r
-(fma_cv <- sd(patho_resto$fungi_mass) / mean(patho_resto$fungi_mass) * 100)
-```
-
-    ## [1] 33.02084
-
-Variability in biomass is substantial; disconnect between composition
-and biomass probable, resulting in a poor fit for the compositite
-variable.
+Diagnostic reveals noisy fit and lots of structure.
 
 #### PFG and pathogen proportion
 
@@ -4873,7 +4892,7 @@ Diagnostics
 check_model(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-153-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-155-1.png)<!-- -->
 
 ``` r
 check_collinearity(patho_gf_glm)
@@ -4987,7 +5006,7 @@ View partial regression plots for consistency.
 avPlots(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-157-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-159-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear structure is obvious. Both variables seem valuable.
@@ -5136,28 +5155,63 @@ patho_gf_specor <- aldex_gradient(
 ```
 
 ``` r
-patho_gf_specor$ranked %>% 
+patho_gf_spe <- 
+  patho_gf_specor$ranked %>% 
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
             by = join_by(otu == otu_num)) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  arrange(rho_p) %>% 
+  select(cov_est, rho:species) %>% 
   as_tibble()
 ```
 
-    ## # A tibble: 153 × 14
-    ##    otu     cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class           order         family               genus            species                  
-    ##    <chr>     <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>           <chr>         <chr>                <chr>            <chr>                    
-    ##  1 otu_68     6.66   1.90  3.52 0.005 0.301  0.64  0.023 0.451 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Paraphoma        unidentified             
-    ##  2 otu_65     5.97   1.82  3.30 0.008 0.325  0.613 0.034 0.466 Sordariomycetes Hypocreales   Nectriaceae          Gibberella       Gibberella_baccata       
-    ##  3 otu_332    9.94   3.34  3.02 0.019 0.42   0.465 0.117 0.612 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella unidentified             
-    ##  4 otu_391    9.35   3.31  2.99 0.035 0.48   0.679 0.019 0.394 Dothideomycetes Pleosporales  Torulaceae           Dendryphion      unidentified             
-    ##  5 otu_315   11.9    4.21  2.95 0.034 0.481  0.594 0.045 0.488 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified             
-    ##  6 otu_559    8.21   3.61  2.36 0.071 0.652  0.473 0.12  0.601 Sordariomycetes Glomerellales Glomerellaceae       Colletotrichum   unidentified             
-    ##  7 otu_21     8.42   4.12  2.11 0.076 0.75   0.64  0.023 0.448 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Setophoma        Setophoma_terrestris     
-    ##  8 otu_408    7.69   4.14  1.98 0.147 0.761  0.455 0.172 0.607 Dothideomycetes Pleosporales  Leptosphaeriaceae    Leptosphaeria    Leptosphaeria_sclerotioi…
-    ##  9 otu_289    9.81   4.95  2.03 0.096 0.765  0.37  0.231 0.687 Sordariomycetes Glomerellales Plectosphaerellaceae Plectosphaerella Plectosphaerella_cucumer…
-    ## 10 otu_200   -9.79   4.04 -2.55 0.057 0.809 -0.521 0.115 0.552 Dothideomycetes Pleosporales  Phaeosphaeriaceae    Ophiosphaerella  unidentified             
-    ## # ℹ 143 more rows
+``` r
+kable(
+  patho_gf_spe %>% filter(abs(rho) >= 0.4) %>% arrange(-rho),
+  format = "pandoc", caption = "Pathogen species correlates with grass-forb axis"
+)
+```
+
+| cov_est | rho | rho_p | rho_q | class | order | family | genus | species |
+|---:|---:|---:|---:|:---|:---|:---|:---|:---|
+| 9.350 | 0.679 | 0.019 | 0.394 | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified |
+| 6.661 | 0.640 | 0.023 | 0.451 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Paraphoma | unidentified |
+| 8.422 | 0.640 | 0.023 | 0.448 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris |
+| 5.972 | 0.613 | 0.034 | 0.466 | Sordariomycetes | Hypocreales | Nectriaceae | Gibberella | Gibberella_baccata |
+| 11.939 | 0.594 | 0.045 | 0.488 | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
+| 6.560 | 0.492 | 0.118 | 0.579 | Dothideomycetes | Botryosphaeriales | Botryosphaeriaceae | Macrophomina | unidentified |
+| 7.496 | 0.477 | 0.137 | 0.589 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Paraphoma | Paraphoma_radicina |
+| 1.423 | 0.476 | 0.111 | 0.598 | Dothideomycetes | Pleosporales | Pleosporaceae | Alternaria | unidentified |
+| 8.213 | 0.473 | 0.120 | 0.601 | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified |
+| 9.937 | 0.465 | 0.117 | 0.612 | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified |
+| 6.579 | 0.461 | 0.155 | 0.608 | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified |
+| 7.688 | 0.455 | 0.172 | 0.607 | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Leptosphaeria | Leptosphaeria_sclerotioides |
+| 4.933 | 0.454 | 0.164 | 0.617 | Dothideomycetes | Pleosporales | Didymellaceae | Neoascochyta | Neoascochyta_desmazieri |
+| 8.499 | 0.437 | 0.148 | 0.634 | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_chlamydosporum |
+| 5.067 | 0.434 | 0.186 | 0.631 | Dothideomycetes | Pleosporales | Pleosporaceae | Bipolaris | unidentified |
+| 4.404 | 0.426 | 0.151 | 0.642 | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina |
+| -7.221 | -0.482 | 0.160 | 0.580 | Sordariomycetes | Hypocreales | Nectriaceae | Dactylonectria | unidentified |
+| -10.318 | -0.488 | 0.145 | 0.577 | Dothideomycetes | Pleosporales | Periconiaceae | Periconia | unidentified |
+| -8.139 | -0.509 | 0.097 | 0.563 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
+| -9.793 | -0.521 | 0.115 | 0.552 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified |
+
+Pathogen species correlates with grass-forb axis
+
+``` r
+patho_gf_spe %>% 
+  filter(abs(rho) >= 0.4) %>% 
+  summarise(
+    n_total = n(),
+    n_positive = sum(rho > 0),
+    n_negative = sum(rho < 0)
+  )
+```
+
+    ## # A tibble: 1 × 3
+    ##   n_total n_positive n_negative
+    ##     <int>      <int>      <int>
+    ## 1      20         16          4
 
 ## Saprotrophs
 
@@ -5179,6 +5233,14 @@ sapro_resto <- its_guild %>%
   ) %>% 
   select(-patho_abund, -c(annual:shrubTree))
 ```
+
+How variable is biomass-scaled abundance across sites?
+
+``` r
+(sapro_ma_cv <- sd(sapro_resto$sapro_mass) / mean(sapro_resto$sapro_mass) * 100)
+```
+
+    ## [1] 42.11542
 
 ### Plant richness and saprotrophs
 
@@ -5208,7 +5270,7 @@ distribution_prob(saprofa_prich_lm)
 check_model(saprofa_prich_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-164-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-167-1.png)<!-- -->
 
 Passes visual diagnostics
 
@@ -5295,7 +5357,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-168-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-171-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5401,7 +5463,7 @@ covariate than the test variable.
 avPlots(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-172-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-175-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear behavior is obvious, increasing spread with fungal
@@ -5550,28 +5612,89 @@ sapro_rich_specor <- aldex_gradient(
 ```
 
 ``` r
-sapro_rich_specor$ranked %>% 
+sapro_rich_spe <- 
+  sapro_rich_specor$ranked %>% 
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
             by = join_by(otu == otu_num)) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  arrange(rho_p) %>% 
+  select(cov_est, rho:species) %>% 
   as_tibble()
 ```
 
-    ## # A tibble: 564 × 14
-    ##    otu      cov_est cov_se cov_t cov_p cov_q    rho rho_p rho_q class              order          family             genus             species              
-    ##    <chr>      <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl> <dbl> <dbl> <chr>              <chr>          <chr>              <chr>             <chr>                
-    ##  1 otu_703    0.238  0.079  3.21 0.024 0.79   0.757 0.005 0.393 Dothideomycetes    Pleosporales   Didymosphaeriaceae Paraphaeosphaeria unidentified         
-    ##  2 otu_195   -0.311  0.095 -3.38 0.014 0.84  -0.733 0.009 0.439 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       unidentified         
-    ##  3 otu_1373   0.155  0.092  1.87 0.184 0.939  0.405 0.249 0.838 Leotiomycetes      Helotiales     Hyaloscyphaceae    Clathrosphaerina  Clathrosphaerina_zal…
-    ##  4 otu_586    0.14   0.083  1.84 0.195 0.943  0.42  0.242 0.828 Agaricomycetes     Agaricales     Clavariaceae       Clavaria          unidentified         
-    ##  5 otu_47    -0.326  0.124 -2.72 0.037 0.95  -0.58  0.06  0.698 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified         
-    ##  6 otu_180   -0.202  0.097 -2.21 0.104 0.958 -0.231 0.431 0.906 Geoglossomycetes   Geoglossales   Geoglossaceae      Leucoglossum      unidentified         
-    ##  7 otu_885    0.138  0.089  1.70 0.214 0.962  0.392 0.266 0.848 Mortierellomycetes Mortierellales Mortierellaceae    Mortierella       Mortierella_globulif…
-    ##  8 otu_1383   0.14   0.086  1.76 0.198 0.962  0.404 0.248 0.846 Geoglossomycetes   Geoglossales   Geoglossaceae      Geoglossum        unidentified         
-    ##  9 otu_572    0.188  0.092  2.12 0.088 0.963  0.557 0.058 0.754 Sordariomycetes    Coniochaetales Coniochaetaceae    Coniochaeta       Coniochaeta_decumbens
-    ## 10 otu_1401   0.122  0.084  1.60 0.253 0.964  0.398 0.26  0.842 Sordariomycetes    Hypocreales    Stachybotryaceae   Myxospora         unidentified         
-    ## # ℹ 554 more rows
+``` r
+kable(
+  sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% arrange(rho),
+  format = "pandoc", caption = "Saprotroph species correlates with plant richness"
+)
+```
+
+| cov_est | rho | rho_p | rho_q | class | order | family | genus | species |
+|---:|---:|---:|---:|:---|:---|:---|:---|:---|
+| -0.311 | -0.733 | 0.009 | 0.439 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| -0.175 | -0.657 | 0.015 | 0.604 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_exigua |
+| -0.130 | -0.650 | 0.017 | 0.617 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| -0.241 | -0.611 | 0.041 | 0.669 | Leotiomycetes | Helotiales | Helotiaceae | Glarea | unidentified |
+| -0.326 | -0.580 | 0.060 | 0.698 | Geoglossomycetes | Geoglossales | Geoglossaceae | Geoglossum | unidentified |
+| -0.231 | -0.526 | 0.085 | 0.792 | Dothideomycetes | Pleosporales | Lindgomycetaceae | Clohesyomyces | Clohesyomyces_aquaticus |
+| -0.156 | -0.519 | 0.090 | 0.793 | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_punctatus |
+| -0.188 | -0.503 | 0.103 | 0.812 | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | unidentified |
+| -0.063 | -0.489 | 0.093 | 0.857 | Sordariomycetes | Hypocreales | Stachybotryaceae | Achroiostachys | Achroiostachys_betulicola |
+| -0.165 | -0.485 | 0.129 | 0.815 | Sordariomycetes | Savoryellales | Savoryellaceae | Savoryella | Savoryella_paucispora |
+| -0.100 | -0.481 | 0.148 | 0.803 | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | unidentified |
+| -0.106 | -0.449 | 0.167 | 0.839 | Leotiomycetes | Helotiales | Helotiaceae | Scytalidium | unidentified |
+| -0.181 | -0.441 | 0.156 | 0.877 | Agaricomycetes | Agaricales | Entolomataceae | Clitopilus | unidentified |
+| -0.106 | -0.437 | 0.189 | 0.849 | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Cercophora | Cercophora_coronata |
+| -0.128 | -0.430 | 0.148 | 0.904 | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_curvuloides |
+| -0.132 | -0.423 | 0.174 | 0.887 | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_tenuipes |
+| 0.160 | 0.400 | 0.242 | 0.867 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified |
+| 0.140 | 0.404 | 0.248 | 0.846 | Geoglossomycetes | Geoglossales | Geoglossaceae | Geoglossum | unidentified |
+| 0.155 | 0.405 | 0.249 | 0.838 | Leotiomycetes | Helotiales | Hyaloscyphaceae | Clathrosphaerina | Clathrosphaerina_zalewskii |
+| 0.135 | 0.413 | 0.225 | 0.855 | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_persica |
+| 0.140 | 0.420 | 0.242 | 0.828 | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | unidentified |
+| 0.109 | 0.445 | 0.152 | 0.864 | Eurotiomycetes | Onygenales | Onygenaceae | Arachnotheca | Arachnotheca_glomerata |
+| 0.188 | 0.557 | 0.058 | 0.754 | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_decumbens |
+| 0.238 | 0.757 | 0.005 | 0.393 | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Paraphaeosphaeria | unidentified |
+
+Saprotroph species correlates with plant richness
+
+``` r
+sapro_rich_spe %>% 
+  filter(abs(rho) >= 0.4) %>% 
+  summarise(
+    n_total = n(),
+    n_positive = sum(rho > 0),
+    n_negative = sum(rho < 0)
+  )
+```
+
+    ## # A tibble: 1 × 3
+    ##   n_total n_positive n_negative
+    ##     <int>      <int>      <int>
+    ## 1      24          8         16
+
+``` r
+sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% 
+  mutate(sign = case_when(rho < 0 ~ "negative", rho > 0 ~ "positive")) %>% 
+  group_by(sign, class) %>% 
+  count() %>% 
+  pivot_wider(names_from = "sign", values_from = "n") %>% 
+  kable(format = "pandoc", caption = "Saprotroph classes and correlations with plant richness")
+```
+
+| class              | negative | positive |
+|:-------------------|---------:|---------:|
+| Agaricomycetes     |        3 |        1 |
+| Dothideomycetes    |        1 |        2 |
+| Eurotiomycetes     |        1 |        1 |
+| Geoglossomycetes   |        1 |        1 |
+| Leotiomycetes      |        2 |        1 |
+| Mortierellomycetes |        3 |        1 |
+| Sordariomycetes    |        4 |        1 |
+| Spizellomycetes    |        1 |       NA |
+
+Saprotroph classes and correlations with plant richness
 
 ### Plant diversity and saprotrophs
 
@@ -5601,7 +5724,7 @@ distribution_prob(saprofa_pshan_lm)
 check_model(saprofa_pshan_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-177-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-180-1.png)<!-- -->
 
 ``` r
 summary(saprofa_pshan_lm)
