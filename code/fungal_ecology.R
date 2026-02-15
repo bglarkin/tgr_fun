@@ -1842,6 +1842,7 @@ sapro_mod_scor_bp <- bind_rows(
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
 #' ### Constrained analysis unified summary
+## Unified results ———————— ####
 #' Environmental drivers were identified via partial distance-based Redundancy Analysis (db-RDA) 
 #' using forward selection. 
 #' Geographic distance (PCoA Axis 1) was included as a conditional term to partial out spatial effects. 
@@ -2550,8 +2551,8 @@ fig5a_rug <- add_fig7_rug(
   comp_df = gfa_fgc,
   y0 = 0.05,
   h  = 0.010,
-  forb_fill  = pfg_col[4],
-  grass_fill = pfg_col[5]
+  forb_fill  = pfg_col[5],
+  grass_fill = pfg_col[4]
 ) +
   expand_limits(y = 0.05) +
   geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04),
