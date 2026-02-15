@@ -1922,7 +1922,7 @@ fig4a <-
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
+               color = c(pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(data = mod_scor_bp, 
             aes(x = labx, y = laby, label = envlabs), 
             size = 3, color = "gray20", fontface = 2) +
@@ -1945,7 +1945,7 @@ fig4b <-
   geom_segment(data = amf_mod_scor_bp,
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("darkblue", "darkblue", "gray20")) +
+               color = c(pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(data = amf_mod_scor_bp,
             aes(x = labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -1968,7 +1968,7 @@ fig4c <-
   geom_segment(data = patho_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "darkblue", "darkblue")) +
+               color = c("gray20", pfg_col[5], pfg_col[4])) +
   geom_text(data = patho_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -1991,7 +1991,7 @@ fig4d <-
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "darkblue", "darkblue", "gray20")) +
+               color = c("gray20", pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(data = sapro_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -2292,9 +2292,11 @@ patho_gf_spe <-
   arrange(rho_p) %>% 
   select(cov_est, rho:species) %>% 
   as_tibble()
-patho_gf_spe %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  arrange(-rho)
+#+ patho_aldex20
+kable(
+  patho_gf_spe %>% filter(abs(rho) >= 0.4) %>% arrange(-rho),
+  format = "pandoc", caption = "Pathogen species correlates with grass-forb axis"
+)
 patho_gf_spe %>% 
   filter(abs(rho) >= 0.4) %>% 
   summarise(
