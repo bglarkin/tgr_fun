@@ -2448,12 +2448,33 @@ sapro_rich_specor <- aldex_gradient(
   seed = 20260129
 )
 #+ sapro_aldex_results
-sapro_rich_specor$ranked %>% 
+sapro_rich_spe <- 
+  sapro_rich_specor$ranked %>% 
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
             by = join_by(otu == otu_num)) %>% 
   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  arrange(rho_p) %>% 
+  select(cov_est, rho:species) %>% 
   as_tibble()
+#+ sapro_aldex20
+kable(
+  sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% arrange(rho),
+  format = "pandoc", caption = "Saprotroph species correlates with plant richness"
+)
+sapro_rich_spe %>% 
+  filter(abs(rho) >= 0.4) %>% 
+  summarise(
+    n_total = n(),
+    n_positive = sum(rho > 0),
+    n_negative = sum(rho < 0)
+  )
+sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% 
+  mutate(sign = case_when(rho < 0 ~ "negative", rho > 0 ~ "positive")) %>% 
+  group_by(sign, class) %>% 
+  count() %>% 
+  pivot_wider(names_from = "sign", values_from = "n") %>% 
+  kable(format = "pandoc", caption = "Saprotroph classes and correlations with plant richness")
 #' 
 #' ### Plant diversity and saprotrophs
 #' Is plant diversity related to saprotroph mass?
