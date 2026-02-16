@@ -911,7 +911,7 @@ list(
   kable(format = "pandoc")
 #' 
 #' Results summary and figures
-div_tagpos <- c(0.18, 1.1)
+div_tagpos <- c(0, 1)
 #+ its_div_fig
 its_div_fig <- 
   bind_rows(
