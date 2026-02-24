@@ -2294,24 +2294,6 @@ patho_gf_spe <-
   select(cov_est, rho:species) %>% 
   as_tibble()
 #+ patho_aldex20
-kable(
-  patho_gf_spe %>% filter(abs(rho) >= 0.4) %>% arrange(-rho),
-  format = "pandoc", caption = "Pathogen species correlates with grass-forb axis"
-)
-patho_gf_spe %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  summarise(
-    n_total = n(),
-    n_positive = sum(rho > 0),
-    n_negative = sum(rho < 0)
-  )
-
-#' Pathogen proportion doesn't differ across field types and patho mass is least in corn fields, 
-#' suggests that pathogen loads and trends in restored fields aren't easily explained by ag legacy...
-its_guild %>% mutate(patho_prop = patho_abund / fungi_abund) %>% ggplot(aes(x = field_type, y = patho_prop)) + geom_boxplot()
-its_guild %>% mutate(patho_prop = patho_abund / fungi_abund, patho_mass = patho_prop * fungi_mass) %>% ggplot(aes(x = field_type, y = patho_mass)) + geom_boxplot()
-
-
 patho_gf_specor$ranked %>% 
   left_join(its_meta %>% 
               select(-otu_ID, -phylum, -primary_lifestyle), 
@@ -2320,7 +2302,7 @@ patho_gf_specor$ranked %>%
   arrange(rho_p) %>% 
   as_tibble() %>% # 153 otus identified as pathogen
   left_join(
-    its_avg %>% # ma = sequence proportion of biomass
+    its_avg %>% 
       rowwise() %>%
       mutate(total = sum(c_across(where(is.numeric))),
              across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
@@ -2335,13 +2317,15 @@ patho_gf_specor$ranked %>%
   ) %>% 
   select(cov_est, rho:n_remnant) %>% 
   filter(abs(rho) >= 0.4) %>% 
-  arrange(-rho)
-
-
-  
-  
-
-
+  arrange(-rho) %>% 
+  kable(format = "pandoc", caption = "Pathogen species correlates with grass-forb axis")
+patho_gf_spe %>% 
+  filter(abs(rho) >= 0.4) %>% 
+  summarise(
+    n_total = n(),
+    n_positive = sum(rho > 0),
+    n_negative = sum(rho < 0)
+  )
 #' 
 #' ## Saprotrophs
 ## Saprotrophs ———————— ####
@@ -2495,11 +2479,32 @@ sapro_rich_spe <-
   arrange(rho_p) %>% 
   select(cov_est, rho:species) %>% 
   as_tibble()
-#+ sapro_aldex20
-kable(
-  sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% arrange(rho),
-  format = "pandoc", caption = "Saprotroph species correlates with plant richness"
-)
+#+ sapro_aldexTop
+sapro_rich_specor$ranked %>% 
+  left_join(its_meta %>% 
+              select(-otu_ID, -phylum, -primary_lifestyle), 
+            by = join_by(otu == otu_num)) %>% 
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+  arrange(rho_p) %>% 
+  as_tibble() %>% # 564 otus identified as saprotroph
+  left_join(
+    its_avg %>% 
+      rowwise() %>%
+      mutate(total = sum(c_across(where(is.numeric))),
+             across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
+      select(-total) %>% 
+      pivot_longer(cols = starts_with("otu"), names_to = "otu", values_to = "proportion") %>% 
+      left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+      filter(region != "FL", proportion > 0) %>% 
+      group_by(otu, field_type) %>% 
+      summarize(n_fields = n(), .groups = "drop") %>% 
+      pivot_wider(names_from = field_type, values_from = n_fields, names_prefix = "n_"), 
+    by = join_by(otu)
+  ) %>% 
+  select(cov_est, rho:n_remnant) %>% 
+  filter(abs(rho) >= 0.4) %>% 
+  arrange(rho) %>% 
+  kable(format = "pandoc", caption = "Saprotroph species correlates with plant richness")
 sapro_rich_spe %>% 
   filter(abs(rho) >= 0.4) %>% 
   summarise(
