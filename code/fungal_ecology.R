@@ -1340,7 +1340,7 @@ amf_ord <-
     x = paste0("PCoA 1 (", mva_amf$axis_pct[1], "%)"),
     y = paste0("PCoA 2 (", mva_amf$axis_pct[2], "%)")) +
   theme_ord +
-  theme(legend.position = c(0.98, 0.5),
+  theme(legend.position = c(0.98, 0.02),
         legend.justification = c(1, 0),
         legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1),
