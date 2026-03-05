@@ -308,7 +308,8 @@ anova(mem_step_sapro_wi, by = "margin", permutations = 1999) %>%
 #' MEM2, MEM1
 #' Join eigenvectors to sites
 sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
-#' #' ## Environmental data
+#' 
+#' ## Environmental data
 ## Env data ———————— ####
 #' 
 #' ### Plant communities
@@ -361,7 +362,8 @@ gf_axis = scores(pfg_pca, choices = 1, display = "sites") %>%
 gfi_yrs <- gf_axis %>% 
   left_join(sites %>% select(field_name, yr_since), by = join_by(field_name)) %>% 
   arrange(-gf_axis)
-with(gfi_yrs, cor.test(yr_since, gf_axis))
+gfa_yr_cor <- with(gfi_yrs, cor.test(yr_since, gf_axis))
+data.frame(cor = gfa_yr_cor$estimate, R2 = gfa_yr_cor$estimate^2, row.names = "value")
 #' The relatively strong correlation suggests that different restoration methods over time
 #' are still reflected in plant composition. Years since restoration is highly related to 
 #' plant community change. 
