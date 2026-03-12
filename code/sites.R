@@ -297,7 +297,7 @@ area_map <-
     data = region_locs,
     aes(x = long_cen, y = lat_cen),
     color = "black",
-    fill = "white",
+    fill = "indianred",
     shape = 21,
     size = 3
   ) +
@@ -384,17 +384,17 @@ sites_plot <-
 #' 
 #' Produce individual region panels using `make_zoom_map()`. 
 #+ map_BM,message=FALSE,warning=FALSE
-map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", pos = tag_pos, road_data = site_roads$rd_BM)
+map_BM <- make_zoom_map(bb_BM, panel_tag = "C (BM)", pos = tag_pos, road_data = site_roads$rd_BM)
 #+ map_FG,message=FALSE,warning=FALSE
-map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", pos = tag_pos, road_data = site_roads$rd_FG)
+map_FG <- make_zoom_map(bb_FG, panel_tag = "D (FG)", pos = tag_pos, road_data = site_roads$rd_FG)
 #+ map_FL,message=FALSE,warning=FALSE
-map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", pos = tag_pos, road_data = site_roads$rd_FL)
+map_FL <- make_zoom_map(bb_FL, panel_tag = "F (FL)", pos = tag_pos, road_data = site_roads$rd_FL)
 #+ map_LP,message=FALSE,warning=FALSE
-map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", pos = tag_pos, road_data = site_roads$rd_LP)
+map_LP <- make_zoom_map(bb_LP, panel_tag = "E (LP)", pos = tag_pos, road_data = site_roads$rd_LP)
 #' 
 #+ sites_grid
 region_zoom_grid <- ggarrange(
-  map_BM, NULL, map_FG, NULL, map_FL, NULL, map_LP,
+  map_BM, NULL, map_FG, NULL, map_LP, NULL, map_FL,
   nrow = 1, align = "h", widths = c(rep(c(1, 0.02), 3), 1)
 )
 #' 
