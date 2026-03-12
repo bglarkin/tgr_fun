@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 05 March, 2026
+Last updated: 12 March, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -477,7 +477,7 @@ area_map <-
     data = region_locs,
     aes(x = long_cen, y = lat_cen),
     color = "black",
-    fill = "white",
+    fill = "indianred",
     shape = 21,
     size = 3
   ) +
@@ -569,24 +569,24 @@ sites_plot <-
 Produce individual region panels using `make_zoom_map()`.
 
 ``` r
-map_BM <- make_zoom_map(bb_BM, panel_tag = "BM", pos = tag_pos, road_data = site_roads$rd_BM)
+map_BM <- make_zoom_map(bb_BM, panel_tag = "C (BM)", pos = tag_pos, road_data = site_roads$rd_BM)
 ```
 
 ``` r
-map_FG <- make_zoom_map(bb_FG, panel_tag = "FG", pos = tag_pos, road_data = site_roads$rd_FG)
+map_FG <- make_zoom_map(bb_FG, panel_tag = "D (FG)", pos = tag_pos, road_data = site_roads$rd_FG)
 ```
 
 ``` r
-map_FL <- make_zoom_map(bb_FL, panel_tag = "FL", pos = tag_pos, road_data = site_roads$rd_FL)
+map_FL <- make_zoom_map(bb_FL, panel_tag = "F (FL)", pos = tag_pos, road_data = site_roads$rd_FL)
 ```
 
 ``` r
-map_LP <- make_zoom_map(bb_LP, panel_tag = "LP", pos = tag_pos, road_data = site_roads$rd_LP)
+map_LP <- make_zoom_map(bb_LP, panel_tag = "E (LP)", pos = tag_pos, road_data = site_roads$rd_LP)
 ```
 
 ``` r
 region_zoom_grid <- ggarrange(
-  map_BM, NULL, map_FG, NULL, map_FL, NULL, map_LP,
+  map_BM, NULL, map_FG, NULL, map_LP, NULL, map_FL,
   nrow = 1, align = "h", widths = c(rep(c(1, 0.02), 3), 1)
 )
 ```

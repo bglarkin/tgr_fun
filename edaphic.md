@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 05 March, 2026
+Last updated: 12 March, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -42,55 +42,6 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
-
-    ## ── Attaching core tidyverse packages ───────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 2.0.0 ──
-    ## ✔ dplyr     1.2.0     ✔ readr     2.1.6
-    ## ✔ forcats   1.0.1     ✔ stringr   1.6.0
-    ## ✔ ggplot2   4.0.2     ✔ tibble    3.3.1
-    ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.2
-    ## ✔ purrr     1.2.1     
-    ## ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-    ## ✖ dplyr::filter() masks stats::filter()
-    ## ✖ dplyr::lag()    masks stats::lag()
-    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-    ## Loading required package: permute
-    ## 
-    ## This is vegan 2.7-2
-    ## 
-    ## 
-    ## Attaching package: 'ape'
-    ## 
-    ## 
-    ## The following object is masked from 'package:dplyr':
-    ## 
-    ##     where
-    ## 
-    ## 
-    ## Registered S3 methods overwritten by 'adegraphics':
-    ##   method         from
-    ##   biplot.dudi    ade4
-    ##   kplot.foucart  ade4
-    ##   kplot.mcoa     ade4
-    ##   kplot.mfa      ade4
-    ##   kplot.pta      ade4
-    ##   kplot.sepan    ade4
-    ##   kplot.statis   ade4
-    ##   scatter.coa    ade4
-    ##   scatter.dudi   ade4
-    ##   scatter.nipals ade4
-    ##   scatter.pco    ade4
-    ##   score.acm      ade4
-    ##   score.mix      ade4
-    ##   score.pca      ade4
-    ##   screeplot.dudi ade4
-    ## 
-    ## Registered S3 method overwritten by 'spdep':
-    ##   method   from
-    ##   plot.mst ape 
-    ## 
-    ## Registered S3 method overwritten by 'adespatial':
-    ##   method          from       
-    ##   plot.multispati adegraphics
 
 ## Root path function
 
@@ -231,11 +182,11 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.277000 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.278000 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
-    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622  5e-04
-    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178  5e-04
+    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622 0.0015
+    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178 0.0005
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])

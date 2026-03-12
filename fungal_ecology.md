@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 05 March, 2026
+Last updated: 12 March, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -669,12 +669,17 @@ Are field age and gf_axis correlated?
 gfi_yrs <- gf_axis %>% 
   left_join(sites %>% select(field_name, yr_since), by = join_by(field_name)) %>% 
   arrange(-gf_axis)
-gfa_yr_cor <- with(gfi_yrs, cor.test(yr_since, gf_axis))
-data.frame(cor = gfa_yr_cor$estimate, R2 = gfa_yr_cor$estimate^2, row.names = "value")
+gfa_yr_cor <- with(gfi_yrs, cor.test(yr_since, gf_axis, method = "spearman"))
 ```
 
-    ##             cor        R2
-    ## value -0.929948 0.8648033
+    ## Warning in cor.test.default(yr_since, gf_axis, method = "spearman"): Cannot compute exact p-value with ties
+
+``` r
+data.frame(rho = gfa_yr_cor$estimate, R2 = gfa_yr_cor$estimate^2, row.names = "value")
+```
+
+    ##              rho        R2
+    ## value -0.8145934 0.6635625
 
 The relatively strong correlation suggests that different restoration
 methods over time are still reflected in plant composition. Years since
@@ -684,22 +689,17 @@ Visualize grass forb gradient compared with plant composition, grass and
 forb cover, and years since restoration.
 
 ``` r
-fs8_xlab <- pfg %>% 
-  left_join(sites, by = join_by(field_name)) %>% 
-  filter(field_type != "corn") %>% 
-  group_by(field_type) %>% 
-  mutate(xlab = case_when(field_type == "restored" ~ paste("RS", 1:n(), sep = "-"),
-                          field_type == "remnant"  ~ paste("RM", 1:n(), sep = "-"))
-  ) %>% 
-  ungroup() %>% 
-  select(field_name, xlab)
+site_codes <- sites %>% 
+  arrange(region, field_type, field_name) %>% 
+  group_by(region) %>% 
+  mutate(field_code = paste(region, 1:n(), sep = "-"))
 plt_div <- 
   prich %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(fs8_xlab, by = join_by(field_name)) %>% 
-  select(field_name, xlab, gf_axis, pl_rich, pl_shan) %>%
+  left_join(site_codes, by = join_by(field_name)) %>% 
+  select(field_name, field_code, gf_axis, pl_rich, pl_shan) %>%
   pivot_longer(pl_rich:pl_shan, names_to = "var", values_to = "value") %>% 
-  ggplot(aes(x = fct_reorder(xlab, gf_axis), y = value, group = var)) +
+  ggplot(aes(x = fct_reorder(field_code, gf_axis), y = value, group = var)) +
   geom_col(aes(fill = var), position = position_dodge()) +
   labs(x = NULL, y = expression(atop("Alpha diversity", paste("(", italic(n), " species)")))) +
   scale_fill_discrete_qualitative(name = "Diversity index", palette = "Dynamic", 
@@ -720,9 +720,9 @@ pfg_comp <-
   select(field_name, yr_since, gf_axis, pfg, pct_comp) %>% 
   mutate(pfg = factor(pfg, levels = c("shrubTree", "legume", "C3_grass", "C4_grass", "forb"),
                       labels = c("shrub, tree", "legume", "grass (C3)", "grass (C4)", "forb"))) %>% 
-  left_join(fs8_xlab, by = join_by(field_name))
+  left_join(site_codes, by = join_by(field_name))
 pfg_comp_fig <- 
-  ggplot(pfg_comp, aes(x = fct_reorder(xlab, gf_axis), y = pct_comp, group = pfg)) +
+  ggplot(pfg_comp, aes(x = fct_reorder(field_code, gf_axis), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
   labs(x = NULL, y = "Composition (%)") +
   scale_fill_manual(name = "Functional group", values = pfg_col,
@@ -741,14 +741,24 @@ pfg_pct <-
   select(field_name, yr_since, gf_axis, pfg, pct_cvr)  %>% 
   mutate(pfg = factor(pfg, levels = c("C4_grass", "forb"),
                       labels = c("grass (C4)", "forb"))) %>% 
-  left_join(fs8_xlab, by = join_by(field_name))
+  left_join(site_codes, by = join_by(field_name))
 gf_pct_fig <- 
-  ggplot(pfg_pct, aes(x = fct_reorder(xlab, gf_axis), y = pct_cvr, group = pfg)) +
+  ggplot(pfg_pct, aes(x = fct_reorder(field_code, gf_axis), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg), linejoin = "round", lineend = "round") +
   geom_point(aes(color = pfg), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   scale_color_manual(name = "Functional group", values = pfg_col[4:5], 
                      labels = c(expression("grass ("*C[4]*")"), expression("forb"))) +
   labs(x = NULL, y = "Cover (%)") +
+  theme_cor +
+  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag.position = c(0, 1))
+gfi_yrs_fig <- 
+  gfi_yrs %>% 
+  left_join(site_codes, by = join_by(field_name, yr_since)) %>% 
+  ggplot(aes(x = fct_reorder(field_code, gf_axis), y = yr_since, group = field_type)) +
+  geom_point(color = "gray20", shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
+  labs(x = NULL, y = expression(atop("Age", "(years)"))) +
+  lims(y = c(0,30)) +
   theme_cor +
   theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
@@ -769,8 +779,9 @@ gfi_loc_fig <-
 #### Unified figure
 
 ``` r
-pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / gf_pct_fig / plot_spacer() / gfi_loc_fig) +
-  plot_layout(heights = c(1,0.01,1,0.01,0.7,0.01,0.2)) +
+pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() / 
+                  gf_pct_fig / plot_spacer() / gfi_yrs_fig / plot_spacer() / gfi_loc_fig) +
+  plot_layout(heights = c(1,0.01,1,0.01,0.7,0.01,0.5,0.01,0.2)) +
   plot_annotation(tag_levels = 'A') 
 ```
 
@@ -2217,7 +2228,7 @@ its_div_fig <-
   ) +
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
-  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
+  geom_text(aes(y = ucl, label = c("A", "B", "B", "a", "b", "b"), group = index), 
             position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
   labs(x = NULL) +
   scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
@@ -2247,7 +2258,7 @@ amf_div_fig <-
   ) +
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
-  geom_text(aes(y = ucl, label = rep(c("a", "b", "b"), 2), group = index), 
+  geom_text(aes(y = ucl, label = c("A", "B", "B", "a", "b", "b"), group = index), 
             position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
   labs(x = NULL) +
   scale_y_continuous(name = expression(atop("AM fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 80), 
