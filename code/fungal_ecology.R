@@ -566,7 +566,52 @@ patho_div <- calc_div(patho, sites) %>%
 #+ sapro_diversity
 sapro_div <- calc_div(sapro, sites) %>% 
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
-
+#' 
+#' ## Dominant taxa
+#' Highest relative abundance in guilds and overall
+#' ### ITS
+its_rel_abund_all <- 
+  its_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(otu) %>% 
+  summarize(seq_abund = sum(seq_abund), .groups = "drop") %>% 
+  mutate(rel_abund = seq_abund / sum(seq_abund) * 100)
+its_rel_abund_ft <- 
+  its_avg %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(field_type, otu) %>% 
+  summarize(seq_abund_ft = sum(seq_abund), .groups = "drop_last") %>% 
+  mutate(rel_abund_ft = seq_abund_ft / sum(seq_abund_ft) * 100) %>% 
+  pivot_wider(id_cols = "otu", names_from = "field_type", values_from = "rel_abund_ft") %>% 
+  left_join(its_rel_abund_all %>% select(-seq_abund, all = rel_abund), by = join_by(otu)) %>% 
+  slice_max(all, n = 30, with_ties = FALSE) %>% 
+  left_join(its_meta %>% select(otu_num, family:primary_lifestyle), by = join_by(otu == otu_num))
+kable(its_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
+      format = "pandoc", 
+      caption = "Top 30 ITS OTUs, ranked by average relative abundance. The overall value ≠ average of field types due to unequal weights (unbalanced design).")
+#' 
+#' ### AMF
+amf_rel_abund_all <- 
+  amf_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(otu) %>% 
+  summarize(seq_abund = sum(seq_abund), .groups = "drop") %>% 
+  mutate(rel_abund = seq_abund / sum(seq_abund) * 100)
+amf_rel_abund_ft <- 
+  amf_avg %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(field_type, otu) %>% 
+  summarize(seq_abund_ft = sum(seq_abund), .groups = "drop_last") %>% 
+  mutate(rel_abund_ft = seq_abund_ft / sum(seq_abund_ft) * 100) %>% 
+  pivot_wider(id_cols = "otu", names_from = "field_type", values_from = "rel_abund_ft") %>% 
+  left_join(its_rel_abund_all %>% select(-seq_abund, all = rel_abund), by = join_by(otu)) %>% 
+  slice_max(all, n = 30, with_ties = FALSE) %>% 
+  left_join(amf_meta %>% select(otu_num, family:taxon), by = join_by(otu == otu_num))
+kable(amf_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
+      format = "pandoc", 
+      caption = "Top 30 AMF OTUs, ranked by average relative abundance. The overall value ≠ average of field types due to unequal weights (unbalanced design).")
 #' 
 #' ## Richness
 ## Richness ———————— ####
