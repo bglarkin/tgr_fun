@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 12 March, 2026
+Last updated: 01 April, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -18,6 +18,7 @@ Last updated: 12 March, 2026
   - [Fungi](#fungi)
   - [AM fungi](#am-fungi)
 - [Alpha diversity](#alpha-diversity)
+  - [Dominant taxa](#dominant-taxa)
   - [Richness](#richness)
   - [Shannon diversity](#shannon-diversity)
   - [Unified results](#unified-results)
@@ -957,6 +958,130 @@ sapro_div <- calc_div(sapro, sites) %>%
   mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
 ```
 
+## Dominant taxa
+
+Highest relative abundance in guilds and overall \### ITS
+
+``` r
+its_rel_abund_all <- 
+  its_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(otu) %>% 
+  summarize(seq_abund = sum(seq_abund), .groups = "drop") %>% 
+  mutate(rel_abund = seq_abund / sum(seq_abund) * 100)
+its_rel_abund_ft <- 
+  its_avg %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(field_type, otu) %>% 
+  summarize(seq_abund_ft = sum(seq_abund), .groups = "drop_last") %>% 
+  mutate(rel_abund_ft = seq_abund_ft / sum(seq_abund_ft) * 100) %>% 
+  pivot_wider(id_cols = "otu", names_from = "field_type", values_from = "rel_abund_ft") %>% 
+  left_join(its_rel_abund_all %>% select(-seq_abund, all = rel_abund), by = join_by(otu)) %>% 
+  slice_max(all, n = 30, with_ties = FALSE) %>% 
+  left_join(its_meta %>% select(otu_num, family:primary_lifestyle), by = join_by(otu == otu_num))
+kable(its_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
+      format = "pandoc", 
+      caption = "Top 30 ITS OTUs, ranked by average relative abundance. The overall value ≠ average of field types due to unequal weights (unbalanced design).")
+```
+
+| otu | corn | restored | remnant | all | family | genus | species | primary_lifestyle |
+|:---|---:|---:|---:|---:|:---|:---|:---|:---|
+| otu_1 | 2.6 | 4.1 | 3.8 | 3.8 | Nectriaceae | Fusarium | Fusarium_oxysporum | plant_pathogen |
+| otu_7 | 0.7 | 2.9 | 2.0 | 2.3 | Periconiaceae | Periconia | unidentified | plant_pathogen |
+| otu_2 | 0.9 | 2.4 | 1.1 | 1.9 | Mortierellaceae | Mortierella | Mortierella_exigua | saprotroph |
+| otu_6 | 1.5 | 1.6 | 2.2 | 1.7 | Didymellaceae | unidentified | unidentified | unidentified |
+| otu_15 | 6.0 | 0.7 | 0.2 | 1.7 | Lasiosphaeriaceae | unidentified | unidentified | unidentified |
+| otu_4 | 0.0 | 1.9 | 1.2 | 1.4 | Herpotrichiellaceae | unidentified | unidentified | unidentified |
+| otu_10 | 0.0 | 1.7 | 1.4 | 1.3 | unidentified | unidentified | unidentified | unidentified |
+| otu_3 | 1.5 | 1.3 | 1.1 | 1.3 | Plectosphaerellaceae | Gibellulopsis | unidentified | plant_pathogen |
+| otu_5 | 1.2 | 1.2 | 1.8 | 1.3 | Nectriaceae | unidentified | unidentified | unidentified |
+| otu_26 | 2.0 | 1.1 | 0.4 | 1.2 | Sporormiaceae | Preussia | Preussia_flanaganii | saprotroph |
+| otu_8 | 0.0 | 1.1 | 2.9 | 1.1 | Herpotrichiellaceae | unidentified | unidentified | unidentified |
+| otu_22 | 0.8 | 1.2 | 1.1 | 1.1 | Herpotrichiellaceae | Exophiala | unidentified | animal_parasite |
+| otu_36 | 0.0 | 1.2 | 2.0 | 1.1 | unidentified | unidentified | unidentified | unidentified |
+| otu_19 | 0.0 | 1.4 | 0.9 | 1.0 | unidentified | unidentified | unidentified | unidentified |
+| otu_92 | 1.5 | 0.9 | 0.9 | 1.0 | Lasiosphaeriaceae | Schizothecium | unidentified | saprotroph |
+| otu_9 | 4.6 | 0.1 | 0.1 | 1.0 | Mrakiaceae | Tausonia | Tausonia_pullulans | saprotroph |
+| otu_14 | 0.9 | 1.0 | 0.8 | 1.0 | Mortierellaceae | Mortierella | unidentified | saprotroph |
+| otu_11 | 2.6 | 0.6 | 0.1 | 0.9 | Chaetomiaceae | Humicola | Humicola_grisea | saprotroph |
+| otu_34 | 0.9 | 0.9 | 0.5 | 0.9 | Lasiosphaeriaceae | Apodus | Apodus_deciduus | saprotroph |
+| otu_57 | 0.0 | 1.0 | 1.1 | 0.8 | Herpotrichiellaceae | unidentified | unidentified | unidentified |
+| otu_16 | 1.5 | 0.7 | 0.6 | 0.8 | Nectriaceae | Nectria | Nectria_ramulariae | plant_pathogen |
+| otu_24 | 0.0 | 0.9 | 1.6 | 0.8 | Helotiales_fam_Incertae_sedis | Leohumicola | Leohumicola_minima | unidentified |
+| otu_12 | 0.2 | 1.0 | 0.8 | 0.8 | Sordariales_fam_Incertae_sedis | Staphylotrichum | unidentified | unidentified |
+| otu_30 | 2.0 | 0.5 | 0.2 | 0.8 | Nectriaceae | Fusicolla | Fusicolla_aquaeductuum | mycoparasite |
+| otu_33 | 0.4 | 1.0 | 0.4 | 0.8 | Nectriaceae | Fusarium | unidentified | plant_pathogen |
+| otu_39 | 0.1 | 0.9 | 0.9 | 0.7 | Cucurbitariaceae | Pyrenochaeta | unidentified | saprotroph |
+| otu_13 | 1.9 | 0.5 | 0.3 | 0.7 | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina | plant_pathogen |
+| otu_18 | 0.8 | 0.8 | 0.2 | 0.7 | Cladosporiaceae | Cladosporium | unidentified | saprotroph |
+| otu_21 | 2.6 | 0.2 | 0.0 | 0.7 | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris | plant_pathogen |
+| otu_25 | 0.0 | 1.0 | 0.0 | 0.6 | Herpotrichiellaceae | unidentified | unidentified | unidentified |
+
+Top 30 ITS OTUs, ranked by average relative abundance. The overall value
+≠ average of field types due to unequal weights (unbalanced design).
+
+### AMF
+
+``` r
+amf_rel_abund_all <- 
+  amf_avg %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(otu) %>% 
+  summarize(seq_abund = sum(seq_abund), .groups = "drop") %>% 
+  mutate(rel_abund = seq_abund / sum(seq_abund) * 100)
+amf_rel_abund_ft <- 
+  amf_avg %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
+  group_by(field_type, otu) %>% 
+  summarize(seq_abund_ft = sum(seq_abund), .groups = "drop_last") %>% 
+  mutate(rel_abund_ft = seq_abund_ft / sum(seq_abund_ft) * 100) %>% 
+  pivot_wider(id_cols = "otu", names_from = "field_type", values_from = "rel_abund_ft") %>% 
+  left_join(its_rel_abund_all %>% select(-seq_abund, all = rel_abund), by = join_by(otu)) %>% 
+  slice_max(all, n = 30, with_ties = FALSE) %>% 
+  left_join(amf_meta %>% select(otu_num, family:taxon), by = join_by(otu == otu_num))
+kable(amf_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
+      format = "pandoc", 
+      caption = "Top 30 AMF OTUs, ranked by average relative abundance. The overall value ≠ average of field types due to unequal weights (unbalanced design).")
+```
+
+| otu | corn | restored | remnant | all | family | genus | taxon |
+|:---|---:|---:|---:|---:|:---|:---|:---|
+| otu_1 | 0.5 | 7.4 | 7.6 | 3.8 | Glomeraceae | Glomus | Glomus Douhan3 |
+| otu_7 | 10.7 | 6.7 | 6.3 | 2.3 | Glomeraceae | Glomus | Glomus MO-G23 |
+| otu_2 | 0.3 | 5.8 | 8.4 | 1.9 | Glomeraceae | Glomus | Glomus MO-G15 |
+| otu_6 | 3.5 | 3.7 | 3.6 | 1.7 | Claroideoglomeraceae | Claroideoglomus | unidentified |
+| otu_15 | 0.0 | 2.6 | 1.7 | 1.7 | Glomeraceae | Glomus | unidentified |
+| otu_4 | 9.2 | 3.2 | 2.4 | 1.4 | Glomeraceae | Glomus | Glomus Whitfield type 17 |
+| otu_10 | 0.2 | 4.1 | 4.5 | 1.3 | Claroideoglomeraceae | Claroideoglomus | Claroideoglomus Douhan9 |
+| otu_3 | 6.1 | 5.4 | 1.3 | 1.3 | Paraglomeraceae | Paraglomus | unidentified |
+| otu_5 | 9.3 | 6.6 | 6.3 | 1.3 | Glomeraceae | Glomus | unidentified |
+| otu_26 | 1.3 | 1.0 | 0.1 | 1.2 | Glomeraceae | Glomus | Glomus acnaGlo2 |
+| otu_8 | 0.1 | 5.9 | 5.2 | 1.1 | Glomeraceae | Glomus | Glomus sp. |
+| otu_22 | 1.7 | 1.1 | 2.1 | 1.1 | Glomeraceae | Glomus | Glomus MO-G8 |
+| otu_36 | 0.5 | 0.7 | 0.5 | 1.1 | Glomeraceae | Glomus | Glomus Glo8 |
+| otu_19 | 1.4 | 0.6 | 0.6 | 1.0 | Glomeraceae | Glomus | unidentified |
+| otu_92 | 0.1 | 0.0 | 0.0 | 1.0 | Gigasporaceae | Scutellospora | Scutellospora castanea |
+| otu_9 | 1.5 | 4.9 | 5.8 | 1.0 | Glomeraceae | Glomus | Glomus Glo7 |
+| otu_14 | 0.1 | 1.6 | 0.3 | 1.0 | Claroideoglomeraceae | Claroideoglomus | Claroideoglomus Glo59 |
+| otu_11 | 0.0 | 4.4 | 4.1 | 0.9 | Glomeraceae | Glomus | Glomus sp. |
+| otu_34 | 0.0 | 0.7 | 0.7 | 0.9 | Glomeraceae | Glomus | Glomus sp. |
+| otu_57 | 0.1 | 0.1 | 0.5 | 0.8 | Paraglomeraceae | Paraglomus | unidentified |
+| otu_16 | 0.3 | 1.3 | 1.1 | 0.8 | Claroideoglomeraceae | Claroideoglomus | Claroideoglomus ORVIN GLO4 |
+| otu_24 | 0.1 | 2.2 | 1.3 | 0.8 | Glomeraceae | Glomus | Glomus MO-G7 |
+| otu_12 | 0.4 | 4.1 | 3.6 | 0.8 | Glomeraceae | Glomus | Glomus MO-G18 |
+| otu_30 | 0.0 | 0.9 | 1.2 | 0.8 | Diversisporaceae | Diversispora | unidentified |
+| otu_33 | 1.9 | 0.2 | 0.1 | 0.8 | Paraglomeraceae | Paraglomus | unidentified |
+| otu_39 | 0.2 | 0.5 | 0.0 | 0.7 | Glomeraceae | Glomus | unidentified |
+| otu_13 | 12.9 | 1.2 | 1.8 | 0.7 | Glomeraceae | Glomus | Glomus viscosum |
+| otu_18 | 0.1 | 1.5 | 1.5 | 0.7 | Glomeraceae | Glomus | unidentified |
+| otu_21 | 7.6 | 0.9 | 2.1 | 0.7 | Glomeraceae | Glomus | Glomus Wirsel OTU16 |
+| otu_25 | 0.0 | 1.1 | 0.8 | 0.6 | Claroideoglomeraceae | Claroideoglomus | Claroideoglomus acnaGlo7 |
+
+Top 30 AMF OTUs, ranked by average relative abundance. The overall value
+≠ average of field types due to unequal weights (unbalanced design).
+
 ## Richness
 
 ``` r
@@ -1515,7 +1640,7 @@ Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_model(sapro_rich_glm_i)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-59-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-61-1.png)<!-- -->
 
 ``` r
 check_overdispersion(sapro_rich_glm_i) # not overdispersed
@@ -2359,7 +2484,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-90-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
 
 variance differs slightly in groups. Tails on qq plot diverge, lots of
 groups structure visible.
@@ -2444,7 +2569,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-95-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-97-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -2509,7 +2634,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-97-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-99-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
@@ -2527,7 +2652,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-98-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-100-1.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2588,7 +2713,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-100-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-102-1.png)<!-- -->
 
 no serious violations observed
 
@@ -2670,7 +2795,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-104-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-106-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -4903,7 +5028,7 @@ Diagnostics
 check_model(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-156-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-158-1.png)<!-- -->
 
 ``` r
 check_collinearity(patho_gf_glm)
@@ -5017,7 +5142,7 @@ View partial regression plots for consistency.
 avPlots(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-160-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-162-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear structure is obvious. Both variables seem valuable.
@@ -5302,7 +5427,7 @@ distribution_prob(saprofa_prich_lm)
 check_model(saprofa_prich_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-168-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-170-1.png)<!-- -->
 
 Passes visual diagnostics
 
@@ -5389,7 +5514,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-172-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-174-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5495,7 +5620,7 @@ covariate than the test variable.
 avPlots(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-176-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-178-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear behavior is obvious, increasing spread with fungal
@@ -5777,7 +5902,7 @@ distribution_prob(saprofa_pshan_lm)
 check_model(saprofa_pshan_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-181-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-183-1.png)<!-- -->
 
 ``` r
 summary(saprofa_pshan_lm)

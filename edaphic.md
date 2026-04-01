@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 12 March, 2026
+Last updated: 01 April, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -182,11 +182,11 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.278000 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.260500 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
-    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622 0.0015
-    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178 0.0005
+    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622  2e-03
+    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178  5e-04
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
