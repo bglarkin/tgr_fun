@@ -1,6 +1,6 @@
 soil_property,units
 pH,NULL
-OM,% LOI
+SOM,% LOI
 NO3,mg/L
 P,mg/L (Mehlich P-III)
 K,mg/L

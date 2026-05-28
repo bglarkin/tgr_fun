@@ -85,16 +85,13 @@ soil_p_main <-
   ggplot(aes(x = field_type, y = value)) +
   facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
   labs(x = NULL, y = NULL) +
-  geom_boxplot(aes(fill = field_type)) +
+  geom_boxplot(aes(fill = field_type), shape = 21) +
   scale_fill_manual(name = "Field type", values = ft_pal) +
   theme_corf +
   theme(legend.position = "none")
-soil_p_legend <- soil_p_main + theme(legend.position = "right")
 #+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
-ggsave(root_path("figs", "figS4.svg"), plot = soil_p_main, device = svglite::svglite,
-       width = 19, height = 15, units = "cm")
-ggsave(root_path("figs", "figS4_legend.svg"), plot = soil_p_legend, device = svglite::svglite,
-       width = 19, height = 15, units = "cm")
+ggsave(root_path("figs", "figS6.svg"), plot = soil_p_main, device = svglite::svglite,
+       width = 19, height = 20, units = "cm")
 #' 
 #' ## PCA ordination, variable correlations, and PERMANOVA
 soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
@@ -174,6 +171,6 @@ soil_ord_ftypes <-
   theme(legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1))
 #+ figS5,warning=FALSE,fig.height=3.5,fig.width=6.5
-ggsave(root_path("figs", "figS5.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
+ggsave(root_path("figs", "figS7.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
        width = 5.25, height = 4.25, units = "in")
 

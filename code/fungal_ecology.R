@@ -32,7 +32,8 @@ packages_needed <- c(
   # Analysis
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
   "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot",
-  "MASS", "DHARMa", "broom", "ALDEx2", "adespatial",
+  "MASS", "DHARMa", "broom", "ALDEx2", "adespatial", "randomForest",
+  "see",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
@@ -246,7 +247,9 @@ anova(mem_step_sapro, by = "margin", permutations = 1999) %>%
   kable(, format = "pandoc")
 #' MEM1, MEM2, MEM3
 #' Join eigenvectors to sites
-sites <- sites %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+if (!(c("MEM1") %in% colnames(sites))) {
+  sites <- sites %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+} 
 #' 
 #' ### Wisconsin sites
 #' db-MEM
@@ -307,7 +310,9 @@ anova(mem_step_sapro_wi, by = "margin", permutations = 1999) %>%
   kable(, format = "pandoc")
 #' MEM2, MEM1
 #' Join eigenvectors to sites
-sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+if (!(c("MEM1") %in% colnames(sites_wi))) {
+  sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+} 
 #' 
 #' ## Environmental data
 ## Env data ———————— ####
@@ -465,7 +470,7 @@ pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() /
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS7.svg"), plot = pfg_pct_fig, device = svglite::svglite,
+ggsave(root_path("figs", "figS3.svg"), plot = pfg_pct_fig, device = svglite::svglite,
        width = 7.5, height = 8, units = "in")
 #' 
 #' ### Soil properties
@@ -1288,17 +1293,17 @@ sapro_ma_fig <-
 #' ### Patchwork and export figure
 #' Unified figure for supplemental
 #+ figS3_patchwork,warning=FALSE
-figS3up <- (plfa_fig | plot_spacer() | nlfa_fig) +
+biomass_up <- (plfa_fig | plot_spacer() | nlfa_fig) +
   plot_layout(widths = c(0.50, 0.01, 0.50))
-figS3dn <- (patho_ma_fig | plot_spacer() | sapro_ma_fig) +
+biomass_dn <- (patho_ma_fig | plot_spacer() | sapro_ma_fig) +
   plot_layout(widths = c(0.50, 0.01, 0.50))
-figS3 <- (figS3up / plot_spacer() / figS3dn) +
+biomass_fig <- (biomass_up / plot_spacer() / biomass_dn) +
   plot_layout(heights = c(0.50, 0.01, 0.50)) +
   plot_annotation(tag_levels = 'A')
 #+ figS3_fig,warning=FALSE,fig.height=7,fig.width=7
-figS3
+biomass_fig
 #+ figS3_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS3.svg"), plot = figS3, device = svglite::svglite,
+ggsave(root_path("figs", "figS4.svg"), plot = biomass_fig, device = svglite::svglite,
        width = 7.5, height = 4.5, units = "in")
 
 #' 
@@ -1634,7 +1639,7 @@ soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites")
 soil_macro <- 
   soil %>% 
   filter(field_name %in% sites_wi$field_name) %>% 
-  select(field_name, pH, OM, NO3, P, K)
+  select(field_name, pH, SOM, NO3, P, K)
 #' 
 #' Assemble explanatory variables and begin iterative selection process. 
 #' Plant functional groups and traits not included here were eliminated in previous forward selection
@@ -2009,7 +2014,7 @@ fig4b <-
     x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
   scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
-  scale_y_continuous(limits = c(-0.95, 1.2), breaks = c(-1, 0, 1)) +
+  scale_y_continuous(limits = c(-1.2, 0.95), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -2317,68 +2322,76 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-#' 
-#' #### PFG and pathogen species
-#' Test which species co-vary with grass-forb axis across sites using a compositionality-aware
-#' robust test.
-# patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
-#   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-#   filter(field_type != "corn", region != "FL") %>% 
-#   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
-#' Uses function `aldex_gradient()`
-#+ patho_aldex_fun,message=FALSE,warning=FALSE
-patho_gf_specor <- aldex_gradient(
-  spe_tbl = patho_wi,
-  covar_tbl = gf_axis,
-  covar_col = "gf_axis",
-  replicate_multiplier = 10,
-  mc.samples = 256,
-  denom = "all",
-  seed = 20260129
-)
-#+ patho_aldex_results
-patho_gf_spe <- 
-  patho_gf_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  select(cov_est, rho:species) %>% 
-  as_tibble()
-#+ patho_aldex20
-patho_gf_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  as_tibble() %>% # 153 otus identified as pathogen
-  left_join(
-    its_avg %>% 
-      rowwise() %>%
-      mutate(total = sum(c_across(where(is.numeric))),
-             across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
-      select(-total) %>% 
-      pivot_longer(cols = starts_with("otu"), names_to = "otu", values_to = "proportion") %>% 
-      left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-      filter(region != "FL", proportion > 0) %>% 
-      group_by(otu, field_type) %>% 
-      summarize(n_fields = n(), .groups = "drop") %>% 
-      pivot_wider(names_from = field_type, values_from = n_fields, names_prefix = "n_"), 
-    by = join_by(otu)
-  ) %>% 
-  select(cov_est, rho:n_remnant) %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  arrange(-rho) %>% 
-  kable(format = "pandoc", caption = "Pathogen species correlates with grass-forb axis")
-patho_gf_spe %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  summarise(
-    n_total = n(),
-    n_positive = sum(rho > 0),
-    n_negative = sum(rho < 0)
-  )
+
+
+
+
+#' #' 
+#' #' #### PFG and pathogen species
+#' #' Test which species co-vary with grass-forb axis across sites using a compositionality-aware
+#' #' robust test.
+#' # patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
+#' #   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+#' #   filter(field_type != "corn", region != "FL") %>% 
+#' #   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+#' #' Uses function `aldex_gradient()`
+#' #+ patho_aldex_fun,message=FALSE,warning=FALSE
+#' patho_gf_specor <- aldex_gradient(
+#'   spe_tbl = patho_wi,
+#'   covar_tbl = gf_axis,
+#'   covar_col = "gf_axis",
+#'   replicate_multiplier = 10,
+#'   mc.samples = 256,
+#'   denom = "all",
+#'   seed = 20260129
+#' )
+#' #+ patho_aldex_results
+#' patho_gf_spe <- 
+#'   patho_gf_specor$ranked %>% 
+#'   left_join(its_meta %>% 
+#'               select(-otu_ID, -phylum, -primary_lifestyle), 
+#'             by = join_by(otu == otu_num)) %>% 
+#'   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+#'   arrange(rho_p) %>% 
+#'   select(cov_est, rho:species) %>% 
+#'   as_tibble()
+#' #+ patho_aldex20
+#' patho_gf_specor$ranked %>% 
+#'   left_join(its_meta %>% 
+#'               select(-otu_ID, -phylum, -primary_lifestyle), 
+#'             by = join_by(otu == otu_num)) %>% 
+#'   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+#'   arrange(rho_p) %>% 
+#'   as_tibble() %>% # 153 otus identified as pathogen
+#'   left_join(
+#'     its_avg %>% 
+#'       rowwise() %>%
+#'       mutate(total = sum(c_across(where(is.numeric))),
+#'              across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
+#'       select(-total) %>% 
+#'       pivot_longer(cols = starts_with("otu"), names_to = "otu", values_to = "proportion") %>% 
+#'       left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+#'       filter(region != "FL", proportion > 0) %>% 
+#'       group_by(otu, field_type) %>% 
+#'       summarize(n_fields = n(), .groups = "drop") %>% 
+#'       pivot_wider(names_from = field_type, values_from = n_fields, names_prefix = "n_"), 
+#'     by = join_by(otu)
+#'   ) %>% 
+#'   select(cov_est, rho:n_remnant) %>% 
+#'   filter(abs(rho) >= 0.4) %>% 
+#'   arrange(-rho) %>% 
+#'   kable(format = "pandoc", caption = "Pathogen species correlates with grass-forb axis")
+#' patho_gf_spe %>% 
+#'   filter(abs(rho) >= 0.4) %>% 
+#'   summarise(
+#'     n_total = n(),
+#'     n_positive = sum(rho > 0),
+#'     n_negative = sum(rho < 0)
+#'   )
+
+
+
+
 #' 
 #' ## Saprotrophs
 ## Saprotrophs ———————— ####
@@ -2504,73 +2517,80 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
     lwr_prob = plogis(fit - 1.96 * se.fit),
     upr_prob = plogis(fit + 1.96 * se.fit)
   )
-#' 
-#' #### Plant richness and saprotroph species
-#' Identify saprotroph species that co-vary with richness across sites.
-sapro_wi <- guildseq(its_avg, its_meta, "saprotroph") %>% # spe matrix
-  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) # Back-transform to field sums
-#' Using function `aldex_gradient`.
-#+ sapro_aldex_fun,message=FALSE,warning=FALSE
-sapro_rich_specor <- aldex_gradient(
-  spe_tbl = sapro_wi,
-  covar_tbl = prich %>% select(field_name, pl_rich),
-  covar_col = "pl_rich",
-  replicate_multiplier = 10,
-  mc.samples = 256,
-  denom = "all",
-  seed = 20260129
-)
-#+ sapro_aldex_results
-sapro_rich_spe <- 
-  sapro_rich_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  select(cov_est, rho:species) %>% 
-  as_tibble()
-#+ sapro_aldexTop
-sapro_rich_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  as_tibble() %>% # 564 otus identified as saprotroph
-  left_join(
-    its_avg %>% 
-      rowwise() %>%
-      mutate(total = sum(c_across(where(is.numeric))),
-             across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
-      select(-total) %>% 
-      pivot_longer(cols = starts_with("otu"), names_to = "otu", values_to = "proportion") %>% 
-      left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-      filter(region != "FL", proportion > 0) %>% 
-      group_by(otu, field_type) %>% 
-      summarize(n_fields = n(), .groups = "drop") %>% 
-      pivot_wider(names_from = field_type, values_from = n_fields, names_prefix = "n_"), 
-    by = join_by(otu)
-  ) %>% 
-  select(cov_est, rho:n_remnant) %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  arrange(rho) %>% 
-  kable(format = "pandoc", caption = "Saprotroph species correlates with plant richness")
-sapro_rich_spe %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  summarise(
-    n_total = n(),
-    n_positive = sum(rho > 0),
-    n_negative = sum(rho < 0)
-  )
-sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% 
-  mutate(sign = case_when(rho < 0 ~ "negative", rho > 0 ~ "positive")) %>% 
-  group_by(sign, class) %>% 
-  count() %>% 
-  pivot_wider(names_from = "sign", values_from = "n") %>% 
-  kable(format = "pandoc", caption = "Saprotroph classes and correlations with plant richness")
+
+
+
+#' #' 
+#' #' #### Plant richness and saprotroph species
+#' #' Identify saprotroph species that co-vary with richness across sites.
+#' sapro_wi <- guildseq(its_avg, its_meta, "saprotroph") %>% # spe matrix
+#'   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+#'   filter(field_type != "corn", region != "FL") %>% 
+#'   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) # Back-transform to field sums
+#' #' Using function `aldex_gradient`.
+#' #+ sapro_aldex_fun,message=FALSE,warning=FALSE
+#' sapro_rich_specor <- aldex_gradient(
+#'   spe_tbl = sapro_wi,
+#'   covar_tbl = prich %>% select(field_name, pl_rich),
+#'   covar_col = "pl_rich",
+#'   replicate_multiplier = 10,
+#'   mc.samples = 256,
+#'   denom = "all",
+#'   seed = 20260129
+#' )
+#' #+ sapro_aldex_results
+#' sapro_rich_spe <- 
+#'   sapro_rich_specor$ranked %>% 
+#'   left_join(its_meta %>% 
+#'               select(-otu_ID, -phylum, -primary_lifestyle), 
+#'             by = join_by(otu == otu_num)) %>% 
+#'   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+#'   arrange(rho_p) %>% 
+#'   select(cov_est, rho:species) %>% 
+#'   as_tibble()
+#' #+ sapro_aldexTop
+#' sapro_rich_specor$ranked %>% 
+#'   left_join(its_meta %>% 
+#'               select(-otu_ID, -phylum, -primary_lifestyle), 
+#'             by = join_by(otu == otu_num)) %>% 
+#'   mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
+#'   arrange(rho_p) %>% 
+#'   as_tibble() %>% # 564 otus identified as saprotroph
+#'   left_join(
+#'     its_avg %>% 
+#'       rowwise() %>%
+#'       mutate(total = sum(c_across(where(is.numeric))),
+#'              across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
+#'       select(-total) %>% 
+#'       pivot_longer(cols = starts_with("otu"), names_to = "otu", values_to = "proportion") %>% 
+#'       left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
+#'       filter(region != "FL", proportion > 0) %>% 
+#'       group_by(otu, field_type) %>% 
+#'       summarize(n_fields = n(), .groups = "drop") %>% 
+#'       pivot_wider(names_from = field_type, values_from = n_fields, names_prefix = "n_"), 
+#'     by = join_by(otu)
+#'   ) %>% 
+#'   select(cov_est, rho:n_remnant) %>% 
+#'   filter(abs(rho) >= 0.4) %>% 
+#'   arrange(rho) %>% 
+#'   kable(format = "pandoc", caption = "Saprotroph species correlates with plant richness")
+#' sapro_rich_spe %>% 
+#'   filter(abs(rho) >= 0.4) %>% 
+#'   summarise(
+#'     n_total = n(),
+#'     n_positive = sum(rho > 0),
+#'     n_negative = sum(rho < 0)
+#'   )
+#' sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% 
+#'   mutate(sign = case_when(rho < 0 ~ "negative", rho > 0 ~ "positive")) %>% 
+#'   group_by(sign, class) %>% 
+#'   count() %>% 
+#'   pivot_wider(names_from = "sign", values_from = "n") %>% 
+#'   kable(format = "pandoc", caption = "Saprotroph classes and correlations with plant richness")
+
+
+
+
 #' 
 #' ### Plant diversity and saprotrophs
 #' Is plant diversity related to saprotroph mass?
