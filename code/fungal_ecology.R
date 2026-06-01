@@ -32,7 +32,7 @@ packages_needed <- c(
   # Analysis
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
   "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot",
-  "MASS", "DHARMa", "broom", "ALDEx2", "adespatial", "randomForest",
+  "MASS", "DHARMa", "broom", "adespatial", "randomForest",
   "see",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
@@ -53,7 +53,8 @@ conflicts_prefer(
   dplyr::select(),
   dplyr::where(),
   vegan::diversity(),
-  purrr::map()
+  purrr::map(),
+  ggplot2::margin()
 )
 #' 
 #+ graphics_styles
@@ -1457,7 +1458,7 @@ amf_ma_ord <-
 #+ figS4,warning=FALSE
 amf_ma_ord
 #+ figS4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "figS6.svg"), plot = amf_ma_ord, device = svglite::svglite,
+ggsave(root_path("figs", "figS5.svg"), plot = amf_ma_ord, device = svglite::svglite,
        width = 5.25, height = 4.25, units = "in")
 #' 
 #' ### Contrast AMF ordinations
@@ -1846,7 +1847,7 @@ patho_mod_scor_bp <- bind_rows(
 #' Env covars processed in the ITS section (see above)
 #' Two significant spatial vars
 sapro_mod_null <- dbrda(d_wi$d_sapro_wi ~ 1 + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
-sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + OM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
+sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + SOM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
 sapro_mod_step <- ordistep(sapro_mod_null,
                            scope = formula(sapro_mod_full),
                            direction = "forward",
