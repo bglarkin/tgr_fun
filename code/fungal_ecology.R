@@ -991,7 +991,7 @@ its_div_fig <-
   geom_text(aes(y = ucl, label = c("A", "B", "B", "a", "b", "b"), group = index), 
             position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
   labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
+  scale_y_continuous(name = expression(atop("General fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 100, 200))) +
   scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
@@ -1047,7 +1047,7 @@ patho_div_fig <-
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
   labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Pathogen fungal", paste("Richness (", italic(n), " OTUs)"))),  
+  scale_y_continuous(name = expression(atop("Pathogen", paste("Richness (", italic(n), " OTUs)"))),  
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 5, 10, 15))) +
   scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
@@ -1074,7 +1074,7 @@ sapro_div_fig <-
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
   labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))),  
+  scale_y_continuous(name = expression(atop("Saprotroph", paste("Richness (", italic(n), " OTUs)"))),  
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
   scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
