@@ -92,12 +92,9 @@ soil_p_main <-
 #+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
 ggsave(root_path("figs", "figS6.svg"), plot = soil_p_main, device = svglite::svglite,
        width = 19, height = 20, units = "cm")
-
-
-
-
-
-
+#' 
+#' ## Test differences among field types
+#' Use Kruskal-Wallis tests with FDR corrected p values
 soil_kw_data <- 
   soil %>% 
   pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
@@ -111,12 +108,6 @@ split(soil_kw_data, soil_kw_data$soil_property) %>%
   select(property, kw_stat = statistic, p.val = p.value, p.adj) %>% 
   arrange(p.val) %>% 
   kable(format = "pandoc", caption = "Kruskal-Wallis rank sum test results on soil properties across field types.\nDf=2, FDR correction used.")
-  
-
-
-
-
-
 #' 
 #' ## PCA ordination, variable correlations, and PERMANOVA
 soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
