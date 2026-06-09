@@ -1718,7 +1718,7 @@ mod_scor_bp <- bind_rows(
     envvar = "gf_axis",
     dbRDA1 = -mod_scor$biplot["gf_axis", 1],
     dbRDA2 = -mod_scor$biplot["gf_axis", 2],
-    envlabs = ">grass")
+    envlabs = ">C₄ grass")
 ) %>% 
   arrange(envvar, envlabs) %>% 
   mutate(
@@ -1777,7 +1777,7 @@ amf_mod_scor_bp <- bind_rows(
     envvar = "gf_axis",
     dbRDA1 = -amf_mod_scor$biplot["gf_axis", 1],
     dbRDA2 = -amf_mod_scor$biplot["gf_axis", 2],
-    envlabs = ">grass")
+    envlabs = ">C₄ grass")
 ) %>% 
   arrange(envvar, envlabs) %>% 
   mutate(
@@ -1832,7 +1832,7 @@ patho_mod_scor_bp <- bind_rows(
     envvar = "gf_axis",
     dbRDA1 = -patho_mod_scor$biplot["gf_axis", 1],
     dbRDA2 = -patho_mod_scor$biplot["gf_axis", 2],
-    envlabs = ">grass")
+    envlabs = ">C₄ grass")
 ) %>% 
   arrange(envvar, envlabs) %>% 
   mutate(
@@ -1884,12 +1884,12 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c(">forb", "OM", "plant spp.")),
+    mutate(envlabs = c(">forb", "SOM", "plant spp.")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
     dbRDA2 = -sapro_mod_scor$biplot["gf_axis", 2],
-    envlabs = ">grass")
+    envlabs = ">C₄ grass")
 ) %>% 
   arrange(envvar, envlabs) %>% 
   mutate(
@@ -1982,7 +1982,7 @@ fig4a <-
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c(pfg_col[5], pfg_col[4], "gray20")) +
+               color = c(pfg_col[4], pfg_col[5], "gray20")) +
   geom_text(data = mod_scor_bp, 
             aes(x = labx, y = laby, label = envlabs), 
             size = 3, color = "gray20", fontface = 2) +
@@ -2005,7 +2005,7 @@ fig4b <-
   geom_segment(data = amf_mod_scor_bp,
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c(pfg_col[5], pfg_col[4], "gray20")) +
+               color = c(pfg_col[4], pfg_col[5], "gray20")) +
   geom_text(data = amf_mod_scor_bp,
             aes(x = labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -2028,7 +2028,7 @@ fig4c <-
   geom_segment(data = patho_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", pfg_col[5], pfg_col[4])) +
+               color = c("gray20", pfg_col[4], pfg_col[5])) +
   geom_text(data = patho_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -2051,7 +2051,7 @@ fig4d <-
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", pfg_col[5], pfg_col[4], "gray20")) +
+               color = c("gray20", pfg_col[4], pfg_col[5], "gray20")) +
   geom_text(data = sapro_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -2523,8 +2523,8 @@ fig5a_rug <- add_fig7_rug(
   comp_df = gfa_fgc,
   y0 = 0.05,
   h  = 0.010,
-  forb_fill  = pfg_col[5],
-  grass_fill = pfg_col[4]
+  forb_fill  = pfg_col[4],
+  grass_fill = pfg_col[5]
 ) +
   expand_limits(y = 0.05) +
   geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04),
