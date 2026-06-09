@@ -20,7 +20,7 @@
 #' 
 #' # Packages and libraries
 packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted", 
-                     "permute", "geosphere", "ape", "adespatial")
+                     "permute", "geosphere", "ape", "adespatial", "broom")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
