@@ -135,16 +135,16 @@ its_rc %>%
     theme(legend.position = "none")
 
 #' ## Rarefaction: ITS site-averaged
-# its_rc_site <- rarecurve(
-#     its$spe_samps %>%
-#         group_by(field_name) %>%
-#         summarize(across(starts_with("otu"), sum), .groups = "drop") %>%
-#         column_to_rownames("field_name"),
-#     step = 1, tidy = TRUE)
-# write_csv(its_rc_site, root_path("clean_data", "its_rare_site.csv"))
-
-#' Read in the data already produced by `rarecurve()`.
-its_rc_site <- read_csv(root_path("clean_data", "its_rare_site.csv"), show_col_types = FALSE)
+#' its_rc_site <- rarecurve(
+#'     its$spe_samps %>%
+#'         group_by(field_name) %>%
+#'         summarize(across(starts_with("otu"), sum), .groups = "drop") %>%
+#'         column_to_rownames("field_name"),
+#'     step = 1, tidy = TRUE)
+#' write_csv(its_rc_site, root_path("clean_data", "its_rare_site.csv"))
+#' 
+#' #' Read in the data already produced by `rarecurve()`.
+#' its_rc_site <- read_csv(root_path("clean_data", "its_rare_site.csv"), show_col_types = FALSE)
 
 #+ its_rarefaction_site_avg,fig.width=4,fig.height=7
 its_rc_site %>%
@@ -239,55 +239,59 @@ its_rare_fig <- ggplot(rarefac %>% filter(dataset == "ITS"), aes(x = Sample, y =
   scale_color_manual(values = ft_pal) +
   labs(
     x = NULL,
-    y = NULL) +
+    y = "ITS2 OTUs (n)") +
   theme_corf +
   scale_x_continuous(breaks = seq(0, 90000, 30000)) +
   theme(legend.position = "none",
-        plot.margin = unit(rep(0,4), "mm"))
+        plot.margin = unit(rep(0,4), "mm"),
+        strip.text.y = element_blank(), strip.background.y = element_blank())
 amf_rare_fig <- ggplot(rarefac %>% filter(dataset == "AMF"), aes(x = Sample, y = Species, group = field_name)) +
   facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "fixed") +
   geom_line(aes(color = field_type)) +
   scale_color_manual(values = ft_pal) +
   labs(
     x = NULL,
-    y = NULL) +
+    y = "18S OTUs (n)") +
   theme_corf +
   scale_x_continuous(breaks = seq(0, 45000, 15000)) +
   theme(legend.position = "none",
-        strip.text.x = element_blank(),   
-        strip.background.x = element_blank(),
-        plot.margin = unit(rep(0,4), "mm"))
+        plot.margin = unit(rep(0,4), "mm"),
+        strip.text = element_blank(), strip.background = element_blank())
 #' Create figure panels
-rare_panels <- (its_rare_fig / plot_spacer() / amf_rare_fig) +
-  plot_layout(heights = c(1,0.01,1))
 x_lab <- ggdraw() + 
-  draw_label("Sequence abundance", hjust = 0.5, vjust = 0.5, size = 9) 
-y_lab <- ggdraw() + 
-  draw_label("OTUs", angle = 90, hjust = 0.5, vjust = 0.5, size = 9)
-rare_fig_h <- (y_lab | rare_panels) + plot_layout(widths = c(0.03, 1))
-rare_fig <- rare_fig_h / x_lab + plot_layout(heights = c(1, 0.10))
-rare_fig <- rare_fig + plot_annotation(
-  theme = theme(plot.margin = unit(rep(0,4), "mm"))
-)
+  draw_label("Sequence abundance (n reads)", hjust = 0.5, vjust = 0, size = 9) 
+rare_fig <- (its_rare_fig / plot_spacer() / amf_rare_fig / plot_spacer() / x_lab) +
+  plot_layout(heights = c(1,0.06,1,0.005,0.05)) + 
+  plot_annotation(theme = theme(plot.margin = unit(rep(0,4), "mm")))
 #+ rarefaction_fig,fig.width=7,fig.height=4
 rare_fig
 #+ rarefaction_fig_save
 ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = svglite::svglite,
-       height = 4.24,width = 7.5, units = "in")
+       height = 5.5,width = 7.5, units = "in")
 #' Create OTU accumulation fig
-accum_fig <- 
+accum_panels <- 
   ggplot(accum, aes(x = samples, y = richness, group = field_name)) +
   facet_grid(rows = vars(dataset), cols = vars(field_type), scales = "free_y") +
   geom_line(aes(color = field_type)) +
   geom_segment(aes(xend = samples, y = richness - sd, yend = richness + sd, color = field_type)) +
   scale_color_manual(values = ft_pal) +
-  labs(x = "Samples", y = "OTUs") +
+  labs(x = "Samples (n)", y = NULL) +
     scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10)) +
     theme_corf +
     theme(legend.position = "none", 
-          plot.margin = unit(c(0,2,4,2), "mm"))
+          plot.margin = unit(c(0,2,0,1), "mm"),
+          axis.title.x = element_text(margin = margin(t = 9)),
+          strip.text.y = element_blank(), strip.background.y = element_blank())
+y_lab_1 <- ggdraw() +
+  draw_label("ITS2 OTUs (n)", angle = 90, hjust = 0.5, vjust = 0.5, size = 9)
+y_lab_2 <- ggdraw() +
+  draw_label("18S OTUs (n)", angle = 90, hjust = 0.5, vjust = 0.5, size = 9)
+y_labs <- y_lab_1 / y_lab_2
+accum_fig <- (y_labs | accum_panels) +
+  plot_layout(widths = c(0.02,1)) + 
+  plot_annotation(theme = theme(plot.margin = unit(c(0,0,0,2), "mm")))
 #+ species_accumulation_fig,fig.width=7,fig.height=4
 accum_fig
 #+ accum_fig_save
 ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = svglite::svglite,
-       height = 4.25, width = 7.5, units = "in")
+       height = 5.5, width = 7.5, units = "in")
