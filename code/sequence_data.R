@@ -266,7 +266,8 @@ rare_fig <- (its_rare_fig / plot_spacer() / amf_rare_fig / plot_spacer() / x_lab
 #+ rarefaction_fig,fig.width=7,fig.height=4
 rare_fig
 #+ rarefaction_fig_save
-ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, device = svglite::svglite,
+ggsave(root_path("figs", "figS1.svg"), plot = rare_fig, 
+       device = svglite::svglite, fix_text_size = FALSE,
        height = 5.5,width = 7.5, units = "in")
 #' Create OTU accumulation fig
 accum_panels <- 
@@ -293,5 +294,6 @@ accum_fig <- (y_labs | accum_panels) +
 #+ species_accumulation_fig,fig.width=7,fig.height=4
 accum_fig
 #+ accum_fig_save
-ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, device = svglite::svglite,
+ggsave(root_path("figs", "figS2.svg"), plot = accum_fig, 
+       device = svglite::svglite, fix_text_size = FALSE,
        height = 5.5, width = 7.5, units = "in")

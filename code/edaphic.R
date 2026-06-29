@@ -90,7 +90,8 @@ soil_p_main <-
   theme_corf +
   theme(legend.position = "none")
 #+ figS4,warning=FALSE,fig.height=3.5,fig.width=6.5
-ggsave(root_path("figs", "figS6.svg"), plot = soil_p_main, device = svglite::svglite,
+ggsave(root_path("figs", "figS6.svg"), plot = soil_p_main, 
+       device = svglite::svglite, fix_text_size = FALSE, 
        width = 19, height = 20, units = "cm")
 #' 
 #' ## Test differences among field types
@@ -187,6 +188,7 @@ soil_ord_ftypes <-
   theme(legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1))
 #+ figS5,warning=FALSE,fig.height=3.5,fig.width=6.5
-ggsave(root_path("figs", "figS7.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
+ggsave(root_path("figs", "figS7.svg"), plot = soil_ord_ftypes, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 5.25, height = 4.25, units = "in")
 

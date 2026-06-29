@@ -462,8 +462,8 @@ maps_fig <- ggarrange(
 #+ tgr_map,message=FALSE,fig.height=6.8,fig.width=7
 maps_fig
 #' 
-ggsave(root_path("figs/fig1.svg"), plot = maps_fig, device = svglite::svglite,
-    width = 6.5, height = (6.5 * fhs[3] / fhs[1]) + 1.2, units = "in",
-    dpi = 600)
+ggsave(root_path("figs/fig1.svg"), plot = maps_fig, 
+       device = svglite::svglite, fix_text_size = FALSE,
+       width = 6.5, height = (6.5 * fhs[3] / fhs[1]) + 1.2, units = "in", dpi = 600)
 
 

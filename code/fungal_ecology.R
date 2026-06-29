@@ -471,7 +471,8 @@ pfg_pct_fig <- (plt_div / plot_spacer() / pfg_comp_fig / plot_spacer() /
 #+ pfg_fig,warning=FALSE,fig.height=7,fig.width=7
 pfg_pct_fig
 #+ pfg_fig_save_svg,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS3.svg"), plot = pfg_pct_fig, device = svglite::svglite,
+ggsave(root_path("figs", "figS3.svg"), plot = pfg_pct_fig, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 7.5, height = 8, units = "in")
 #' 
 #' ### Soil properties
@@ -1092,7 +1093,8 @@ fig2 <- (its_div_fig / plot_spacer() / amf_div_fig / plot_spacer() / patho_div_f
 #+ div_fig,warning=FALSE,fig.height=9,fig.width=4.5
 fig2
 #+ div_fig_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig2.svg"), plot = fig2, device = svglite::svglite,
+ggsave(root_path("figs", "fig2.svg"), plot = fig2, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 8.5, height = 17, units = "cm")
 
 #' 
@@ -1304,7 +1306,8 @@ biomass_fig <- (biomass_up / plot_spacer() / biomass_dn) +
 #+ figS3_fig,warning=FALSE,fig.height=7,fig.width=7
 biomass_fig
 #+ figS3_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "figS4.svg"), plot = biomass_fig, device = svglite::svglite,
+ggsave(root_path("figs", "figS4.svg"), plot = biomass_fig, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 7.5, height = 4.5, units = "in")
 
 #' 
@@ -1458,7 +1461,8 @@ amf_ma_ord <-
 #+ figS4,warning=FALSE
 amf_ma_ord
 #+ figS4_save,warning=FALSE,fig.height=5,fig.width=7,echo=FALSE
-ggsave(root_path("figs", "figS5.svg"), plot = amf_ma_ord, device = svglite::svglite,
+ggsave(root_path("figs", "figS5.svg"), plot = amf_ma_ord, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 5.25, height = 4.25, units = "in")
 #' 
 #' ### Contrast AMF ordinations
@@ -1610,7 +1614,8 @@ fig3 <- (fig3up / plot_spacer() / fig3dn) +
 #+ betadiv_fig,warning=FALSE,fig.height=7,fig.width=7
 fig3
 #+ betadiv_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig3.svg"), plot = fig3, device = svglite::svglite,
+ggsave(root_path("figs", "fig3.svg"), plot = fig3, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 18, height = 18, units = "cm")
 
 #' 
@@ -2093,7 +2098,8 @@ fig4
 #' C4 grasses or forbs, respectively, along the index. The black arrows show other significant constraining
 #' variables. Points show locations of restored fields (green) and remnant fields (blue) in Wisconsin. 
 #+ fig6_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig4.svg"), plot = fig4, device = svglite::svglite,
+ggsave(root_path("figs", "fig4.svg"), plot = fig4, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 18, height = 18, units = "cm")
 
 #' 
