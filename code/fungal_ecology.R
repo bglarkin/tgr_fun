@@ -1440,11 +1440,11 @@ p_amf_ma_centers <- amf_ma_ord_data %>%
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
          across(ends_with("Axis.1"), ~ .x))
 amf_ma_ord <- 
-  ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) + 
-  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  ggplot(amf_ma_ord_data, aes(x = -1*Axis.1, y = Axis.2)) + 
+  geom_linerange(data = p_amf_ma_centers, aes(x = -1*mean_Axis.1, y = mean_Axis.2, xmin = -1*ci_l_Axis.1, xmax = -1*ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_amf_ma_centers, aes(x = -1*mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_ma_centers, 
-             aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), 
+             aes(x = -1*mean_Axis.1, y = mean_Axis.2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
