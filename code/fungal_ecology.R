@@ -2561,5 +2561,6 @@ fig5 <- (fig5a_rug | plot_spacer() | fig5b) +
 #+ fig7_display,warning=FALSE
 fig5
 #+ fig7_save,warning=FALSE,echo=FALSE
-ggsave(root_path("figs", "fig5.svg"), plot = fig5, device = svglite::svglite,
+ggsave(root_path("figs", "fig5.svg"), plot = fig5, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 18, height = 9, units = "cm")
