@@ -537,6 +537,17 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
   left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
+amf_fam_ma %>%  # familiy biomass-scaled abundance in families across field types
+  select(field_type, Glmrc_mass:Ggspr_mass) %>% 
+  pivot_longer(Glmrc_mass:Ggspr_mass, names_to = "family", values_to = "bscl_abund") %>% 
+  group_by(field_type, family) %>% 
+  summarize(bscl_abund = mean(bscl_abund), .groups = "drop") %>% 
+  pivot_wider(names_from = field_type, values_from = bscl_abund) %>% 
+  rowwise() %>% 
+  mutate(total = sum(across(where(is.numeric))),
+         (across(where(is.numeric), ~ round(.x, 2)))) %>% 
+  arrange(-total) %>% 
+  kable(format = "pandoc", caption = "Biomass-scaled abundance of AM fungal families in field types")
 
 #'  
 #' # Composition in guilds
