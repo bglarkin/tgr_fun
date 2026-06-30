@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 01 April, 2026
+Last updated: 30 June, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -77,7 +77,8 @@ packages_needed <- c(
   # Analysis
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
   "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot",
-  "MASS", "DHARMa", "broom", "ALDEx2", "adespatial",
+  "MASS", "DHARMa", "broom", "adespatial", "randomForest",
+  "see",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
@@ -101,7 +102,8 @@ conflicts_prefer(
   dplyr::select(),
   dplyr::where(),
   vegan::diversity(),
-  purrr::map()
+  purrr::map(),
+  ggplot2::margin()
 )
 ```
 
@@ -418,7 +420,9 @@ anova(mem_step_sapro, by = "margin", permutations = 1999) %>%
 MEM1, MEM2, MEM3 Join eigenvectors to sites
 
 ``` r
-sites <- sites %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+if (!(c("MEM1") %in% colnames(sites))) {
+  sites <- sites %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+} 
 ```
 
 ### Wisconsin sites
@@ -560,7 +564,9 @@ anova(mem_step_sapro_wi, by = "margin", permutations = 1999) %>%
 MEM2, MEM1 Join eigenvectors to sites
 
 ``` r
-sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+if (!(c("MEM1") %in% colnames(sites_wi))) {
+  sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+} 
 ```
 
 ## Environmental data
@@ -673,7 +679,7 @@ gfi_yrs <- gf_axis %>%
 gfa_yr_cor <- with(gfi_yrs, cor.test(yr_since, gf_axis, method = "spearman"))
 ```
 
-    ## Warning in cor.test.default(yr_since, gf_axis, method = "spearman"): Cannot compute exact p-value with ties
+    ## Warning in cor.test.default(yr_since, gf_axis, method = "spearman"): cannot compute exact p-value with ties
 
 ``` r
 data.frame(rho = gfa_yr_cor$estimate, R2 = gfa_yr_cor$estimate^2, row.names = "value")
@@ -1281,16 +1287,16 @@ augment(amf_rich_glm_i) # corn site has cooks >0.9
     ## # A tibble: 25 × 9
     ##    richness depth_csq field_type .fitted   .resid   .hat .sigma    .cooksd .std.resid
     ##       <int>     <dbl> <fct>        <dbl>    <dbl>  <dbl>  <dbl>      <dbl>      <dbl>
-    ##  1       59   -10.3   restored      4.00  0.573   0.232   0.824 0.0221        0.654  
-    ##  2       47     9.30  restored      3.94 -0.624   0.171   0.823 0.0157       -0.685  
-    ##  3       38    -0.862 corn          3.69 -0.357   0.214   0.833 0.00722      -0.403  
-    ##  4       52     3.80  remnant       4.03 -0.577   0.366   0.821 0.0491       -0.724  
-    ##  5       53     8.24  restored      3.94  0.197   0.147   0.837 0.00131       0.213  
-    ##  6       60     3.69  corn          3.91  1.39    0.547   0.683 0.914         2.06   
-    ##  7       33    -4.72  corn          3.51 -0.0975  0.560   0.838 0.00457      -0.147  
-    ##  8       62     6.11  remnant       4.06  0.560   0.500   0.817 0.107         0.792  
-    ##  9       53     1.52  restored      3.96  0.0425  0.0642  0.838 0.0000221     0.0439 
-    ## 10       54    -5.89  restored      3.99  0.00740 0.120   0.838 0.00000142    0.00789
+    ##  1       59   -10.3   restored      4.00  0.573   0.232   0.819 0.0221        0.654  
+    ##  2       47     9.30  restored      3.94 -0.624   0.171   0.819 0.0157       -0.685  
+    ##  3       38    -0.862 corn          3.69 -0.357   0.214   0.829 0.00722      -0.403  
+    ##  4       52     3.80  remnant       4.03 -0.577   0.366   0.817 0.0491       -0.724  
+    ##  5       53     8.24  restored      3.94  0.197   0.147   0.832 0.00131       0.213  
+    ##  6       60     3.69  corn          3.91  1.39    0.547   0.666 0.914         2.06   
+    ##  7       33    -4.72  corn          3.51 -0.0975  0.560   0.833 0.00457      -0.147  
+    ##  8       62     6.11  remnant       4.06  0.560   0.500   0.812 0.107         0.792  
+    ##  9       53     1.52  restored      3.96  0.0425  0.0642  0.834 0.0000221     0.0439 
+    ## 10       54    -5.89  restored      3.99  0.00740 0.120   0.834 0.00000142    0.00789
     ## # ℹ 15 more rows
 
 ``` r
@@ -1298,7 +1304,8 @@ check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
 ```
 
     ## Model has interaction terms. VIFs might be inflated.
-    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction terms.
+    ##   Try to center the variables used for the interaction, or check multicollinearity among predictors of a model without interaction
+    ##   terms.
 
     ## # Check for Multicollinearity
     ## 
@@ -1657,15 +1664,11 @@ check_overdispersion(sapro_rich_glm_i) # not overdispersed
 augment(sapro_rich_glm_i) # corn site has cooks >0.9
 ```
 
-    ## Warning: The `augment()` method for objects of class `negbin` is not maintained by the broom team, and is only supported through the `glm` tidier method. Please be cautious in interpreting and reporting broom output.
-    ## 
-    ## This warning is displayed once per session.
-
     ## # A tibble: 25 × 9
     ##    richness depth_csq field_type .fitted  .resid   .hat .sigma  .cooksd .std.resid
     ##       <int>     <dbl> <fct>        <dbl>   <dbl>  <dbl>  <dbl>    <dbl>      <dbl>
     ##  1      100    -7.23  restored      4.64 -0.306  0.339    1.16 0.0119      -0.376 
-    ##  2      145     0.850 restored      4.82  1.76   0.0821   1.09 0.0533       1.83  
+    ##  2      145     0.850 restored      4.82  1.76   0.0821   1.08 0.0533       1.83  
     ##  3      118    -0.233 corn          4.83 -0.622  0.776    1.13 0.972       -1.31  
     ##  4       96   -15.2   remnant       4.56  0.0285 0.615    1.17 0.000564     0.0460
     ##  5      106    -4.15  restored      4.71 -0.415  0.144    1.16 0.00553     -0.448 
@@ -2356,7 +2359,7 @@ its_div_fig <-
   geom_text(aes(y = ucl, label = c("A", "B", "B", "a", "b", "b"), group = index), 
             position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
   labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
+  scale_y_continuous(name = expression(atop("General fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 100, 200))) +
   scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
@@ -2414,7 +2417,7 @@ patho_div_fig <-
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
   labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Pathogen fungal", paste("Richness (", italic(n), " OTUs)"))),  
+  scale_y_continuous(name = expression(atop("Pathogen", paste("Richness (", italic(n), " OTUs)"))),  
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 5, 10, 15))) +
   scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
@@ -2442,7 +2445,7 @@ sapro_div_fig <-
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
   labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Soil fungal", paste("Richness (", italic(n), " OTUs)"))),  
+  scale_y_continuous(name = expression(atop("Saprotroph", paste("Richness (", italic(n), " OTUs)"))),  
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
   scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
@@ -2971,17 +2974,17 @@ sapro_ma_fig <-
 Unified figure for supplemental
 
 ``` r
-figS3up <- (plfa_fig | plot_spacer() | nlfa_fig) +
+biomass_up <- (plfa_fig | plot_spacer() | nlfa_fig) +
   plot_layout(widths = c(0.50, 0.01, 0.50))
-figS3dn <- (patho_ma_fig | plot_spacer() | sapro_ma_fig) +
+biomass_dn <- (patho_ma_fig | plot_spacer() | sapro_ma_fig) +
   plot_layout(widths = c(0.50, 0.01, 0.50))
-figS3 <- (figS3up / plot_spacer() / figS3dn) +
+biomass_fig <- (biomass_up / plot_spacer() / biomass_dn) +
   plot_layout(heights = c(0.50, 0.01, 0.50)) +
   plot_annotation(tag_levels = 'A')
 ```
 
 ``` r
-figS3
+biomass_fig
 ```
 
 ![](resources/fungal_ecology_files/figure-gfm/figS3_fig-1.png)<!-- -->
@@ -3289,11 +3292,11 @@ p_amf_ma_centers <- amf_ma_ord_data %>%
          across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x),
          across(ends_with("Axis.1"), ~ .x))
 amf_ma_ord <- 
-  ggplot(amf_ma_ord_data, aes(x = Axis.1, y = Axis.2)) + 
-  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_amf_ma_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
+  ggplot(amf_ma_ord_data, aes(x = -1*Axis.1, y = Axis.2)) + 
+  geom_linerange(data = p_amf_ma_centers, aes(x = -1*mean_Axis.1, y = mean_Axis.2, xmin = -1*ci_l_Axis.1, xmax = -1*ci_u_Axis.1), linewidth = lw) +
+  geom_linerange(data = p_amf_ma_centers, aes(x = -1*mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
   geom_point(data = p_amf_ma_centers, 
-             aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), 
+             aes(x = -1*mean_Axis.1, y = mean_Axis.2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
@@ -3678,7 +3681,7 @@ soil_micro_index <- scores(soil_micro_pca, choices = c(1, 2), display = "sites")
 soil_macro <- 
   soil %>% 
   filter(field_name %in% sites_wi$field_name) %>% 
-  select(field_name, pH, OM, NO3, P, K)
+  select(field_name, pH, SOM, NO3, P, K)
 ```
 
 Assemble explanatory variables and begin iterative selection process.
@@ -3709,7 +3712,7 @@ Check VIF
 env_expl %>% scale() %>% cor() %>% solve() %>% diag() %>% sort() %>% round(2)
 ```
 
-    ##          NO3 soil_micro_2      pl_rich            K      gf_axis            P           pH           OM 
+    ##          NO3 soil_micro_2      pl_rich            K      gf_axis            P           pH          SOM 
     ##         2.28         2.72         2.73         3.03         4.06         4.22         5.25         5.80
 
 High VIF or less informative vars iteratively removed with VIF \> 10
@@ -4156,7 +4159,7 @@ spatial vars
 
 ``` r
 sapro_mod_null <- dbrda(d_wi$d_sapro_wi ~ 1 + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
-sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + OM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
+sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + SOM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
 sapro_mod_step <- ordistep(sapro_mod_null,
                            scope = formula(sapro_mod_full),
                            direction = "forward",
@@ -4171,7 +4174,7 @@ sapro_mod_step
 ```
 
     ## 
-    ## Call: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM1 + MEM2) + gf_axis + OM + pl_rich, data = cbind(env_expl, env_cov))
+    ## Call: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM1 + MEM2) + gf_axis + SOM + pl_rich, data = cbind(env_expl, env_cov))
     ## 
     ##               Inertia Proportion Rank
     ## Total          3.4587     1.0000     
@@ -4207,7 +4210,7 @@ sapro_mod_step
     ## Permutation: free
     ## Number of permutations: 1999
     ## 
-    ## Model: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM1 + MEM2) + gf_axis + OM + pl_rich, data = cbind(env_expl, env_cov))
+    ## Model: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM1 + MEM2) + gf_axis + SOM + pl_rich, data = cbind(env_expl, env_cov))
     ##          Df SumOfSqs      F Pr(>F)    
     ## Model     3   1.2003 1.9828  5e-04 ***
     ## Residual  7   1.4125                  
@@ -4223,7 +4226,7 @@ sapro_mod_step
     ## Permutation: free
     ## Number of permutations: 1999
     ## 
-    ## Model: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM1 + MEM2) + gf_axis + OM + pl_rich, data = cbind(env_expl, env_cov))
+    ## Model: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM1 + MEM2) + gf_axis + SOM + pl_rich, data = cbind(env_expl, env_cov))
     ##          Df SumOfSqs      F Pr(>F)    
     ## dbRDA1    1  0.58822 2.9151 0.0005 ***
     ## dbRDA2    1  0.34595 1.9594 0.0060 ** 
@@ -4249,7 +4252,7 @@ sapro_mod_step$anova %>%
 |            |  Df |      AIC |        F | Pr(\>F) |  p.adj |
 |------------|----:|---------:|---------:|--------:|-------:|
 | \+ gf_axis |   1 | 16.58611 | 2.213669 |  0.0025 | 0.0075 |
-| \+ OM      |   1 | 16.14336 | 1.653737 |  0.0375 | 0.0460 |
+| \+ SOM     |   1 | 16.14336 | 1.653737 |  0.0375 | 0.0460 |
 | \+ pl_rich |   1 | 15.44921 | 1.611964 |  0.0460 | 0.0460 |
 
 Based on permutation tests with n=1999 permutations, after accounting
@@ -4275,7 +4278,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c(">forb", "OM", "plant spp.")),
+    mutate(envlabs = c(">forb", "SOM", "plant spp.")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
@@ -4410,7 +4413,7 @@ list(
 | pathogens   | gf_axis | 2.857 (1, 9)   |  0.0185 | 0.0416 |
 | pathogens   | K       | 2.388 (1, 9)   |  0.0290 | 0.0435 |
 | saprotrophs | gf_axis | 2.214 (1, 7)   |  0.0025 | 0.0075 |
-| saprotrophs | OM      | 1.654 (1, 7)   |  0.0375 | 0.0460 |
+| saprotrophs | SOM     | 1.654 (1, 7)   |  0.0375 | 0.0460 |
 | saprotrophs | pl_rich | 1.612 (1, 7)   |  0.0460 | 0.0460 |
 
 #### Biplot panels
@@ -4459,7 +4462,7 @@ fig4b <-
     x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
     y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
   scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
-  scale_y_continuous(limits = c(-0.95, 1.2), breaks = c(-1, 0, 1)) +
+  scale_y_continuous(limits = c(-1.2, 0.95), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -5050,18 +5053,18 @@ augment(patho_gf_glm)
     ##    patho_prop fungi_mass_lc   gf_axis `(weights)` .fitted  .resid   .hat .sigma  .cooksd .std.resid
     ##         <dbl>         <dbl>     <dbl>       <dbl>   <dbl>   <dbl>  <dbl>  <dbl>    <dbl>      <dbl>
     ##  1     0.126        0.470   -0.150          6936.  -1.62   -8.91  0.229   11.0  0.0807      -0.935 
-    ##  2     0.217        0.142    0.114          7578.  -1.31    0.886 0.109   11.5  0.000306     0.0865
-    ##  3     0.140        0.110    0.167          7300.  -1.23  -18.7   0.116    9.46 0.132       -1.83  
-    ##  4     0.207        0.0610  -0.000380       8145.  -1.57    8.15  0.0856  11.2  0.0202       0.785 
-    ##  5     0.0906       0.468   -0.575          7226.  -2.44    3.12  0.323   11.5  0.0201       0.349 
-    ##  6     0.168        0.320   -0.222          8810.  -1.85    8.44  0.213   11.1  0.0736       0.877 
-    ##  7     0.266       -0.540    0.267          8343.  -1.41   15.3   0.356    9.65 0.612        1.75  
-    ##  8     0.133       -0.511    0.120          8853.  -1.67   -6.69  0.290   11.2  0.0696      -0.731 
-    ##  9     0.0549      -0.439   -0.351          7392.  -2.53   -6.50  0.269   11.3  0.0552      -0.700 
+    ##  2     0.217        0.142    0.114          7578.  -1.31    0.886 0.109   11.4  0.000306     0.0865
+    ##  3     0.140        0.110    0.167          7300.  -1.23  -18.7   0.116    9.56 0.132       -1.83  
+    ##  4     0.207        0.0610  -0.000380       8145.  -1.57    8.15  0.0856  11.1  0.0202       0.785 
+    ##  5     0.0906       0.468   -0.575          7226.  -2.44    3.12  0.323   11.4  0.0201       0.349 
+    ##  6     0.168        0.320   -0.222          8810.  -1.85    8.44  0.213   11.0  0.0736       0.877 
+    ##  7     0.266       -0.540    0.267          8343.  -1.41   15.3   0.356    9.35 0.612        1.75  
+    ##  8     0.133       -0.511    0.120          8853.  -1.67   -6.69  0.290   11.1  0.0696      -0.731 
+    ##  9     0.0549      -0.439   -0.351          7392.  -2.53   -6.50  0.269   11.2  0.0552      -0.700 
     ## 10     0.0837      -0.339   -0.137         10437.  -2.06   -9.74  0.255   10.9  0.113       -1.04  
-    ## 11     0.273        0.212    0.168          9062.  -1.16    7.66  0.198   11.2  0.0528       0.788 
-    ## 12     0.281        0.00271  0.450          8537.  -0.747  -8.14  0.450   11.0  0.272       -1.01  
-    ## 13     0.257        0.0438   0.150          8324.  -1.30    9.18  0.107   11.1  0.0332       0.895
+    ## 11     0.273        0.212    0.168          9062.  -1.16    7.66  0.198   11.1  0.0528       0.788 
+    ## 12     0.281        0.00271  0.450          8537.  -0.747  -8.14  0.450   10.9  0.272       -1.01  
+    ## 13     0.257        0.0438   0.150          8324.  -1.30    9.18  0.107   11.0  0.0332       0.895
 
 Long tails and low n showing structure. Moderate leverage at LPRP1: high
 pathogens, high gf_axis but very low biomass…this is evidence of the
@@ -5264,112 +5267,6 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
   )
 ```
 
-#### PFG and pathogen species
-
-Test which species co-vary with grass-forb axis across sites using a
-compositionality-aware robust test.
-
-``` r
-# patho_wi <- guildseq(its_avg, its_meta, "plant_pathogen") %>% # spe matrix
-#   left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-#   filter(field_type != "corn", region != "FL") %>% 
-#   select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
-```
-
-Uses function `aldex_gradient()`
-
-``` r
-patho_gf_specor <- aldex_gradient(
-  spe_tbl = patho_wi,
-  covar_tbl = gf_axis,
-  covar_col = "gf_axis",
-  replicate_multiplier = 10,
-  mc.samples = 256,
-  denom = "all",
-  seed = 20260129
-)
-```
-
-``` r
-patho_gf_spe <- 
-  patho_gf_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  select(cov_est, rho:species) %>% 
-  as_tibble()
-```
-
-``` r
-patho_gf_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  as_tibble() %>% # 153 otus identified as pathogen
-  left_join(
-    its_avg %>% 
-      rowwise() %>%
-      mutate(total = sum(c_across(where(is.numeric))),
-             across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
-      select(-total) %>% 
-      pivot_longer(cols = starts_with("otu"), names_to = "otu", values_to = "proportion") %>% 
-      left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-      filter(region != "FL", proportion > 0) %>% 
-      group_by(otu, field_type) %>% 
-      summarize(n_fields = n(), .groups = "drop") %>% 
-      pivot_wider(names_from = field_type, values_from = n_fields, names_prefix = "n_"), 
-    by = join_by(otu)
-  ) %>% 
-  select(cov_est, rho:n_remnant) %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  arrange(-rho) %>% 
-  kable(format = "pandoc", caption = "Pathogen species correlates with grass-forb axis")
-```
-
-| cov_est | rho | rho_p | rho_q | class | order | family | genus | species | n_corn | n_restored | n_remnant |
-|---:|---:|---:|---:|:---|:---|:---|:---|:---|---:|---:|---:|
-| 9.350 | 0.679 | 0.019 | 0.394 | Dothideomycetes | Pleosporales | Torulaceae | Dendryphion | unidentified | 3 | 6 | 1 |
-| 6.661 | 0.640 | 0.023 | 0.451 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Paraphoma | unidentified | 3 | 10 | 3 |
-| 8.422 | 0.640 | 0.023 | 0.448 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Setophoma | Setophoma_terrestris | 3 | 9 | 1 |
-| 5.972 | 0.613 | 0.034 | 0.466 | Sordariomycetes | Hypocreales | Nectriaceae | Gibberella | Gibberella_baccata | 3 | 10 | 3 |
-| 11.939 | 0.594 | 0.045 | 0.488 | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified | NA | 6 | 1 |
-| 6.560 | 0.492 | 0.118 | 0.579 | Dothideomycetes | Botryosphaeriales | Botryosphaeriaceae | Macrophomina | unidentified | 3 | 5 | 1 |
-| 7.496 | 0.477 | 0.137 | 0.589 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Paraphoma | Paraphoma_radicina | 2 | 4 | 1 |
-| 1.423 | 0.476 | 0.111 | 0.598 | Dothideomycetes | Pleosporales | Pleosporaceae | Alternaria | unidentified | 3 | 10 | 3 |
-| 8.213 | 0.473 | 0.120 | 0.601 | Sordariomycetes | Glomerellales | Glomerellaceae | Colletotrichum | unidentified | 1 | 7 | NA |
-| 9.937 | 0.465 | 0.117 | 0.612 | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | unidentified | NA | 8 | 2 |
-| 6.579 | 0.461 | 0.155 | 0.608 | Dothideomycetes | Capnodiales | Mycosphaerellaceae | Cercospora | unidentified | 3 | 4 | NA |
-| 7.688 | 0.455 | 0.172 | 0.607 | Dothideomycetes | Pleosporales | Leptosphaeriaceae | Leptosphaeria | Leptosphaeria_sclerotioides | 2 | 5 | NA |
-| 4.933 | 0.454 | 0.164 | 0.617 | Dothideomycetes | Pleosporales | Didymellaceae | Neoascochyta | Neoascochyta_desmazieri | NA | 4 | NA |
-| 8.499 | 0.437 | 0.148 | 0.634 | Sordariomycetes | Hypocreales | Nectriaceae | Fusarium | Fusarium_chlamydosporum | 3 | 8 | 2 |
-| 5.067 | 0.434 | 0.186 | 0.631 | Dothideomycetes | Pleosporales | Pleosporaceae | Bipolaris | unidentified | 1 | 5 | NA |
-| 4.404 | 0.426 | 0.151 | 0.642 | Sordariomycetes | Glomerellales | Plectosphaerellaceae | Plectosphaerella | Plectosphaerella_cucumerina | 3 | 10 | 3 |
-| -7.221 | -0.482 | 0.160 | 0.580 | Sordariomycetes | Hypocreales | Nectriaceae | Dactylonectria | unidentified | NA | 1 | 2 |
-| -10.318 | -0.488 | 0.145 | 0.577 | Dothideomycetes | Pleosporales | Periconiaceae | Periconia | unidentified | NA | 2 | 1 |
-| -8.139 | -0.509 | 0.097 | 0.563 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified | NA | 5 | 2 |
-| -9.793 | -0.521 | 0.115 | 0.552 | Dothideomycetes | Pleosporales | Phaeosphaeriaceae | Ophiosphaerella | unidentified | 3 | 3 | 1 |
-
-Pathogen species correlates with grass-forb axis
-
-``` r
-patho_gf_spe %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  summarise(
-    n_total = n(),
-    n_positive = sum(rho > 0),
-    n_negative = sum(rho < 0)
-  )
-```
-
-    ## # A tibble: 1 × 3
-    ##   n_total n_positive n_negative
-    ##     <int>      <int>      <int>
-    ## 1      20         16          4
-
 ## Saprotrophs
 
 ``` r
@@ -5427,7 +5324,7 @@ distribution_prob(saprofa_prich_lm)
 check_model(saprofa_prich_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-170-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-169-1.png)<!-- -->
 
 Passes visual diagnostics
 
@@ -5514,7 +5411,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-174-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-173-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5535,19 +5432,19 @@ augment(sapro_prich_glm)
     ## # A tibble: 13 × 10
     ##    sapro_prop fungi_mass_lc pl_rich `(weights)` .fitted   .resid   .hat .sigma     .cooksd .std.resid
     ##         <dbl>         <dbl>   <int>       <dbl>   <dbl>    <dbl>  <dbl>  <dbl>       <dbl>      <dbl>
-    ##  1      0.217       0.470        31       6936.  -1.10   -6.15   0.199    8.27 0.0608        -0.870  
-    ##  2      0.290       0.142        37       7578.  -1.13    9.08   0.0864   7.98 0.0473         1.20   
-    ##  3      0.130       0.110        46       7300.  -1.26  -19.8    0.119    4.93 0.284         -2.67   
-    ##  4      0.216       0.0610       46       8145.  -1.25   -1.51   0.119    8.57 0.00184       -0.203  
-    ##  5      0.303       0.468        13       7226.  -0.823  -0.504  0.476    8.58 0.00234       -0.0880 
-    ##  6      0.285       0.320        33       8810.  -1.10    7.78   0.165    8.10 0.0787         1.08   
-    ##  7      0.275      -0.540        36       8343.  -0.964  -0.257  0.392    8.58 0.000374      -0.0417 
-    ##  8      0.280      -0.511        37       8853.  -0.986   1.84   0.363    8.55 0.0163         0.292  
-    ##  9      0.206      -0.439        57       7392.  -1.31   -1.27   0.231    8.57 0.00332       -0.183  
-    ## 10      0.213      -0.339        55      10437.  -1.31    0.0161 0.264    8.58 0.000000675    0.00238
-    ## 11      0.229       0.212        53       9062.  -1.39    6.98   0.314    8.11 0.180          1.07   
-    ## 12      0.255       0.00271      42       8537.  -1.18    4.12   0.0859   8.46 0.00948        0.545  
-    ## 13      0.259       0.0438       27       8324.  -0.950  -4.14   0.186    8.45 0.0253        -0.581
+    ##  1      0.217       0.470        31       6936.  -1.10   -6.15   0.199    8.02 0.0608        -0.870  
+    ##  2      0.290       0.142        37       7578.  -1.13    9.08   0.0864   7.68 0.0473         1.20   
+    ##  3      0.130       0.110        46       7300.  -1.26  -19.8    0.119    5.06 0.284         -2.67   
+    ##  4      0.216       0.0610       46       8145.  -1.25   -1.51   0.119    8.31 0.00184       -0.203  
+    ##  5      0.303       0.468        13       7226.  -0.823  -0.504  0.476    8.33 0.00234       -0.0880 
+    ##  6      0.285       0.320        33       8810.  -1.10    7.78   0.165    7.82 0.0787         1.08   
+    ##  7      0.275      -0.540        36       8343.  -0.964  -0.257  0.392    8.33 0.000374      -0.0417 
+    ##  8      0.280      -0.511        37       8853.  -0.986   1.84   0.363    8.30 0.0163         0.292  
+    ##  9      0.206      -0.439        57       7392.  -1.31   -1.27   0.231    8.32 0.00332       -0.183  
+    ## 10      0.213      -0.339        55      10437.  -1.31    0.0161 0.264    8.33 0.000000675    0.00238
+    ## 11      0.229       0.212        53       9062.  -1.39    6.98   0.314    7.82 0.180          1.07   
+    ## 12      0.255       0.00271      42       8537.  -1.18    4.12   0.0859   8.20 0.00948        0.545  
+    ## 13      0.259       0.0438       27       8324.  -0.950  -4.14   0.186    8.19 0.0253        -0.581
 
 Long tails and low n showing moderate structure.
 
@@ -5620,7 +5517,7 @@ covariate than the test variable.
 avPlots(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-178-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-177-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear behavior is obvious, increasing spread with fungal
@@ -5743,137 +5640,6 @@ saglm_pred <- predict(sapro_prich_glm, newdata = saglm_newdat, type = "link", se
   )
 ```
 
-#### Plant richness and saprotroph species
-
-Identify saprotroph species that co-vary with richness across sites.
-
-``` r
-sapro_wi <- guildseq(its_avg, its_meta, "saprotroph") %>% # spe matrix
-  left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0)) # Back-transform to field sums
-```
-
-Using function `aldex_gradient`.
-
-``` r
-sapro_rich_specor <- aldex_gradient(
-  spe_tbl = sapro_wi,
-  covar_tbl = prich %>% select(field_name, pl_rich),
-  covar_col = "pl_rich",
-  replicate_multiplier = 10,
-  mc.samples = 256,
-  denom = "all",
-  seed = 20260129
-)
-```
-
-``` r
-sapro_rich_spe <- 
-  sapro_rich_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  select(cov_est, rho:species) %>% 
-  as_tibble()
-```
-
-``` r
-sapro_rich_specor$ranked %>% 
-  left_join(its_meta %>% 
-              select(-otu_ID, -phylum, -primary_lifestyle), 
-            by = join_by(otu == otu_num)) %>% 
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>% 
-  arrange(rho_p) %>% 
-  as_tibble() %>% # 564 otus identified as saprotroph
-  left_join(
-    its_avg %>% 
-      rowwise() %>%
-      mutate(total = sum(c_across(where(is.numeric))),
-             across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>% 
-      select(-total) %>% 
-      pivot_longer(cols = starts_with("otu"), names_to = "otu", values_to = "proportion") %>% 
-      left_join(sites %>% select(field_name, field_type, region), by = join_by(field_name)) %>% 
-      filter(region != "FL", proportion > 0) %>% 
-      group_by(otu, field_type) %>% 
-      summarize(n_fields = n(), .groups = "drop") %>% 
-      pivot_wider(names_from = field_type, values_from = n_fields, names_prefix = "n_"), 
-    by = join_by(otu)
-  ) %>% 
-  select(cov_est, rho:n_remnant) %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  arrange(rho) %>% 
-  kable(format = "pandoc", caption = "Saprotroph species correlates with plant richness")
-```
-
-| cov_est | rho | rho_p | rho_q | class | order | family | genus | species | n_corn | n_restored | n_remnant |
-|---:|---:|---:|---:|:---|:---|:---|:---|:---|---:|---:|---:|
-| -0.311 | -0.733 | 0.009 | 0.439 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified | 1 | 4 | 1 |
-| -0.175 | -0.657 | 0.015 | 0.604 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | Mortierella_exigua | 3 | 10 | 2 |
-| -0.130 | -0.650 | 0.017 | 0.617 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified | NA | 9 | 2 |
-| -0.241 | -0.611 | 0.041 | 0.669 | Leotiomycetes | Helotiales | Helotiaceae | Glarea | unidentified | 2 | 5 | 1 |
-| -0.326 | -0.580 | 0.060 | 0.698 | Geoglossomycetes | Geoglossales | Geoglossaceae | Geoglossum | unidentified | 2 | 4 | 1 |
-| -0.231 | -0.526 | 0.085 | 0.792 | Dothideomycetes | Pleosporales | Lindgomycetaceae | Clohesyomyces | Clohesyomyces_aquaticus | 1 | 5 | 1 |
-| -0.156 | -0.519 | 0.090 | 0.793 | Spizellomycetes | Spizellomycetales | Spizellomycetaceae | Spizellomyces | Spizellomyces_punctatus | NA | 6 | NA |
-| -0.188 | -0.503 | 0.103 | 0.812 | Agaricomycetes | Agaricales | Pluteaceae | Pluteus | unidentified | 1 | 5 | 1 |
-| -0.063 | -0.489 | 0.093 | 0.857 | Sordariomycetes | Hypocreales | Stachybotryaceae | Achroiostachys | Achroiostachys_betulicola | 3 | 10 | 3 |
-| -0.165 | -0.485 | 0.129 | 0.815 | Sordariomycetes | Savoryellales | Savoryellaceae | Savoryella | Savoryella_paucispora | 1 | 4 | 2 |
-| -0.100 | -0.481 | 0.148 | 0.803 | Eurotiomycetes | Chaetothyriales | Cyphellophoraceae | Cyphellophora | unidentified | 3 | 3 | 1 |
-| -0.106 | -0.449 | 0.167 | 0.839 | Leotiomycetes | Helotiales | Helotiaceae | Scytalidium | unidentified | 1 | 4 | 1 |
-| -0.181 | -0.441 | 0.156 | 0.877 | Agaricomycetes | Agaricales | Entolomataceae | Clitopilus | unidentified | NA | 4 | 1 |
-| -0.106 | -0.437 | 0.189 | 0.849 | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Cercophora | Cercophora_coronata | 3 | 5 | 1 |
-| -0.128 | -0.430 | 0.148 | 0.904 | Sordariomycetes | Sordariales | Lasiosphaeriaceae | Schizothecium | Schizothecium_curvuloides | 2 | 8 | 2 |
-| -0.132 | -0.423 | 0.174 | 0.887 | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | Clavaria_tenuipes | NA | 6 | 1 |
-| 0.160 | 0.400 | 0.242 | 0.867 | Mortierellomycetes | Mortierellales | Mortierellaceae | Mortierella | unidentified | NA | 2 | 1 |
-| 0.140 | 0.404 | 0.248 | 0.846 | Geoglossomycetes | Geoglossales | Geoglossaceae | Geoglossum | unidentified | NA | 1 | 1 |
-| 0.155 | 0.405 | 0.249 | 0.838 | Leotiomycetes | Helotiales | Hyaloscyphaceae | Clathrosphaerina | Clathrosphaerina_zalewskii | NA | 1 | 1 |
-| 0.135 | 0.413 | 0.225 | 0.855 | Dothideomycetes | Pleosporales | Sporormiaceae | Preussia | Preussia_persica | NA | 2 | 1 |
-| 0.140 | 0.420 | 0.242 | 0.828 | Agaricomycetes | Agaricales | Clavariaceae | Clavaria | unidentified | NA | 1 | 1 |
-| 0.109 | 0.445 | 0.152 | 0.864 | Eurotiomycetes | Onygenales | Onygenaceae | Arachnotheca | Arachnotheca_glomerata | NA | 5 | 1 |
-| 0.188 | 0.557 | 0.058 | 0.754 | Sordariomycetes | Coniochaetales | Coniochaetaceae | Coniochaeta | Coniochaeta_decumbens | 1 | 4 | 2 |
-| 0.238 | 0.757 | 0.005 | 0.393 | Dothideomycetes | Pleosporales | Didymosphaeriaceae | Paraphaeosphaeria | unidentified | NA | 4 | 2 |
-
-Saprotroph species correlates with plant richness
-
-``` r
-sapro_rich_spe %>% 
-  filter(abs(rho) >= 0.4) %>% 
-  summarise(
-    n_total = n(),
-    n_positive = sum(rho > 0),
-    n_negative = sum(rho < 0)
-  )
-```
-
-    ## # A tibble: 1 × 3
-    ##   n_total n_positive n_negative
-    ##     <int>      <int>      <int>
-    ## 1      24          8         16
-
-``` r
-sapro_rich_spe %>% filter(abs(rho) >= 0.4) %>% 
-  mutate(sign = case_when(rho < 0 ~ "negative", rho > 0 ~ "positive")) %>% 
-  group_by(sign, class) %>% 
-  count() %>% 
-  pivot_wider(names_from = "sign", values_from = "n") %>% 
-  kable(format = "pandoc", caption = "Saprotroph classes and correlations with plant richness")
-```
-
-| class              | negative | positive |
-|:-------------------|---------:|---------:|
-| Agaricomycetes     |        3 |        1 |
-| Dothideomycetes    |        1 |        2 |
-| Eurotiomycetes     |        1 |        1 |
-| Geoglossomycetes   |        1 |        1 |
-| Leotiomycetes      |        2 |        1 |
-| Mortierellomycetes |        3 |        1 |
-| Sordariomycetes    |        4 |        1 |
-| Spizellomycetes    |        1 |       NA |
-
-Saprotroph classes and correlations with plant richness
-
 ### Plant diversity and saprotrophs
 
 Is plant diversity related to saprotroph mass?
@@ -5902,7 +5668,7 @@ distribution_prob(saprofa_pshan_lm)
 check_model(saprofa_pshan_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-183-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-181-1.png)<!-- -->
 
 ``` r
 summary(saprofa_pshan_lm)
@@ -6092,8 +5858,8 @@ fig5a_rug <- add_fig7_rug(
   comp_df = gfa_fgc,
   y0 = 0.05,
   h  = 0.010,
-  forb_fill  = pfg_col[5],
-  grass_fill = pfg_col[4]
+  forb_fill  = pfg_col[4],
+  grass_fill = pfg_col[5]
 ) +
   expand_limits(y = 0.05) +
   geom_text(data = data.frame(x = c(-0.45, 0.45), y = c(0.04, 0.04),

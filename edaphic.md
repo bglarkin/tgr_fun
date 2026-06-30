@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 01 April, 2026
+Last updated: 30 June, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -12,6 +12,8 @@ Last updated: 01 April, 2026
 - [Results](#results)
   - [Averages in field types](#averages-in-field-types)
   - [Boxplot displays](#boxplot-displays)
+  - [Test differences among field
+    types](#test-differences-among-field-types)
   - [PCA ordination, variable correlations, and
     PERMANOVA](#pca-ordination-variable-correlations-and-permanova)
   - [Test spatial structure on soil
@@ -36,7 +38,7 @@ and tests differences among field types based on soil properties.
 
 ``` r
 packages_needed <- c("tidyverse", "knitr", "vegan", "patchwork", "conflicted", 
-                     "permute", "geosphere", "ape", "adespatial")
+                     "permute", "geosphere", "ape", "adespatial", "broom")
 
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
@@ -123,19 +125,56 @@ soil_p_main <-
   ggplot(aes(x = field_type, y = value)) +
   facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
   labs(x = NULL, y = NULL) +
-  geom_boxplot(aes(fill = field_type)) +
+  geom_boxplot(aes(fill = field_type), shape = 21) +
   scale_fill_manual(name = "Field type", values = ft_pal) +
   theme_corf +
   theme(legend.position = "none")
-soil_p_legend <- soil_p_main + theme(legend.position = "right")
 ```
 
 ``` r
-ggsave(root_path("figs", "figS4.svg"), plot = soil_p_main, device = svglite::svglite,
-       width = 19, height = 15, units = "cm")
-ggsave(root_path("figs", "figS4_legend.svg"), plot = soil_p_legend, device = svglite::svglite,
-       width = 19, height = 15, units = "cm")
+ggsave(root_path("figs", "figS6.svg"), plot = soil_p_main, 
+       device = svglite::svglite, fix_text_size = FALSE, 
+       width = 19, height = 20, units = "cm")
 ```
+
+## Test differences among field types
+
+Use Kruskal-Wallis tests with FDR corrected p values
+
+``` r
+soil_kw_data <- 
+  soil %>% 
+  pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name))
+split(soil_kw_data, soil_kw_data$soil_property) %>% 
+  map(\(df) kruskal.test(df$value, df$field_type) %>% 
+        tidy()) %>% 
+  bind_rows(.id = "property") %>% 
+  mutate(p.adj = p.adjust(p.value, "fdr"), 
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
+  select(property, kw_stat = statistic, p.val = p.value, p.adj) %>% 
+  arrange(p.val) %>% 
+  kable(format = "pandoc", caption = "Kruskal-Wallis rank sum test results on soil properties across field types.\nDf=2, FDR correction used.")
+```
+
+| property | kw_stat |  p.val |  p.adj |
+|:---------|--------:|-------:|-------:|
+| P        | 11.8235 | 0.0027 | 0.0201 |
+| NO3      | 11.5559 | 0.0031 | 0.0201 |
+| K        |  7.8097 | 0.0201 | 0.0873 |
+| Na       |  2.4656 | 0.2915 | 0.5889 |
+| Cu       |  2.0546 | 0.3580 | 0.5889 |
+| pH       |  1.9008 | 0.3866 | 0.5889 |
+| SOM      |  1.8699 | 0.3926 | 0.5889 |
+| Ca       |  1.8602 | 0.3945 | 0.5889 |
+| Fe       |  1.7945 | 0.4077 | 0.5889 |
+| SO4      |  1.4453 | 0.4855 | 0.6311 |
+| Zn       |  1.1236 | 0.5702 | 0.6738 |
+| Mn       |  0.3223 | 0.8512 | 0.9221 |
+| Mg       |  0.1515 | 0.9270 | 0.9270 |
+
+Kruskal-Wallis rank sum test results on soil properties across field
+types. Df=2, FDR correction used.
 
 ## PCA ordination, variable correlations, and PERMANOVA
 
@@ -182,11 +221,11 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.260500 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.270500 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
-    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622  2e-03
-    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178  5e-04
+    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622 0.0015
+    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178 0.0005
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
@@ -241,7 +280,7 @@ soil_ft_avg %>%
 | P             | mg/L (Mehlich P-III) |   64.40 |     8.06 |    5.50 | 1.28 |    0.95 |
 | NO3           | mg/L                 |   21.54 |     5.07 |    4.38 | 0.94 |    0.85 |
 | K             | mg/L                 |  214.40 |   111.62 |   96.00 | 0.46 |    0.57 |
-| OM            | % LOI                |    4.68 |     5.26 |    7.28 | 0.24 |    0.95 |
+| SOM           | % LOI                |    4.68 |     5.26 |    7.28 | 0.24 |    0.95 |
 | Ca            | mg/L                 | 2803.20 |  1992.75 | 2856.50 | 0.19 |    0.91 |
 | Zn            | mg/L                 |    2.72 |     3.60 |    2.61 | 0.18 |    0.40 |
 | SO4           | mg/L                 |   21.20 |    16.69 |   16.00 | 0.16 |    0.79 |
@@ -350,6 +389,7 @@ soil_ord_ftypes <-
 ```
 
 ``` r
-ggsave(root_path("figs", "figS5.svg"), plot = soil_ord_ftypes, device = svglite::svglite,
+ggsave(root_path("figs", "figS7.svg"), plot = soil_ord_ftypes, 
+       device = svglite::svglite, fix_text_size = FALSE,
        width = 5.25, height = 4.25, units = "in")
 ```
