@@ -110,3 +110,21 @@ theme_corf <-
     strip.text = element_text(size = 10, face = 1),
     text = element_text(family = "Helvetica")
   )
+
+# Map style
+theme_map <- 
+  theme_bw() +
+  theme(
+    plot.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"),
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 6, face = 1,
+      margin = margin(t = 0.5, r = 0, b = 0, l = 0, unit = "mm")
+    ),
+    axis.text.y = element_text(
+      size = 6, face = 1, angle = 90, hjust = 1,
+      margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm")
+    ),
+    axis.ticks.length = unit(0, "mm"),
+    text = element_text(family = "Helvetica")
+  )
