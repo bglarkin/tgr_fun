@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 30 June, 2026
+Last updated: 03 August, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -875,7 +875,28 @@ amf_fam_ma <- # family biomass (proportion of total biomass)
   left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything())
+amf_fam_ma %>%  # familiy biomass-scaled abundance in families across field types
+  select(field_type, Glmrc_mass:Ggspr_mass) %>% 
+  pivot_longer(Glmrc_mass:Ggspr_mass, names_to = "family", values_to = "bscl_abund") %>% 
+  group_by(field_type, family) %>% 
+  summarize(bscl_abund = mean(bscl_abund), .groups = "drop") %>% 
+  pivot_wider(names_from = field_type, values_from = bscl_abund) %>% 
+  rowwise() %>% 
+  mutate(total = sum(across(where(is.numeric))),
+         (across(where(is.numeric), ~ round(.x, 2)))) %>% 
+  arrange(-total) %>% 
+  kable(format = "pandoc", caption = "Biomass-scaled abundance of AM fungal families in field types")
 ```
+
+| family     | corn | restored | remnant | total |
+|:-----------|-----:|---------:|--------:|------:|
+| Glmrc_mass | 3.25 |    25.21 |   29.20 | 57.66 |
+| Clrdg_mass | 0.15 |     4.56 |    3.94 |  8.64 |
+| Prglm_mass | 0.29 |     1.70 |    0.82 |  2.81 |
+| Dvrss_mass | 0.10 |     0.55 |    0.65 |  1.29 |
+| Ggspr_mass | 0.00 |     0.11 |    0.11 |  0.23 |
+
+Biomass-scaled abundance of AM fungal families in field types
 
 # Composition in guilds
 
@@ -1663,6 +1684,10 @@ check_overdispersion(sapro_rich_glm_i) # not overdispersed
 ``` r
 augment(sapro_rich_glm_i) # corn site has cooks >0.9
 ```
+
+    ## Warning: The `augment()` method for objects of class `negbin` is not maintained by the broom team, and is only supported through the `glm` tidier method. Please be cautious in interpreting and reporting broom output.
+    ## 
+    ## This warning is displayed once per session.
 
     ## # A tibble: 25 × 9
     ##    richness depth_csq field_type .fitted  .resid   .hat .sigma  .cooksd .std.resid

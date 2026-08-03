@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 30 June, 2026
+Last updated: 03 August, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -13,6 +13,7 @@ Last updated: 30 June, 2026
   - [Site pairwise distances](#site-pairwise-distances)
 - [Maps](#maps)
   - [Map data](#map-data)
+  - [Inset map](#inset-map)
   - [Continental map](#continental-map)
   - [Area map](#area-map)
   - [Site maps](#site-maps)
@@ -38,6 +39,28 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
+
+    ## Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
+
+    ## Loading required package: ggpp
+
+    ## Registered S3 methods overwritten by 'ggpp':
+    ##   method                  from   
+    ##   heightDetails.titleGrob ggplot2
+    ##   widthDetails.titleGrob  ggplot2
+
+    ## 
+    ## Attaching package: 'ggpp'
+
+    ## The following objects are masked from 'package:ggpubr':
+    ## 
+    ##     as_npc, as_npcx, as_npcy
+
+    ## The following object is masked from 'package:ggplot2':
+    ## 
+    ##     annotate
+
+    ## Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
 
 ## Root path function
 
@@ -217,8 +240,28 @@ Summary of field type pairwise distances
 
 ## Map data
 
-Create two panel map with regional and area views. \### Continental map
-data Retrieve layer for US states and Canadian provinces.
+Create two panel map with regional and area views.
+
+### Inset map data
+
+North America small inset locator map layers
+
+``` r
+sf_use_s2(TRUE)
+na_continent <- ne_countries(scale = 50, continent = "North America", returnclass = "sf")
+us_states <- ne_states(country = c("United States of America", "Canada"), returnclass = "sf")
+lakes <- ne_download(scale = 10, type = "lakes", category = "physical", returnclass = "sf")
+```
+
+    ## Reading 'ne_10m_lakes.zip' from naturalearth...
+
+``` r
+na_bbox <- st_bbox(c(xmin = -130, ymin = 20, xmax = -65, ymax = 55), crs = st_crs(4326))
+```
+
+### Continental map data
+
+Retrieve layer for US states and Canadian provinces.
 
 ``` r
 cont <- ne_states(country = c("United States of America", "Canada"),
@@ -249,6 +292,8 @@ cont_box <- st_bbox(c(
 ), crs = 4326)
 sf_use_s2(FALSE)
 ```
+
+    ## Spherical geometry (s2) switched off
 
 ``` r
 cont_crop <- st_crop(cont, cont_box)
@@ -332,8 +377,21 @@ Retrieve roads data
 
 ### Map styles
 
+Inset map
+
 ``` r
-state_lab_size <- 2.4
+cstyle <- list(
+  land_col = "ivory",
+  border_col = "black",
+  box_col = "red",
+  continent_border_width = 0.1
+)
+```
+
+Map panels
+
+``` r
+state_lab_size <- 2.5
 state_lab_col <- "darkslateblue"
 city_lab_size <- 1.8
 city_pt_size <- 1.2
@@ -342,6 +400,37 @@ panel_lab_x <- 0.02
 panel_lab_y <- 0.98
 tag_pos <- c(0.02, 0.96)
 ```
+
+## Inset map
+
+``` r
+inset_map <- ggplot() +
+  geom_sf(data = st_crop(na_continent, na_bbox),
+          fill = cstyle$land_col,
+          color = cstyle$border_col,
+          linewidth = cstyle$continent_border_width) +
+  # geom_sf(data = st_crop(us_states, na_bbox),
+  #         fill = "transparent",
+  #         color = cstyle$border_col,
+  #         linewidth = cstyle$continent_border_width) +
+  geom_sf(data = st_crop(st_make_valid(lakes) %>% filter(scalerank < 3), na_bbox),
+          fill = "aliceblue", color = cstyle$border_col,
+          linewidth = cstyle$continent_border_width) +
+  geom_rect(aes(xmin = cont_box[1], ymin = cont_box[2], xmax = cont_box[3], ymax = cont_box[4]),
+            fill = NA, color = cstyle$box_col, linewidth = 0.6) +
+  coord_sf(xlim = c(na_bbox$xmin, na_bbox$xmax), ylim = c(25, na_bbox$ymax), expand = FALSE) +
+  theme_void() +
+  theme(panel.background = element_rect(fill = "aliceblue"),
+        panel.border = element_rect(color = "gray30", fill = NA, linewidth = 0.5))
+```
+
+    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
+
+    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
+
+    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
+
+    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
 
 ## Continental map
 
@@ -362,7 +451,7 @@ cont_map <-
       ymax = 43.45
     ),
     fill = NA,
-    color = "indianred",
+    color = "red",
     linewidth = 0.6
   ) +
   geom_text_repel(
@@ -391,28 +480,20 @@ cont_map <-
     width_hint = 0.4,
     height = unit(0.15, "cm")
   ) +
-  # geom_label_npc(
-  #   aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "A"),
-  #   hjust = "left",
-  #   vjust = "top",
-  #   size = 3,
-  #   fontface = "bold",
-  #   label.r = unit(0.3, "mm"),
-  #   label.size = 0.4,
-  #   label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
-  # ) +
+  scale_x_continuous(breaks = c(-94, -88, -82)) +
+  scale_y_continuous(breaks = c(40, 44, 48)) +
   coord_sf(
     xlim = c(cont_box$xmin, cont_box$xmax),
     ylim = c(cont_box$ymin, cont_box$ymax),
     expand = FALSE
   ) +
   labs(tag = "A") +
-  theme_void() +
+  theme_map +
   theme(
     panel.grid.major = element_blank(),
     panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
     plot.tag = element_text(size = 14, face = 1, hjust = 0),
-    plot.tag.position = tag_pos
+    plot.tag.position = c(tag_pos[1]+0.02, tag_pos[2])
   )
 ```
 
@@ -422,12 +503,8 @@ cont_map <-
 area_map <-
   ggplot() +
   geom_sf(
-    data = counties,
-    fill = "ivory",
-    color = "gray80") +
-  geom_sf(
     data = area_crop,
-    fill = NA,
+    fill = "ivory",
     color = "black",
     size = 0.3
   ) +
@@ -441,21 +518,21 @@ area_map <-
     aes(x = long_cen, y = lat_cen, label = region),
     color = "black",
     fill = "white",
-    size = 3,
+    size = 4,
     fontface = "bold",
     label.r = unit(0.3, "mm"),
     label.size = 0.4,
     label.padding = unit(1.3, "mm"),
-    nudge_x = c(-0.25, 0.25, -0.25, 0.10),
-    nudge_y = c(0.06, -0.05, 0.02, 0.15)
+    nudge_x = c(-0.28, 0.25, -0.25, 0.10),
+    nudge_y = c(0.08, -0.05, 0.02, 0.15)
   ) +
   geom_point(
     data = region_locs,
     aes(x = long_cen, y = lat_cen),
     color = "black",
-    fill = "indianred",
+    fill = "black",
     shape = 21,
-    size = 3
+    size = 1.5
   ) +
   geom_text_repel(
     data = area_crop %>% filter(name %in% c("Wisconsin", "Illinois")),
@@ -493,28 +570,20 @@ area_map <-
     pad_y = unit(0.25, "cm"),
     style = north_arrow_fancy_orienteering()
   ) +
-  # geom_label_npc(
-  #   aes(npcx = panel_lab_x, npcy = panel_lab_y, label = "B"),
-  #   hjust = "left",
-  #   vjust = "top",
-  #   size = 3,
-  #   fontface = "bold",
-  #   label.r = unit(0.3, "mm"),
-  #   label.size = 0.4,
-  #   label.padding = unit(c(0.4, 0.3, 0.15, 0.3), "lines")
-  # ) +
+  scale_x_continuous(breaks = c(-90, -89, -88)) +
+  scale_y_continuous(breaks = c(42, 43)) +
   coord_sf(
     xlim = c(area_box$xmin, area_box$xmax),
     ylim = c(area_box$ymin, area_box$ymax),
     expand = FALSE
   ) +
   labs(tag = "B") +
-  theme_void() +
+  theme_map +
   theme(
     panel.grid.major = element_blank(),
     panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
     plot.tag = element_text(size = 14, face = 1, hjust = 0),
-    plot.tag.position = tag_pos
+    plot.tag.position = c(tag_pos[1]+0.02, tag_pos[2])
   )
 ```
 
@@ -563,7 +632,7 @@ map_LP <- make_zoom_map(bb_LP, panel_tag = "E (LP)", pos = tag_pos, road_data = 
 ``` r
 region_zoom_grid <- ggarrange(
   map_BM, NULL, map_FG, NULL, map_LP, NULL, map_FL,
-  nrow = 1, align = "h", widths = c(rep(c(1, 0.02), 3), 1)
+  nrow = 1, align = "h", widths = c(rep(c(1, 0.01), 3), 1)
 )
 ```
 
@@ -617,7 +686,7 @@ footer_panel <- as_ggplot(footer_row)
 Balance row heights to fill white space
 
 ``` r
-fhs <- c(0.56, 0.01, 0.44)
+fhs <- c(0.57, 0.01, 0.43)
 ```
 
 Arrange
@@ -626,8 +695,13 @@ Arrange
 maps_fig <- ggarrange(
   ggarrange(
     ggarrange(
-      cont_map, NULL, area_map, 
-      nrow = 1, ncol = 3, widths = c(1, 0.02, 1)
+      (
+        cowplot::ggdraw() + 
+          cowplot::draw_plot(cont_map) + 
+          cowplot::draw_plot(inset_map,  x = 0.65, y = 0.05, width = 0.37, height = 0.154, hjust = 0, vjust = 0) 
+      ), 
+      area_map, 
+      nrow = 1, ncol = 2
       ),
     NULL,
     region_zoom_grid,
