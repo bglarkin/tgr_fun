@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 03 August, 2026
+Last updated: 04 August, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -1685,10 +1685,6 @@ check_overdispersion(sapro_rich_glm_i) # not overdispersed
 augment(sapro_rich_glm_i) # corn site has cooks >0.9
 ```
 
-    ## Warning: The `augment()` method for objects of class `negbin` is not maintained by the broom team, and is only supported through the `glm` tidier method. Please be cautious in interpreting and reporting broom output.
-    ## 
-    ## This warning is displayed once per session.
-
     ## # A tibble: 25 × 9
     ##    richness depth_csq field_type .fitted  .resid   .hat .sigma  .cooksd .std.resid
     ##       <int>     <dbl> <fct>        <dbl>   <dbl>  <dbl>  <dbl>    <dbl>      <dbl>
@@ -3118,8 +3114,8 @@ its_ord <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("PCoA 1 (", mva_its$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_its$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_its$axis_pct[1], "%; General fungi)"),
+    y = paste0("PCoA 2 (", mva_its$axis_pct[2], "%; General fungi)")) +
   scale_fill_manual(values = ft_pal) +
   theme_ord +
   theme(legend.position = "none",
@@ -3220,8 +3216,8 @@ amf_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(name = "Field type", values = ft_pal) +
   labs(
-    x = paste0("PCoA 1 (", mva_amf$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_amf$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_amf$axis_pct[1], "%; AM fungi)"),
+    y = paste0("PCoA 2 (", mva_amf$axis_pct[2], "%; AM fungi)")) +
   theme_ord +
   theme(legend.position = c(0.98, 0.02),
         legend.justification = c(1, 0),
@@ -3328,8 +3324,8 @@ amf_ma_ord <-
   scale_y_continuous(breaks = c(-0.25, 0, 0.25)) +
   scale_fill_manual(name = "Field Type", values = ft_pal) +
   labs(
-    x = paste0("PCoA 1 (", mva_amf_ma$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_amf_ma$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_amf_ma$axis_pct[1], "%; AM fungi)"),
+    y = paste0("PCoA 2 (", mva_amf_ma$axis_pct[2], "%; AM fungi)")) +
   theme_ord +
   theme(legend.title = element_text(size = 9, face = 1),
         legend.text = element_text(size = 8, face = 1))
@@ -3460,8 +3456,8 @@ patho_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("PCoA 1 (", mva_patho$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_patho$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_patho$axis_pct[1], "%; Pathogens)"),
+    y = paste0("PCoA 2 (", mva_patho$axis_pct[2], "%; Pathogens)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -3560,8 +3556,8 @@ sapro_ord <-
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   scale_fill_manual(values = ft_pal) +
   labs(
-    x = paste0("PCoA 1 (", mva_sapro$axis_pct[1], "%)"),
-    y = paste0("PCoA 2 (", mva_sapro$axis_pct[2], "%)")) +
+    x = paste0("PCoA 1 (", mva_sapro$axis_pct[1], "%; Saprotrophs)"),
+    y = paste0("PCoA 2 (", mva_sapro$axis_pct[2], "%; Saprotrophs)")) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1),
@@ -4458,8 +4454,8 @@ fig4a <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA 1 (", mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", mod_axpct[2], "%)")) +
+    x = paste0("db-RDA 1 (", mod_axpct[1], "%; General fungi)"),
+    y = paste0("db-RDA 2 (", mod_axpct[2], "%; General fungi)")) +
   scale_x_continuous(limits = c(-1.5,1.4), breaks = c(-1, 0, 1)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
@@ -4484,8 +4480,8 @@ fig4b <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%)")) +
+    x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%; AM fungi)"),
+    y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%; AM fungi)")) +
   scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
   scale_y_continuous(limits = c(-1.2, 0.95), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
@@ -4510,8 +4506,8 @@ fig4c <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%)"),
-    y = paste0("db-RDA 2 (", patho_mod_step_eig[2], "%)")) +
+    x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%; Pathogens)"),
+    y = paste0("db-RDA 2 (", patho_mod_step_eig[2], "%; Pathogens)")) +
   scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
@@ -4536,8 +4532,8 @@ fig4d <-
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%)"),
-    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%)")) +
+    x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%; Saprotrophs)"),
+    y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%; Saprotrophs)")) +
   lims(x = c(-1.5,1.5)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
