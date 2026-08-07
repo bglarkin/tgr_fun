@@ -624,7 +624,7 @@ amf_rel_abund_ft <-
   summarize(seq_abund_ft = sum(seq_abund), .groups = "drop_last") %>% 
   mutate(rel_abund_ft = seq_abund_ft / sum(seq_abund_ft) * 100) %>% 
   pivot_wider(id_cols = "otu", names_from = "field_type", values_from = "rel_abund_ft") %>% 
-  left_join(its_rel_abund_all %>% select(-seq_abund, all = rel_abund), by = join_by(otu)) %>% 
+  left_join(amf_rel_abund_all %>% select(-seq_abund, all = rel_abund), by = join_by(otu)) %>% 
   slice_max(all, n = 30, with_ties = FALSE) %>% 
   left_join(amf_meta %>% select(otu_num, family:taxon), by = join_by(otu == otu_num))
 kable(amf_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
