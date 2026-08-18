@@ -116,7 +116,6 @@ kable(ft_stats, format = "pandoc", caption = "Summary of field type pairwise dis
 #' # Maps
 #' ## Map data
 #' Create two panel map with regional and area views.
-
 #' 
 #' ### Inset map data
 #' North America small inset locator map layers
@@ -125,11 +124,7 @@ na_continent <- ne_countries(scale = 50, continent = "North America", returnclas
 us_states <- ne_states(country = c("United States of America", "Canada"), returnclass = "sf")
 lakes <- ne_download(scale = 10, type = "lakes", category = "physical", returnclass = "sf")
 na_bbox <- st_bbox(c(xmin = -130, ymin = 20, xmax = -65, ymax = 55), crs = st_crs(4326))
-
-
-
-
-
+#' 
 #' ### Continental map data
 #' Retrieve layer for US states and Canadian provinces.
 cont <- ne_states(country = c("United States of America", "Canada"),
@@ -214,8 +209,6 @@ city_col <- "grey35"
 panel_lab_x <- 0.02
 panel_lab_y <- 0.98
 tag_pos <- c(0.02, 0.96)
-
-
 #' 
 #' ## Inset map
 inset_map <- ggplot() +
@@ -223,10 +216,6 @@ inset_map <- ggplot() +
           fill = cstyle$land_col,
           color = cstyle$border_col,
           linewidth = cstyle$continent_border_width) +
-  # geom_sf(data = st_crop(us_states, na_bbox),
-  #         fill = "transparent",
-  #         color = cstyle$border_col,
-  #         linewidth = cstyle$continent_border_width) +
   geom_sf(data = st_crop(st_make_valid(lakes) %>% filter(scalerank < 3), na_bbox),
           fill = "aliceblue", color = cstyle$border_col,
           linewidth = cstyle$continent_border_width) +
@@ -236,10 +225,6 @@ inset_map <- ggplot() +
   theme_void() +
   theme(panel.background = element_rect(fill = "aliceblue"),
         panel.border = element_rect(color = "gray30", fill = NA, linewidth = 0.5))
-
-
-
-
 #'
 #' ## Continental map
 cont_map <-
