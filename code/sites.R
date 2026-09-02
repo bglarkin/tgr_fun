@@ -48,9 +48,19 @@ source(root_path("resources", "styles.R"))
 source(root_path("code", "functions.R"))
 
 #' # Sites
-sites <-
-  read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
-  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+#' Identify plots that need to be collapsed into single replicate for the biofuel plots.
+#' Average location data from collapsed plots.
+biofuel_plots <- c("FLRSP1", "FLRSP2", "FLRSP3")
+sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
+  mutate(
+    biofuel = field_name %in% biofuel_plots,
+    field_key = if_else(biofuel, 12, field_key),
+    field_name = if_else(biofuel, "FLRSP1", field_name),
+    field_code = if_else(biofuel, "FL-6", field_code),
+    field_type = factor(field_type, levels = c("corn", "restored", "remnant"))
+  ) %>% 
+  group_by(field_key, field_name, field_code, field_type, region, yr_restore, yr_since) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop")
 #' Calculate region locations
 region_locs <- sites %>%
   group_by(region) %>%

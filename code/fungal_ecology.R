@@ -72,16 +72,31 @@ source(root_path("code", "functions.R"))
 #' Loading order reflects downstream dependencies
 #' 
 #' ## Site metadata
+#' Identify plots that need to be collapsed into single replicate for the biofuel plots.
+#' Average location data from collapsed plots.
+biofuel_plots <- c("FLRSP1", "FLRSP2", "FLRSP3")
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
-  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+  mutate(
+    biofuel = field_name %in% biofuel_plots,
+    field_key = if_else(biofuel, 12, field_key),
+    field_name = if_else(biofuel, "FLRSP1", field_name),
+    field_code = if_else(biofuel, "FL-6", field_code),
+    field_type = factor(field_type, levels = c("corn", "restored", "remnant"))
+  ) %>% 
+  group_by(field_key, field_name, field_code, field_type, region, yr_restore, yr_since) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop")
 sites_wi <- sites %>% 
   filter(region != "FL", field_type != "corn")
 #' 
 #' ## Fatty Acids: Biomass
-#' Use only 18.2 for soil fungi
+#' Use only 18.2 for soil fungi. Biofuel plots at Fermi are replicate control plots 
+#' within a single experimental field. Collapse to a single replicate. 
 fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
   rename(fungi_18.2 = fa_18.2) %>% 
   select(field_name, fungi_18.2, amf) %>%
+  mutate(field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)) %>% 
+  group_by(field_name) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop") %>% 
   left_join(
     sites %>% select(field_name, field_type),
     by = join_by(field_name)
@@ -115,19 +130,40 @@ sapro <- guildseq(its_avg, its_meta, "saprotroph")
 sapro_wi <- guildseq(its_wi, its_meta, "saprotroph")
 #' 
 #' ### Additional species and metadata objects
+#' Sequence proportions are averaged in the Fermi biofuel plots to create a single replicate.
 #' 
 #' 1. Proportional species abundance corrected for site biomass
 #' 1. Unifrac products for AMF
 #' 1. Phyloseq products to process the Unifrac distance cleanly
 #' 
-its_avg_ma <- its_avg %>% # ma = sequence proportion of biomass
+its_avg_ma <- its_avg %>%
   rowwise() %>%
-  mutate(total = sum(c_across(where(is.numeric))),
-         across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
-  left_join(fa %>% select(-amf, -field_type), by = join_by(field_name)) %>%
+  mutate(
+    total = sum(c_across(starts_with("otu"))),
+    across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0)),
+    field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)
+  ) %>%
+  ungroup() %>%
+  group_by(field_name) %>%
+  summarize(across(starts_with("otu"), mean), .groups = "drop") %>%
+  left_join(fa %>% select(-amf, -field_type), by = "field_name") %>%
   mutate(across(starts_with("otu"), ~ .x * fungi_18.2)) %>%
-  select(field_name, starts_with("otu")) %>% 
-  ungroup()
+  select(field_name, starts_with("otu"))
+
+#### LEFT OFF HERE 2026-09-02
+
+
+
+
+
+
+
+
+
+
+
+
+
 amf_avg_ma <- amf_avg %>% 
   rowwise() %>%
   mutate(total = sum(c_across(where(is.numeric))),

@@ -43,11 +43,29 @@ source(root_path("code", "functions.R"))
 #' 
 #' #' # Data
 #' ## Site metadata and design
+#' Identify plots that need to be collapsed into single replicate for the biofuel plots.
+#' Average location data from collapsed plots.
+biofuel_plots <- c("FLRSP1", "FLRSP2", "FLRSP3")
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
-  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+  mutate(
+    biofuel = field_name %in% biofuel_plots,
+    field_key = if_else(biofuel, 12, field_key),
+    field_name = if_else(biofuel, "FLRSP1", field_name),
+    field_code = if_else(biofuel, "FL-6", field_code),
+    field_type = factor(field_type, levels = c("corn", "restored", "remnant"))
+  ) %>% 
+  group_by(field_key, field_name, field_code, field_type, region, yr_restore, yr_since) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop")
 #' 
 #' ## Soil properties
-soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
+#' Remove rows 26-27 which were old fields and not applicable here. 
+#' FLRSP1, 2, and 3 are replicate control plots within a single
+#' biofuel experiment, not independent restored fields. Collapse to FLRSP1.
+soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ] %>% 
+  select(-field_key) %>% 
+  mutate(field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)) %>% 
+  group_by(field_name) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop")
 soil_units <- read_csv(root_path("clean_data/soil_units.csv"), show_col_types = FALSE)
 #' 
 #' ## Distance-based MEM
@@ -61,7 +79,6 @@ setequal(sites$field_name, rownames(mem))
 soil_ft_avg <- 
   soil %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  select(-field_key) %>% 
   pivot_longer(pH:Na, names_to = "soil_property", values_to = "qty") %>% 
   group_by(field_type, soil_property) %>% 
   summarize(avg_qty = mean(qty), .groups = "drop") %>% 
@@ -81,7 +98,7 @@ soil_p_main <-
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   left_join(soil_ft_avg %>% select(soil_property, cv, units), by = join_by(soil_property)) %>% 
   mutate(facet_labs = paste0(soil_property, " (", units, ")"),
-         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>% 
+         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>%
   ggplot(aes(x = field_type, y = value)) +
   facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
   labs(x = NULL, y = NULL) +
@@ -111,10 +128,10 @@ split(soil_kw_data, soil_kw_data$soil_property) %>%
   kable(format = "pandoc", caption = "Kruskal-Wallis rank sum test results on soil properties across field types.\nDf=2, FDR correction used.")
 #' 
 #' ## PCA ordination, variable correlations, and PERMANOVA
-soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
+soil_z <- decostand(data.frame(soil, row.names = 1), "standardize")
 soil_pca <- rda(soil_z)
 summary(soil_pca)
-#' Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6 account for 91%. 
+#' Axes 1 and 2 explain 53% of the variation in sites. Axes 1 through 6 account for 92%. 
 #' 
 #' ## Test spatial structure on soil data
 #' Using db-MEM
@@ -126,7 +143,7 @@ anova(soil_mem_rda, permutations = 1999) %>%
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
-#' MEM3 and MEM1 explain 23.6%
+#' MEM3 and MEM1 explain 24.5%
 #' 
 #' ## Soil variable loadings and correlations
 #' Which soil properties explain the most variation among sites?
