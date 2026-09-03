@@ -91,25 +91,98 @@ ci <- function(x) std.error(x) * qnorm(0.975)
 #' 
 #' ## Alpha diversity calculations
 #' Returns a dataframe of alpha diversity (richness, Shannon's) for analysis and plotting.
+#' Handles the biofuel plot collapse internally
 #+ calc_diversity_function
-calc_div <- function(spe, site_dat) {
-  div_data <- 
-    spe %>% 
+calc_div <- function(spe, site_dat, biofuel_plots = c("FLRSP1", "FLRSP2", "FLRSP3")) {
+  
+  # Calculate sequencing depth and alpha diversity for each sampled plot
+  div_data <- spe %>% 
     rowwise() %>% 
     mutate(
       depth = sum(c_across(starts_with("otu"))),
       richness = sum(c_across(starts_with("otu")) > 0),
       shannon = exp(diversity(c_across(starts_with("otu"))))
     ) %>% 
-    select(-starts_with("otu")) %>% 
-    as_tibble() %>% 
-    ungroup() %>% 
-    left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-    select(field_name, field_type, depth, richness, shannon)
+    select(field_name, depth, richness, shannon) %>% 
+    ungroup()
   
-  return(div_data)
+  # Retain ordinary sites unchanged
+  div_other <- div_data %>% 
+    filter(!field_name %in% biofuel_plots) %>% 
+    mutate(
+      depth_rich = depth,
+      depth_shan = depth
+    ) %>% 
+    select(field_name, depth_rich, depth_shan, richness, shannon)
   
+  # Collapse Fermi biofuel control plots to one independent replicate
+  biofuel <- div_data %>% 
+    filter(field_name %in% biofuel_plots)
+  
+  if (nrow(biofuel) > 0) {
+    
+    median_richness <- median(biofuel$richness)
+    
+    div_biofuel <- tibble(
+      field_name = "FLRSP1",
+      depth_rich = biofuel %>% 
+        filter(richness == median_richness) %>% 
+        summarize(depth = mean(depth)) %>% 
+        pull(depth),
+      depth_shan = mean(biofuel$depth),
+      richness = median_richness,
+      shannon = mean(biofuel$shannon)
+    )
+    
+    div_data <- bind_rows(div_other, div_biofuel)
+    
+  } else {
+    div_data <- div_other
+  }
+  
+  # Join site metadata and prepare transformed sequencing-depth covariates
+  div_data %>% 
+    left_join(
+      site_dat %>% select(field_type, field_name),
+      by = join_by(field_name)
+    ) %>% 
+    mutate(
+      depth_rich_csq = sqrt(depth_rich) - mean(sqrt(depth_rich)),
+      depth_shan_csq = sqrt(depth_shan) - mean(sqrt(depth_shan))
+    ) %>% 
+    select(
+      field_name,
+      field_type,
+      depth_rich,
+      depth_rich_csq,
+      depth_shan,
+      depth_shan_csq,
+      richness,
+      shannon
+    )
 }
+
+
+
+
+# calc_div <- function(spe, site_dat) {
+#   div_data <- 
+#     spe %>% 
+#     rowwise() %>% 
+#     mutate(
+#       depth = sum(c_across(starts_with("otu"))),
+#       richness = sum(c_across(starts_with("otu")) > 0),
+#       shannon = exp(diversity(c_across(starts_with("otu"))))
+#     ) %>% 
+#     select(-starts_with("otu")) %>% 
+#     as_tibble() %>% 
+#     ungroup() %>% 
+#     left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
+#     select(field_name, field_type, depth, richness, shannon)
+#   
+#   return(div_data)
+#   
+# }
 #' 
 #' ## Confidence intervals
 #' Calculate upper and lower confidence intervals with alpha=0.05

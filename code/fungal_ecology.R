@@ -702,17 +702,19 @@ amf_meta %>%
 # Alpha diversity ———————— ####
 #' Preprocess data for diversity indices
 #+ its_diversity
-its_div <- calc_div(its_avg, sites) %>% 
-  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+its_div   <- calc_div(its_all,   sites_reps)
 #+ amf_diversity
-amf_div <- calc_div(amf_avg, sites) %>% 
-  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+amf_div   <- calc_div(amf_all,   sites_reps)
 #+ patho_diversity
-patho_div <- calc_div(patho, sites) %>% 
-  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+patho_div <- calc_div(patho_all, sites_reps)
 #+ sapro_diversity
-sapro_div <- calc_div(sapro, sites) %>% 
-  mutate(depth_csq = sqrt(depth) - mean(sqrt(depth)))
+sapro_div <- calc_div(sapro_all, sites_reps)
+
+
+
+
+
+
 #' 
 #' ## Dominant taxa
 #' Highest relative abundance in guilds and overall
