@@ -697,23 +697,9 @@ amf_meta %>%
   arrange(-composition) %>% 
   kable(format = "pandoc", caption = "AM fungi: composition in families")
 
-#' 
-#' # Alpha diversity
-# Alpha diversity ———————— ####
-#' Preprocess data for diversity indices
-#+ its_diversity
-its_div   <- calc_div(its_all,   sites_reps)
-#+ amf_diversity
-amf_div   <- calc_div(amf_all,   sites_reps)
-#+ patho_diversity
-patho_div <- calc_div(patho_all, sites_reps)
-#+ sapro_diversity
-sapro_div <- calc_div(sapro_all, sites_reps)
 
 
-
-
-
+# This doesn't change based on biofuel plots, just update object names
 
 #' 
 #' ## Dominant taxa
@@ -761,6 +747,41 @@ amf_rel_abund_ft <-
 kable(amf_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
       format = "pandoc", 
       caption = "Top 30 AMF OTUs, ranked by average relative abundance. The overall value ≠ average of field types due to unequal weights (unbalanced design).")
+
+
+
+
+
+
+
+
+
+
+#' 
+#' # Alpha diversity
+# Alpha diversity ———————— ####
+#' Preprocess data for diversity indices
+#+ its_diversity
+its_div   <- calc_div(its_all,   sites_reps)
+#+ amf_diversity
+amf_div   <- calc_div(amf_all,   sites_reps)
+#+ patho_diversity
+patho_div <- calc_div(patho_all, sites_reps)
+#+ sapro_diversity
+sapro_div <- calc_div(sapro_all, sites_reps)
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' 
 #' ## Richness
 ## Richness ———————— ####
@@ -769,10 +790,10 @@ kable(amf_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
 #' data. Poisson model was overdispersed (not shown). 
 #' 
 #' Test interaction
-its_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = its_div)
+its_rich_glm_i <- glm.nb(richness ~ depth_rich_csq * field_type, data = its_div)
 Anova(its_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
 #' Fit additive model
-its_rich_glm <- glm.nb(richness ~ depth_csq + field_type, data = its_div)
+its_rich_glm <- glm.nb(richness ~ depth_rich_csq + field_type, data = its_div)
 #' Diagnostics
 #+ its_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(its_rich_glm)
@@ -809,18 +830,18 @@ kable(pairs(its_rich_em),
 #' and failed to converge at default iterations; use poisson glm instead. 
 #' 
 #' Test interaction
-amf_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = amf_div, family = poisson(link = "log")) 
-Anova(amf_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
+amf_rich_glm_i <- glm(richness ~ depth_rich_csq * field_type, data = amf_div, family = poisson(link = "log")) 
+Anova(amf_rich_glm_i, type = 3, test.statistic = "LR") # interaction near significant
 check_overdispersion(amf_rich_glm_i) # not overdispersed
 augment(amf_rich_glm_i) # corn site has cooks >0.9
 check_collinearity(amf_rich_glm_i) # depth and field_type VIF > 26
-#' An interaction was detected, but including it in the model leads to very poor diagnostics.
+#' An interaction was near significance, but including it in the model leads to very poor diagnostics.
 #' It's driven by one site in corn with high leverage, and it introduces high 
 #' multicollinearity. Further, the outlier point would tend to lead to a Type II
 #' error of inference, making it a conservative choice to stick with the additive model. 
 #' 
 #' Fit additive model
-amf_rich_glm <- glm(richness ~ depth_csq + field_type, data = amf_div, family = poisson(link = "log")) 
+amf_rich_glm <- glm(richness ~ depth_rich_csq + field_type, data = amf_div, family = poisson(link = "log")) 
 #' Diagnostics
 #+ amf_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(amf_rich_glm)
@@ -857,10 +878,10 @@ kable(pairs(amf_rich_em),
 #' and failed to converge at default iterations; use poisson glm instead. 
 #' 
 #' Test interaction
-patho_rich_glm_i <- glm(richness ~ depth_csq * field_type, data = patho_div, family = poisson(link = "log")) 
+patho_rich_glm_i <- glm(richness ~ depth_rich_csq * field_type, data = patho_div, family = poisson(link = "log")) 
 Anova(patho_rich_glm_i, type = 3, test.statistic = "LR") # no interaction detected
 #' Fit additive model
-patho_rich_glm <- glm(richness ~ depth_csq + field_type, data = patho_div, family = poisson(link = "log")) 
+patho_rich_glm <- glm(richness ~ depth_rich_csq + field_type, data = patho_div, family = poisson(link = "log")) 
 #' Diagnostics
 #+ patho_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(patho_rich_glm)
@@ -880,7 +901,7 @@ Anova(patho_rich_glm, type = 2, test.statistic = "LR")
 #+ patho_depth_ft_cor
 patho_div %>% 
   group_by(field_type) %>% 
-  summarize(across(c(depth, richness), ~ round(mean(.x), 0))) %>% 
+  summarize(across(c(depth_rich, richness), ~ round(mean(.x), 0))) %>% 
   kable(format = "pandoc", caption = "Average sequence depth and pathogen richness in field types")
 #' Depth is correlated with richness in field types. Differences in richness are small
 #' and with depth variance removed first, this explains why richness isn't significantly 
@@ -903,18 +924,18 @@ kable(pairs(patho_rich_em),
 #' use negative binomial instead.  
 #' 
 #' Test interaction
-sapro_rich_glm_i <- glm.nb(richness ~ depth_csq * field_type, data = sapro_div) 
+sapro_rich_glm_i <- glm.nb(richness ~ depth_rich_csq * field_type, data = sapro_div) 
 Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_model(sapro_rich_glm_i)
 check_overdispersion(sapro_rich_glm_i) # not overdispersed
-augment(sapro_rich_glm_i) # corn site has cooks >0.9
+augment(sapro_rich_glm_i) %>% print(n = Inf) # corn site has cooks >0.9
 check_collinearity(sapro_rich_glm_i) # depth and interaction VIF > 6
 #' An interaction was detected, but including it in the model leads to very poor diagnostics.
 #' It's driven by one site in corn with high leverage, and it introduces high 
 #' multicollinearity.  
 #' 
 #' Fit additive model
-sapro_rich_glm <- glm.nb(richness ~ depth_csq + field_type, data = sapro_div) 
+sapro_rich_glm <- glm.nb(richness ~ depth_rich_csq + field_type, data = sapro_div) 
 #' Diagnostics
 #+ sapro_rich_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(sapro_rich_glm)
@@ -930,14 +951,29 @@ leveneTest(residuals(sapro_rich_glm) ~ sapro_div$field_type) %>% as.data.frame()
 #' 
 #' Model results, group means, and post-hoc. Use Type II LR test of variables due to unbalanced design.
 Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
-#' Differences in richness are very close to significance. Calculate confidence intervals for figure.
-#' Estimated marginal means calculated in this case
+#' Both terms are significant, depth a little more.
+#' Proceed with means separation by obtaining estimated marginal means for field type.
 sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
+#' Results tables below show the emmeans summary of group means and confidence intervals,
+#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
 #+ sapro_rich_em_summary,echo=FALSE
 kable(summary(sapro_rich_em), 
       format = "pandoc", 
       caption = "Confidence level used: 0.95")
-#' Model NS; no post hoc comparison...
+#+ sapro_rich_em_posthoc,echo=FALSE
+kable(pairs(sapro_rich_em), 
+      format = "pandoc", 
+      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
+#' OTU richness in cornfields is significantly less than in restored or remnant fields (p<0.05), which 
+#' don't differ. 
+
+
+
+
+
+
+
+
 
 #' 
 #' ## Shannon diversity
