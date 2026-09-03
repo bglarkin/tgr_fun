@@ -25,6 +25,11 @@
 #' Inter‑site distance enters models as a covariate per [Redondo 2020](https://doi.org/10.1093/femsec/fiaa082); 
 #' Moran's eigenvalues tested and used where significant.
 #' 
+#' ## Notes
+#' Fermilab biofuel plots are replicate units from a single restoration study. Data from these plots must be collapsed 
+#' into single values for most analyses here, but this is accomplished differently depending on the analysis. 
+#' See annotations in code below. 
+#' 
 #' # Packages and libraries
 # Libraries ———————— ####
 #+ packages,message=FALSE
@@ -33,7 +38,7 @@ packages_needed <- c(
   "emmeans", "vegan", "phyloseq", "ape", "phangorn", "geosphere", 
   "car", "rlang", "rsq", "sandwich", "lmtest", "performance", "boot",
   "MASS", "DHARMa", "broom", "adespatial", "randomForest",
-  "see",
+  "see", "sf",
   # Scripting
   "rprojroot", "conflicted", "purrr", "knitr", "tidyverse", 
   # Graphics
@@ -72,71 +77,51 @@ source(root_path("code", "functions.R"))
 #' Loading order reflects downstream dependencies
 #' 
 #' ## Site metadata
-#' Identify plots that need to be collapsed into single replicate for the biofuel plots.
-#' Average location data from collapsed plots.
+#' All sampled plots
+sites_all <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
+  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+#' Collapse biofuel plots into a single replicate site. Average location data from collapsed plots.
 biofuel_plots <- c("FLRSP1", "FLRSP2", "FLRSP3")
-sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
+sites_reps <- sites_all %>% 
   mutate(
     biofuel = field_name %in% biofuel_plots,
     field_key = if_else(biofuel, 12, field_key),
     field_name = if_else(biofuel, "FLRSP1", field_name),
-    field_code = if_else(biofuel, "FL-6", field_code),
-    field_type = factor(field_type, levels = c("corn", "restored", "remnant"))
+    field_code = if_else(biofuel, "FL-6", field_code)
   ) %>% 
   group_by(field_key, field_name, field_code, field_type, region, yr_restore, yr_since) %>% 
   summarize(across(where(is.numeric), mean), .groups = "drop")
-sites_wi <- sites %>% 
+#' Wisconsin sites only (unaffected by biofuel plots)
+sites_wi <- sites_all %>% 
   filter(region != "FL", field_type != "corn")
 #' 
 #' ## Fatty Acids: Biomass
-#' Use only 18.2 for soil fungi. Biofuel plots at Fermi are replicate control plots 
-#' within a single experimental field. Collapse to a single replicate. 
-fa <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
+#' Use only 18.2 for soil fungi. 
+fa_all <- read_csv(root_path("clean_data/plfa.csv"), show_col_types = FALSE) %>% 
   rename(fungi_18.2 = fa_18.2) %>% 
   select(field_name, fungi_18.2, amf) %>%
+  left_join(
+    sites_all %>% select(field_name, field_type),
+    by = join_by(field_name)
+  )
+#' Biofuel plots at Fermi are replicate control plots within a single experimental field. Collapse to a single replicate. 
+fa_reps <- fa_all %>% 
   mutate(field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)) %>% 
   group_by(field_name) %>% 
   summarize(across(where(is.numeric), mean), .groups = "drop") %>% 
   left_join(
-    sites %>% select(field_name, field_type),
+    sites_reps %>% select(field_name, field_type),
     by = join_by(field_name)
   )
 #' 
 #' ## Sites-species tables
-#' CSV files were produced in `sequence_data.R`. Average sequence abundance at sites included here.
-#' Amf_avg_uni table is in species-samples format to enable use of `Unifrac()` later.
-its_avg = read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE)
-its_wi  = its_avg %>% 
-  filter(field_name %in% sites_wi$field_name) %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
-amf_avg = read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE)
-amf_wi  = amf_avg %>% 
-  filter(field_name %in% sites_wi$field_name) %>% 
-  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
-#' 
-#' ### Microbial species metadata
-its_meta = read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
-  mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph",
-                                       str_detect(primary_lifestyle, "unspecified_path") ~ "unidentified",
-                                       TRUE ~ primary_lifestyle),
-         across(everything(), ~ replace_na(., "unidentified")))
-amf_meta = read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
-  mutate(across(everything(), ~ replace_na(., "unidentified")))
-#' 
-#' ### Spe subsets for guilds, regions
-patho <- guildseq(its_avg, its_meta, "plant_pathogen")
-patho_wi <- guildseq(its_wi, its_meta, "plant_pathogen")
-sapro <- guildseq(its_avg, its_meta, "saprotroph")
-sapro_wi <- guildseq(its_wi, its_meta, "saprotroph")
-#' 
-#' ### Additional species and metadata objects
-#' Sequence proportions are averaged in the Fermi biofuel plots to create a single replicate.
-#' 
-#' 1. Proportional species abundance corrected for site biomass
-#' 1. Unifrac products for AMF
-#' 1. Phyloseq products to process the Unifrac distance cleanly
-#' 
-its_avg_ma <- its_avg %>%
+#' CSV files were produced in `sequence_data.R` and comprise average sequence abundance of subsamples
+#' at sites. 
+its_all <- read_csv(root_path("clean_data/spe_ITS_avg.csv"), show_col_types = FALSE)
+amf_all <- read_csv(root_path("clean_data/spe_18S_avg.csv"), show_col_types = FALSE)
+#' Derive analytical replicate objects: convert each plot to sequence proportions,
+#' then average proportions across the three Fermi biofuel control plots.
+its_reps <- its_all %>%
   rowwise() %>%
   mutate(
     total = sum(c_across(starts_with("otu"))),
@@ -145,64 +130,124 @@ its_avg_ma <- its_avg %>%
   ) %>%
   ungroup() %>%
   group_by(field_name) %>%
-  summarize(across(starts_with("otu"), mean), .groups = "drop") %>%
-  left_join(fa %>% select(-amf, -field_type), by = "field_name") %>%
+  summarize(across(starts_with("otu"), mean), .groups = "drop")
+amf_reps <- amf_all %>% 
+  rowwise() %>%
+  mutate(
+    total = sum(c_across(starts_with("otu"))),
+    across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0)),
+    field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)
+  ) %>%
+  ungroup() %>%
+  group_by(field_name) %>%
+  summarize(across(starts_with("otu"), mean), .groups = "drop")
+#' Subset Wisconsin sites; unaffected by Fermi biofuel plots. Filter zero-count OTUs. 
+its_wi <- its_all %>% 
+  filter(field_name %in% sites_wi$field_name) %>% 
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+amf_wi <- amf_all %>% 
+  filter(field_name %in% sites_wi$field_name) %>% 
+  select(field_name, where(~ is.numeric(.x) && sum(.x) > 0))
+#' 
+#' ### Microbial species metadata
+its_meta <- read_csv(root_path("clean_data/spe_ITS_metadata.csv"), show_col_types = FALSE) %>% 
+  mutate(primary_lifestyle = case_when(str_detect(primary_lifestyle, "_saprotroph$") ~ "saprotroph",
+                                       str_detect(primary_lifestyle, "unspecified_path") ~ "unidentified",
+                                       TRUE ~ primary_lifestyle),
+         across(everything(), ~ replace_na(., "unidentified")))
+amf_meta <- read_csv(root_path("clean_data/spe_18S_metadata.csv"), show_col_types = FALSE) %>% 
+  mutate(across(everything(), ~ replace_na(., "unidentified")))
+#' 
+#' ### Spe subsets for guilds, regions
+#' Including all plots
+patho_all <- guildseq(its_all, its_meta, "plant_pathogen")
+sapro_all <- guildseq(its_all, its_meta, "saprotroph")
+#' Guild subsets retain the scale of their parent objects:
+#' _all = sequence abundance; _reps = whole-community sequence proportions.
+patho_reps <- guildseq(its_reps, its_meta, "plant_pathogen")
+sapro_reps <- guildseq(its_reps, its_meta, "saprotroph")
+#' Subset Wisconsin sites only
+patho_wi <- guildseq(its_wi, its_meta, "plant_pathogen")
+sapro_wi <- guildseq(its_wi, its_meta, "saprotroph")
+#' 
+#' ### Additional community-data objects
+#'
+#' Create:
+#'
+#' 1. Biomass-scaled OTU abundances for ITS fungi and AM fungi.
+#' 1. Replicate-level biomass-scaled abundance tables, with Fermi biofuel
+#'    control plots averaged after plot-level biomass scaling.
+#' 1. A phyloseq object for calculating weighted UniFrac distances among
+#'    AM fungal communities.
+#'    
+#' #### Biomass-scaled OTU abundance
+#'
+#' Convert each sampled plot to sequence proportions and multiply by its
+#' corresponding fungal biomass measurement. 
+its_all_ma <- its_all %>%
+  rowwise() %>%
+  mutate(total = sum(c_across(starts_with("otu"))),
+         across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
+  ungroup() %>%
+  left_join(fa_all %>% select(field_name, fungi_18.2), by = join_by(field_name)) %>%
   mutate(across(starts_with("otu"), ~ .x * fungi_18.2)) %>%
   select(field_name, starts_with("otu"))
-
-#### LEFT OFF HERE 2026-09-02
-
-
-
-
-
-
-
-
-
-
-
-
-
-amf_avg_ma <- amf_avg %>% 
+amf_all_ma <- amf_all %>% 
   rowwise() %>%
-  mutate(total = sum(c_across(where(is.numeric))),
+  mutate(total = sum(c_across(starts_with("otu"))),
          across(starts_with("otu"), ~ if_else(total > 0, .x / total, 0))) %>%
-  left_join(fa %>% select(-fungi_18.2, -field_type), by = join_by(field_name)) %>%
+  ungroup() %>%
+  left_join(fa_all %>% select(field_name, amf), by = join_by(field_name)) %>%
   mutate(across(starts_with("otu"), ~ .x * amf)) %>%
-  select(field_name, starts_with("otu")) %>% 
-  ungroup()
-amf_avg_uni <- amf_avg %>%
+  select(field_name, starts_with("otu"))
+#' Collapse the three Fermi biofuel control plots after biomass scaling.
+its_reps_ma <- its_all_ma %>%
+  mutate(field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)) %>%
+  group_by(field_name) %>%
+  summarize(across(starts_with("otu"), mean), .groups = "drop")
+amf_reps_ma <- amf_all_ma %>%
+  mutate(field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)) %>%
+  group_by(field_name) %>%
+  summarize(across(starts_with("otu"), mean), .groups = "drop")
+#' 
+#' #### AM fungal phylogenetic community distances
+#'
+#' Build a phyloseq object from replicate-level AM fungal sequence proportions.
+#' Fermi biofuel control plots have already been averaged in `amf_reps`, so each
+#' row represents one independent analytical replicate. The phyloseq object is
+#' used to calculate weighted UniFrac distances.
+amf_reps_uni <- amf_reps %>%
   column_to_rownames("field_name") %>%
   t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
   left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
   select(otu_ID, everything(), -otu_num) %>% 
   as_tibble()
-#+ amf_ps_object,message=FALSE,warning=FALSE
-amf_ps <- phyloseq(
-  otu_table(data.frame(amf_avg_uni, row.names = 1), taxa_are_rows = TRUE),
-  tax_table(as.matrix(data.frame(amf_meta, row.names = 2))),
+amf_reps_ps <- phyloseq(
+  otu_table(amf_reps_uni %>% column_to_rownames("otu_ID"), taxa_are_rows = TRUE),
+  tax_table(amf_meta %>% column_to_rownames("otu_ID") %>% as.matrix()),
   read.dna(root_path("otu_tables/18S/18S_sequences.fasta"), format = "fasta") %>%
     phyDat(type = "DNA") %>% dist.hamming() %>% NJ(),
-  sample_data(sites %>% column_to_rownames(var = "field_name"))
+  sample_data(sites_reps %>% column_to_rownames(var = "field_name"))
 )
 #' 
 #' ### Species distance matrices
-#' #### All sites
-d_all <- list(
-  d_its = its_avg,
-  d_patho = patho,
-  d_sapro = sapro
+#' #### Independent analytical replicates
+#' Bray–Curtis distances use previously standardized sequence proportions or
+#' biomass-scaled abundances. Weighted UniFrac is used for AM fungal sequence
+#' composition.
+d_reps <- list(
+  d_its = its_reps,
+  d_amf_ma = amf_reps_ma, # biomass-scaled for comparison with UniFrac
+  d_patho = patho_reps,
+  d_sapro = sapro_reps
 ) %>% map(\(df) df %>% 
-            data.frame(row.names = 1) %>%
-            decostand("total") %>%
+            column_to_rownames("field_name") %>%
             vegdist("bray"))
-d_all$d_amf <- UniFrac(amf_ps, weighted = TRUE, normalized = TRUE)
-d_all$d_amf_ma <- amf_avg_ma %>% 
-  data.frame(row.names = 1) %>% 
-  vegdist("bray")
+d_reps$d_amf_uni <- UniFrac(amf_reps_ps, weighted = TRUE, normalized = TRUE)
 #' 
 #' #### Wisconsin sites
+#' Wisconsin-only sequence tables retain abundances, so standardize to
+#' proportions before calculating Bray–Curtis distances.
 d_wi <- 
   list(
     d_its_wi   = its_wi,
@@ -210,34 +255,40 @@ d_wi <-
     d_sapro_wi = sapro_wi
   ) %>% 
   map(\(df) df %>% 
-        data.frame(row.names = 1) %>% 
+        column_to_rownames("field_name") %>%
         decostand("total") %>% 
         vegdist("bray"))
-#+ amf_uni_prune,warning=FALSE,message=FALSE
-amf_ps_wi <- prune_samples(
-  sites %>% filter(region != "FL", field_type != "corn") %>% pull(field_name), 
-  amf_ps
-) %>% prune_taxa(taxa_sums(.) > 0, .)
+#' Prune phyloseq object to use UniFrac on Wisconsin sites
+amf_ps_wi <- prune_samples(sites_wi %>% pull(field_name), amf_reps_ps) %>% 
+  prune_taxa(taxa_sums(.) > 0, .)
 d_wi$d_amf_wi <- UniFrac(amf_ps_wi, weighted = TRUE, normalized = TRUE)
 #' 
 #' ## Inter-site distance
-#' Inter-site geographic distance will be considered as a covariate in clustering and 
-#' regression analyses. Compute and use Moran's eigenvalues separately for all sites
-#' and restored+remnant in Wisconsin. 
+#' Spatial structure in fungal community composition is evaluated using
+#' distance-based Moran's eigenvector maps (dbMEMs), calculated separately
+#' for the full set of independent analytical replicates and for restored
+#' and remnant sites in Wisconsin.
 #' 
-#' ### All sites
+#' ### Independent analytical replicates
 #' db-MEM
-coord_tbl <- sites %>% select(long, lat) %>% as.matrix()
-rownames(coord_tbl) <- sites$field_name
+sites_reps_sf <- st_as_sf(
+  sites_reps,
+  coords = c("long", "lat"),
+  crs = 4326
+) %>%
+  st_transform(26916)  # NAD83 / UTM zone 16N
+coord_tbl <- st_coordinates(sites_reps_sf)
+rownames(coord_tbl) <- sites_reps$field_name
 mem <- dbmem(coord_tbl) %>% as.data.frame()
-setequal(rownames(d_all$d_its), rownames(mem))
-setequal(rownames(d_all$d_amf), rownames(mem))
-setequal(rownames(d_all$d_patho), rownames(mem))
-setequal(rownames(d_all$d_sapro), rownames(mem))
+identical(labels(d_reps$d_its), rownames(mem))
+identical(labels(d_reps$d_amf_uni), rownames(mem))
+identical(labels(d_reps$d_patho), rownames(mem))
+identical(labels(d_reps$d_sapro), rownames(mem))
 #' 
 #' #### ITS fungi
-mem_null_its <- dbrda(d_all$d_its ~ 1, data = mem)
-mem_full_its <- dbrda(d_all$d_its ~ ., data = mem)
+mem_null_its <- dbrda(d_reps$d_its ~ 1, data = mem)
+mem_full_its <- dbrda(d_reps$d_its ~ ., data = mem)
+set.seed(20260211)
 mem_step_its <- ordistep(mem_null_its, scope = formula(mem_full_its), direction = "forward", 
                          permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_its, permutations = 1999)$adj.r.squared
@@ -245,12 +296,13 @@ anova(mem_step_its, by = "margin", permutations = 1999) %>%
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
-#' MEM2
+#' None
 #' 
 #' #### AMF
 #' Unifrac distance
-mem_null_amf <- dbrda(d_all$d_amf ~ 1, data = mem)
-mem_full_amf <- dbrda(d_all$d_amf ~ ., data = mem)
+mem_null_amf <- dbrda(d_reps$d_amf_uni ~ 1, data = mem)
+mem_full_amf <- dbrda(d_reps$d_amf_uni ~ ., data = mem)
+set.seed(20260211)
 mem_step_amf <- ordistep(mem_null_amf, scope = formula(mem_full_amf), direction = "forward", 
                          permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_amf, permutations = 1999)$adj.r.squared
@@ -261,8 +313,9 @@ anova(mem_step_amf, by = "margin", permutations = 1999) %>%
 #' None
 #' 
 #' #### Pathogens
-mem_null_patho <- dbrda(d_all$d_patho ~ 1, data = mem)
-mem_full_patho <- dbrda(d_all$d_patho ~ ., data = mem)
+mem_null_patho <- dbrda(d_reps$d_patho ~ 1, data = mem)
+mem_full_patho <- dbrda(d_reps$d_patho ~ ., data = mem)
+set.seed(20260211)
 mem_step_patho <- ordistep(mem_null_patho, scope = formula(mem_full_patho), direction = "forward", 
                          permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_patho, permutations = 1999)$adj.r.squared
@@ -273,8 +326,9 @@ anova(mem_step_patho, by = "margin", permutations = 1999) %>%
 #' None
 #' 
 #' #### Saprotrophs
-mem_null_sapro <- dbrda(d_all$d_sapro ~ 1, data = mem)
-mem_full_sapro <- dbrda(d_all$d_sapro ~ ., data = mem)
+mem_null_sapro <- dbrda(d_reps$d_sapro ~ 1, data = mem)
+mem_full_sapro <- dbrda(d_reps$d_sapro ~ ., data = mem)
+set.seed(20260211)
 mem_step_sapro <- ordistep(mem_null_sapro, scope = formula(mem_full_sapro), direction = "forward", 
                            permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_sapro, permutations = 1999)$adj.r.squared
@@ -282,25 +336,32 @@ anova(mem_step_sapro, by = "margin", permutations = 1999) %>%
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
-#' MEM1, MEM2, MEM3
+#' MEM1, MEM3, MEM2 (7.2% R2)
 #' Join eigenvectors to sites
-if (!(c("MEM1") %in% colnames(sites))) {
-  sites <- sites %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
+if (!(c("MEM1") %in% colnames(sites_reps))) {
+  sites_reps <- sites_reps %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
 } 
 #' 
 #' ### Wisconsin sites
 #' db-MEM
-coord_tbl_wi <- sites_wi %>% select(long, lat) %>% as.matrix()
+sites_wi_sf <- st_as_sf(
+  sites_wi,
+  coords = c("long", "lat"),
+  crs = 4326
+) %>%
+  st_transform(26916)  # NAD83 / UTM zone 16N
+coord_tbl_wi <- st_coordinates(sites_wi_sf)
 rownames(coord_tbl_wi) <- sites_wi$field_name
 mem_wi <- dbmem(coord_tbl_wi) %>% as.data.frame()
-setequal(rownames(d_wi$d_its_wi), rownames(mem_wi))
-setequal(rownames(d_wi$d_amf_wi), rownames(mem_wi))
-setequal(rownames(d_wi$d_patho_wi), rownames(mem_wi))
-setequal(rownames(d_wi$d_sapro_wi), rownames(mem_wi))
+identical(labels(d_wi$d_its_wi), rownames(mem_wi))
+identical(labels(d_wi$d_amf_wi), rownames(mem_wi))
+identical(labels(d_wi$d_patho_wi), rownames(mem_wi))
+identical(labels(d_wi$d_sapro_wi), rownames(mem_wi))
 #' 
 #' #### ITS fungi
 mem_null_its_wi <- dbrda(d_wi$d_its_wi ~ 1, data = mem_wi)
 mem_full_its_wi <- dbrda(d_wi$d_its_wi ~ ., data = mem_wi)
+set.seed(20260211)
 mem_step_its_wi <- ordistep(mem_null_its_wi, scope = formula(mem_full_its_wi), direction = "forward", 
                          permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_its_wi, permutations = 1999)$adj.r.squared
@@ -308,12 +369,13 @@ anova(mem_step_its_wi, by = "margin", permutations = 1999) %>%
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
-#' MEM2
+#' MEM2, 6.4% R2
 #' 
 #' #### AMF
 #' Unifrac distance
 mem_null_amf_wi <- dbrda(d_wi$d_amf_wi ~ 1, data = mem_wi)
 mem_full_amf_wi <- dbrda(d_wi$d_amf_wi ~ ., data = mem_wi)
+set.seed(20260211)
 mem_step_amf_wi <- ordistep(mem_null_amf_wi, scope = formula(mem_full_amf_wi), direction = "forward", 
                          permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_amf_wi, permutations = 1999)$adj.r.squared
@@ -326,6 +388,7 @@ anova(mem_step_amf_wi, by = "margin", permutations = 1999) %>%
 #' #### Pathogens
 mem_null_patho_wi <- dbrda(d_wi$d_patho_wi ~ 1, data = mem_wi)
 mem_full_patho_wi <- dbrda(d_wi$d_patho_wi ~ ., data = mem_wi)
+set.seed(20260211)
 mem_step_patho_wi <- ordistep(mem_null_patho_wi, scope = formula(mem_full_patho_wi), direction = "forward", 
                            permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_patho_wi, permutations = 1999)$adj.r.squared
@@ -333,11 +396,13 @@ anova(mem_step_patho_wi, by = "margin", permutations = 1999) %>%
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
-#' MEM2
+#' MEM2, 19.3% R2, padj = 0.005
+#' Considerable spatial structure here, especially considering the number of sites. 
 #' 
 #' #### Saprotrophs
 mem_null_sapro_wi <- dbrda(d_wi$d_sapro_wi ~ 1, data = mem_wi)
 mem_full_sapro_wi <- dbrda(d_wi$d_sapro_wi ~ ., data = mem_wi)
+set.seed(20260211)
 mem_step_sapro_wi <- ordistep(mem_null_sapro_wi, scope = formula(mem_full_sapro_wi), direction = "forward", 
                            permutations = 1999, trace = FALSE)
 RsquareAdj(mem_step_sapro_wi, permutations = 1999)$adj.r.squared
@@ -345,7 +410,7 @@ anova(mem_step_sapro_wi, by = "margin", permutations = 1999) %>%
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
-#' MEM2, MEM1
+#' MEM2, MEM1, 8.8% R2
 #' Join eigenvectors to sites
 if (!(c("MEM1") %in% colnames(sites_wi))) {
   sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
@@ -370,10 +435,10 @@ prich <- plant %>%
          pl_shan = exp(diversity(c_across(where(is.numeric))))
   ) %>% 
   select(field_name = SITE, pl_rich, pl_shan) %>% 
-  left_join(sites, by = join_by(field_name)) %>% 
+  left_join(sites_wi, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
   ungroup()
-with(prich[-c(3,6,9), ], cor.test(yr_since, pl_rich)) # Remnant fields don't have an age
+with(prich %>% filter(!is.na(yr_since)), cor.test(yr_since, pl_rich)) # Remnant fields don't have an age
 #' Years since restoration isn't obviously related to plant species richness.
 #' 
 #' #### Grass-forb axis
@@ -388,12 +453,12 @@ pfg_pca <-
          across(C3_grass:shrubTree, ~ if_else(total > 0, .x / total, 0))) %>%
   ungroup() %>%
   select(field_name, C4_grass, forb) %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  left_join(sites_wi %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
   select(-field_type) %>% 
   column_to_rownames(var = "field_name") %>% 
   rda()
-pfg_pca %>% summary() # 92% variation on first axis
+pfg_pca %>% summary() # 93% variation on first axis
 #' Define the grass_forb index
 gf_axis = scores(pfg_pca, choices = 1, display = "sites") %>% 
   data.frame() %>% 
@@ -402,24 +467,19 @@ gf_axis = scores(pfg_pca, choices = 1, display = "sites") %>%
 #' 
 #' Are field age and gf_axis correlated?
 gfi_yrs <- gf_axis %>% 
-  left_join(sites %>% select(field_name, yr_since), by = join_by(field_name)) %>% 
+  left_join(sites_wi %>% select(field_name, yr_since), by = join_by(field_name)) %>% 
   arrange(-gf_axis)
-gfa_yr_cor <- with(gfi_yrs, cor.test(yr_since, gf_axis, method = "spearman"))
-data.frame(rho = gfa_yr_cor$estimate, R2 = gfa_yr_cor$estimate^2, row.names = "value")
+gfa_yr_cor <- with(gfi_yrs, cor.test(yr_since, gf_axis, method = "pearson"))
+data.frame(cor = gfa_yr_cor$estimate, R2 = gfa_yr_cor$estimate^2, p = gfa_yr_cor$p.value, row.names = "value")
 #' The relatively strong correlation suggests that different restoration methods over time
 #' are still reflected in plant composition. Years since restoration is highly related to 
 #' plant community change. 
 #' 
 #' Visualize grass forb gradient compared with plant composition, grass and forb cover,
 #' and years since restoration. 
-site_codes <- sites %>% 
-  arrange(region, field_type, field_name) %>% 
-  group_by(region) %>% 
-  mutate(field_code = paste(region, 1:n(), sep = "-"))
 plt_div <- 
   prich %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(site_codes, by = join_by(field_name)) %>% 
   select(field_name, field_code, gf_axis, pl_rich, pl_shan) %>%
   pivot_longer(pl_rich:pl_shan, names_to = "var", values_to = "value") %>% 
   ggplot(aes(x = fct_reorder(field_code, gf_axis), y = value, group = var)) +
@@ -437,13 +497,12 @@ pfg_comp <-
   mutate((across(where(is.numeric), ~ .x / sum(c_across(where(is.numeric))))) * 100) %>% 
   ungroup() %>% 
   pivot_longer(C3_grass:shrubTree, names_to = "pfg", values_to = "pct_comp") %>% 
-  left_join(sites, by = join_by(field_name)) %>% 
+  left_join(sites_wi, by = join_by(field_name)) %>%
   left_join(gf_axis, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
-  select(field_name, yr_since, gf_axis, pfg, pct_comp) %>% 
+  select(field_name, yr_since, gf_axis, pfg, pct_comp, field_code) %>% 
   mutate(pfg = factor(pfg, levels = c("shrubTree", "legume", "C3_grass", "C4_grass", "forb"),
-                      labels = c("shrub, tree", "legume", "grass (C3)", "grass (C4)", "forb"))) %>% 
-  left_join(site_codes, by = join_by(field_name))
+                      labels = c("shrub, tree", "legume", "grass (C3)", "grass (C4)", "forb")))
 pfg_comp_fig <- 
   ggplot(pfg_comp, aes(x = fct_reorder(field_code, gf_axis), y = pct_comp, group = pfg)) +
   geom_col(aes(fill = pfg)) +
@@ -458,13 +517,12 @@ pfg_pct <-
   pfg %>% 
   select(field_name, C4_grass, forb) %>%
   pivot_longer(C4_grass:forb, names_to = "pfg", values_to = "pct_cvr") %>% 
-  left_join(sites, by = join_by(field_name)) %>% 
+  left_join(sites_wi, by = join_by(field_name)) %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% 
   filter(field_type != "corn") %>% 
-  select(field_name, yr_since, gf_axis, pfg, pct_cvr)  %>% 
+  select(field_name, yr_since, gf_axis, pfg, pct_cvr, field_code)  %>% 
   mutate(pfg = factor(pfg, levels = c("C4_grass", "forb"),
-                      labels = c("grass (C4)", "forb"))) %>% 
-  left_join(site_codes, by = join_by(field_name))
+                      labels = c("grass (C4)", "forb")))
 gf_pct_fig <- 
   ggplot(pfg_pct, aes(x = fct_reorder(field_code, gf_axis), y = pct_cvr, group = pfg)) +
   geom_step(aes(color = pfg), linejoin = "round", lineend = "round") +
@@ -477,7 +535,7 @@ gf_pct_fig <-
         plot.tag.position = c(0, 1))
 gfi_yrs_fig <- 
   gfi_yrs %>% 
-  left_join(site_codes, by = join_by(field_name, yr_since)) %>% 
+  left_join(sites_wi, by = join_by(field_name, yr_since)) %>% 
   ggplot(aes(x = fct_reorder(field_code, gf_axis), y = yr_since, group = field_type)) +
   geom_point(color = "gray20", shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
   labs(x = NULL, y = expression(atop("Age", "(years)"))) +
@@ -487,7 +545,7 @@ gfi_yrs_fig <-
         plot.tag.position = c(0, 1))
 gfi_loc_fig <- 
   gfi_yrs %>% 
-  left_join(sites, by = join_by(field_name)) %>% 
+  left_join(sites_wi, by = join_by(field_name)) %>% 
   ggplot(aes(x = gf_axis, y = rep("PCA 1", nrow(gfi_yrs)))) + 
   geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.3, color = "gray20") +
   geom_point(aes(color = field_type), shape = 21, size = 1.8, fill = "white", stroke = 0.9) +
@@ -514,23 +572,36 @@ ggsave(root_path("figs", "figS3.svg"), plot = pfg_pct_fig,
 #' ### Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
 #' 
+
+
+
+
+
+
+
+
+
+
 #' ### Omnibus spe, env, and metadata files
-#' Wrangle data to produce proportional biomass in guilds for its and families for amf
-its_guild_ma <- # guild biomass (proportion of total biomass)
-  its_avg_ma %>%
+#' Wrangle data to produce biomass-scaled guild abundance
+its_guild_ma <- 
+  its_reps_ma %>%
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>%
   left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>%
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>%
   arrange(field_name, -abund) %>%
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>%
-  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>%
-  left_join(pfg, by = join_by(field_name)) %>%
-  left_join(gf_axis, by = join_by(field_name)) %>%
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>%
-  select(field_name, field_type, yr_since, region, everything())
+  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) #%>%
+  # left_join(pfg, by = join_by(field_name)) %>%
+  # left_join(gf_axis, by = join_by(field_name)) %>%
+  # left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>%
+  # select(field_name, field_type, yr_since, region, everything())
+
+
 #' Wrangle a second set to compare raw sequence abundances and proportion of biomass values together
-its_guild <- 
-  its_avg %>% 
+#' includes more metadata
+its_guild_wi <- 
+  its_wi %>% 
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
   left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
@@ -539,51 +610,73 @@ its_guild <-
   rowwise() %>% 
   mutate(fungi_abund = sum(c_across(where(is.numeric)))) %>% 
   select(field_name, patho_abund = plant_pathogen, sapro_abund = saprotroph, fungi_abund) %>% 
-  left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
+  left_join(fa_reps %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
   left_join(pfg, by = join_by(field_name)) %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+  left_join(sites_wi %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything()) %>% 
   ungroup()
+
+
+# its_guild <- 
+#   its_avg %>% 
+#   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+#   left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
+#   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+#   arrange(field_name, -abund) %>% 
+#   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
+#   rowwise() %>% 
+#   mutate(fungi_abund = sum(c_across(where(is.numeric)))) %>% 
+#   select(field_name, patho_abund = plant_pathogen, sapro_abund = saprotroph, fungi_abund) %>% 
+#   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
+#   left_join(pfg, by = join_by(field_name)) %>% 
+#   left_join(gf_axis, by = join_by(field_name)) %>% 
+#   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+#   select(field_name, field_type, yr_since, region, everything()) %>% 
+#   ungroup()
+
+
+
+
 #' 
 #' #### AMF
-amf_fam <- # sequence abundance in families
-  amf_avg %>% 
-  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-  left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
-  group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
-  arrange(field_name, -abund) %>% 
-  pivot_wider(names_from = "family", values_from = "abund") %>% 
-  rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_ab"),
-              Glomeraceae:Ambisporaceae) %>% 
-  left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
-  left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, region, everything())
-amf_fam_ma <- # family biomass (proportion of total biomass)
-  amf_avg_ma %>% 
-  pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-  left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
-  group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
-  arrange(field_name, -abund) %>% 
-  pivot_wider(names_from = "family", values_from = "abund") %>% 
-  rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_mass"),
-              Glomeraceae:Ambisporaceae) %>% 
-  left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
-  left_join(gf_axis, by = join_by(field_name)) %>% 
-  left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-  select(field_name, field_type, yr_since, region, everything())
-amf_fam_ma %>%  # familiy biomass-scaled abundance in families across field types
-  select(field_type, Glmrc_mass:Ggspr_mass) %>% 
-  pivot_longer(Glmrc_mass:Ggspr_mass, names_to = "family", values_to = "bscl_abund") %>% 
-  group_by(field_type, family) %>% 
-  summarize(bscl_abund = mean(bscl_abund), .groups = "drop") %>% 
-  pivot_wider(names_from = field_type, values_from = bscl_abund) %>% 
-  rowwise() %>% 
-  mutate(total = sum(across(where(is.numeric))),
-         (across(where(is.numeric), ~ round(.x, 2)))) %>% 
-  arrange(-total) %>% 
-  kable(format = "pandoc", caption = "Biomass-scaled abundance of AM fungal families in field types")
+# amf_fam <- # sequence abundance in families
+#   amf_all %>% 
+#   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+#   left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
+#   group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+#   arrange(field_name, -abund) %>% 
+#   pivot_wider(names_from = "family", values_from = "abund") %>% 
+#   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_ab"),
+#               Glomeraceae:Ambisporaceae) %>% 
+#   left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
+#   left_join(gf_axis, by = join_by(field_name)) %>% 
+#   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+#   select(field_name, field_type, yr_since, region, everything())
+# amf_fam_ma <- # family biomass (proportion of total biomass)
+#   amf_avg_ma %>% 
+#   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
+#   left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
+#   group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
+#   arrange(field_name, -abund) %>% 
+#   pivot_wider(names_from = "family", values_from = "abund") %>% 
+#   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_mass"),
+#               Glomeraceae:Ambisporaceae) %>% 
+#   left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
+#   left_join(gf_axis, by = join_by(field_name)) %>% 
+#   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
+#   select(field_name, field_type, yr_since, region, everything())
+# amf_fam_ma %>%  # familiy biomass-scaled abundance in families across field types
+#   select(field_type, Glmrc_mass:Ggspr_mass) %>% 
+#   pivot_longer(Glmrc_mass:Ggspr_mass, names_to = "family", values_to = "bscl_abund") %>% 
+#   group_by(field_type, family) %>% 
+#   summarize(bscl_abund = mean(bscl_abund), .groups = "drop") %>% 
+#   pivot_wider(names_from = field_type, values_from = bscl_abund) %>% 
+#   rowwise() %>% 
+#   mutate(total = sum(across(where(is.numeric))),
+#          (across(where(is.numeric), ~ round(.x, 2)))) %>% 
+#   arrange(-total) %>% 
+#   kable(format = "pandoc", caption = "Biomass-scaled abundance of AM fungal families in field types")
 
 #'  
 #' # Composition in guilds
