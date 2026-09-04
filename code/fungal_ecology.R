@@ -571,19 +571,24 @@ ggsave(root_path("figs", "figS3.svg"), plot = pfg_pct_fig,
 #' 
 #' ### Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' 
-
-
-
-
-
-
-
-
-
-
-#' ### Omnibus spe, env, and metadata files
-#' Wrangle data to produce biomass-scaled guild abundance
+#' ### Unified species, biomass, and metadata objects
+#' #### Biomass-scaled abundance in guilds
 its_guild_ma <- 
   its_reps_ma %>%
   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>%
@@ -591,10 +596,10 @@ its_guild_ma <-
   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>%
   arrange(field_name, -abund) %>%
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>%
-  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) #%>%
+  select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>%
   # left_join(pfg, by = join_by(field_name)) %>%
   # left_join(gf_axis, by = join_by(field_name)) %>%
-  # left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>%
+  left_join(sites_reps %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) #%>%
   # select(field_name, field_type, yr_since, region, everything())
 
 
@@ -678,6 +683,15 @@ its_guild_wi <-
 #   arrange(-total) %>% 
 #   kable(format = "pandoc", caption = "Biomass-scaled abundance of AM fungal families in field types")
 
+
+
+
+
+
+
+
+
+
 #'  
 #' # Composition in guilds
 # Composition in guilds ———————— ####
@@ -696,24 +710,19 @@ amf_meta %>%
   mutate(composition = round(n / sum(n) * 100, 1)) %>% 
   arrange(-composition) %>% 
   kable(format = "pandoc", caption = "AM fungi: composition in families")
-
-
-
-# This doesn't change based on biofuel plots, just update object names
-
 #' 
 #' ## Dominant taxa
 #' Highest relative abundance in guilds and overall
 #' ### ITS
 its_rel_abund_all <- 
-  its_avg %>% 
+  its_all %>% 
   pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
   group_by(otu) %>% 
-  summarize(seq_abund = sum(seq_abund), .groups = "drop") %>% 
+  summarize(seq_abund = mean(seq_abund), .groups = "drop") %>% 
   mutate(rel_abund = seq_abund / sum(seq_abund) * 100)
 its_rel_abund_ft <- 
-  its_avg %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  its_all %>% 
+  left_join(sites_all %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
   group_by(field_type, otu) %>% 
   summarize(seq_abund_ft = sum(seq_abund), .groups = "drop_last") %>% 
@@ -728,14 +737,14 @@ kable(its_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
 #' 
 #' ### AMF
 amf_rel_abund_all <- 
-  amf_avg %>% 
+  amf_all %>% 
   pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
   group_by(otu) %>% 
   summarize(seq_abund = sum(seq_abund), .groups = "drop") %>% 
   mutate(rel_abund = seq_abund / sum(seq_abund) * 100)
 amf_rel_abund_ft <- 
-  amf_avg %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
+  amf_all %>% 
+  left_join(sites_all %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   pivot_longer(starts_with("otu"), names_to = "otu", values_to = "seq_abund") %>% 
   group_by(field_type, otu) %>% 
   summarize(seq_abund_ft = sum(seq_abund), .groups = "drop_last") %>% 
@@ -747,15 +756,6 @@ amf_rel_abund_ft <-
 kable(amf_rel_abund_ft %>% mutate(across(where(is.numeric), ~ round(.x, 1))),
       format = "pandoc", 
       caption = "Top 30 AMF OTUs, ranked by average relative abundance. The overall value ≠ average of field types due to unequal weights (unbalanced design).")
-
-
-
-
-
-
-
-
-
 
 #' 
 #' # Alpha diversity
@@ -769,19 +769,6 @@ amf_div   <- calc_div(amf_all,   sites_reps)
 patho_div <- calc_div(patho_all, sites_reps)
 #+ sapro_diversity
 sapro_div <- calc_div(sapro_all, sites_reps)
-
-
-
-
-
-
-
-
-
-
-
-
-
 #' 
 #' ## Richness
 ## Richness ———————— ####
@@ -966,32 +953,23 @@ kable(pairs(sapro_rich_em),
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' OTU richness in cornfields is significantly less than in restored or remnant fields (p<0.05), which 
 #' don't differ. 
-
-
-
-
-
-
-
-
-
 #' 
 #' ## Shannon diversity
 ## Shannon diversity ———————— ####
 #' ### ITS fungi
 #' Sequence depth square root transformed and centered  
-its_shan_lm <- lm(shannon ~ depth_csq + field_type, data = its_div)
+its_shan_lm <- lm(shannon ~ depth_shan_csq + field_type, data = its_div)
 #' Diagnostics
 #+ its_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(its_shan_lm)
 #' Some residual structure, no leverage points, no evidence for increasing mean/var relationship.
 distribution_prob(its_shan_lm)
-#' residuals distribution most likely cauchy/normal; symmetric but long tails, response gamma
+#' residuals distribution most likely cauchy/normal; symmetric but long tails, response log/gamma
 leveneTest(shannon ~ field_type, data = its_div) %>% as.data.frame() %>% kable(format = "pandoc")
 leveneTest(residuals(its_shan_lm) ~ its_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc")
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
-#' Response more suspicious. Examine CV in groups to assess changes in variance. 
+#' Response distribution more suspicious. Examine CV in groups to assess changes in variance. 
 augment(its_shan_lm) %>%
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant"))) %>% 
   group_by(field_type) %>%
@@ -1027,14 +1005,14 @@ kable(pairs(its_shan_em),
 #' 
 #' ### AM fungi
 #' Sequence depth square root transformed and centered 
-amf_shan_lm <- lm(shannon ~ depth_csq + field_type, data = amf_div)
+amf_shan_lm <- lm(shannon ~ depth_shan_csq + field_type, data = amf_div)
 #' Diagnostics
 #+ amf_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(amf_shan_lm)
-#' Variance appears somewhat non-constant in groups, qqplot fit is poor, 
+#' Variance appears somewhat non-constant in groups, qqplot fit is off, 
 #' one leverage point (Cook's > 0.5), a cornfield with high richness. Mean
 #' richness in corn fields is lowest; this outlier would make the pairwise contrast
-#' less significant, possible Type II error which is more acceptable.
+#' less significant, possible Type II error which is more conservative.
 distribution_prob(amf_shan_lm)
 #' Residuals/response distributions most likely normal. 
 leveneTest(shannon ~ field_type, data = amf_div) %>% as.data.frame() %>% kable(format = "pandoc")
@@ -1062,7 +1040,7 @@ kable(pairs(amf_shan_em),
 #' 
 #' ### Pathogens
 #' Sequence depth square root transformed and centered 
-patho_shan_lm <- lm(shannon ~ depth_csq + field_type, data = patho_div)
+patho_shan_lm <- lm(shannon ~ depth_shan_csq + field_type, data = patho_div)
 #' Diagnostics
 #+ patho_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(patho_shan_lm)
@@ -1091,7 +1069,7 @@ kable(pairs(patho_shan_em),
 #' 
 #' ### Saprotrophs
 #' Sequence depth square root transformed and centered 
-sapro_shan_lm <- lm(shannon ~ depth_csq + field_type, data = sapro_div)
+sapro_shan_lm <- lm(shannon ~ depth_shan_csq + field_type, data = sapro_div)
 #' Diagnostics
 #+ sapro_shan_covar_diagnostics,warning=FALSE,fig.width=7,fig.height=9
 check_model(sapro_shan_lm)
@@ -1126,9 +1104,9 @@ list(
   bind_rows(.id = "guild_test") %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
-         LRchisq_df = paste0(statistic, " (", df, ", 21)")) %>% 
+         LRchisq_df = paste0(statistic, " (", df, ", 19)")) %>% 
   select(guild_test, term, LRchisq_df, p.value, p.adj) %>% 
-  kable(format = "pandoc")
+  kable(format = "pandoc", caption = "Table S1 (richness)")
 #' 
 #' Summary statistics for Shannon models
 #' Fungal OTU Shannon diversity differences across field types accounting for sequencing depth.
@@ -1144,9 +1122,9 @@ list(
   bind_rows(.id = "guild_test") %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
-         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+         `F` = paste0(statistic, " (", df, ", 19)")) %>% 
   select(guild_test, term, `F`, p.value, p.adj) %>% 
-  kable(format = "pandoc")
+  kable(format = "pandoc", caption = "Table S1 (shannon)")
 #' 
 #' Results summary and figures
 div_tagpos <- c(0, 1)
@@ -1252,8 +1230,10 @@ sapro_div_fig <-
   ) +
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
+  geom_text(aes(y = ucl, label = c("A", "B", "B", "", "", ""), group = index), 
+            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
   labs(x = NULL) +
-  scale_y_continuous(name = expression(atop("Saprotroph", paste("Richness (", italic(n), " OTUs)"))),  
+  scale_y_continuous(name = expression(atop("Saprotroph", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 180),  
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
   scale_pattern_manual(values = c("none", "stripe")) +
   scale_fill_manual(values = ft_pal) +
@@ -1281,13 +1261,13 @@ ggsave(root_path("figs", "fig2.svg"), plot = fig2,
 #' Biomass and abundance-scaled biomass
 #' 
 #' ## ITS fungi (PLFA)
-plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa)
+plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa_reps)
 par(mfrow = c(2,2))
 plot(plfa_lm) 
 #' variance differs slightly in groups. Tails on qq plot diverge, lots of groups structure visible.
 distribution_prob(plfa_lm)
 #' Residuals distribution fits normal, response normal-ish
-leveneTest(residuals(plfa_lm) ~ fa$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
+leveneTest(residuals(plfa_lm) ~ fa_reps$field_type) %>% as.data.frame() %>% kable(format = "pandoc") # No covariate, response and residuals tests equivalent
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
 #' 
@@ -1304,16 +1284,16 @@ kable(pairs(plfa_em),
       caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' 
 #' ## AM fungi (NLFA)
-nlfa_lm <- lm(amf ~ field_type, data = fa)
+nlfa_lm <- lm(amf ~ field_type, data = fa_reps)
 #' Diagnostics
 par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 distribution_prob(nlfa_lm)
 # response distribution gamma; resids likely normal
-leveneTest(residuals(nlfa_lm) ~ fa$field_type) # No covariate, response and residuals tests equivalent
+leveneTest(residuals(nlfa_lm) ~ fa_reps$field_type) # No covariate, response and residuals tests equivalent
 #' Residuals distribution variance may not be equal in groups.
-#' Levene's p = 0.054, close to rejecting the null of equal variance. Check CV in groups.
-fa %>%
+#' Levene's p = 0.067, close to rejecting the null of equal variance. Check CV in groups.
+fa_reps %>%
   mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant"))) %>%
   group_by(field_type) %>%
   summarize(mean = mean(amf),
@@ -1323,12 +1303,12 @@ fa %>%
 #' CV increases with mean, suggesting > proportional mean/variance relationship. 
 #' Determine best model choice of log-transformed response or gamma glm.
 #' Log:
-nlfa_lm_log <- lm(log(amf) ~ field_type, data = fa)
+nlfa_lm_log <- lm(log(amf) ~ field_type, data = fa_reps)
 par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
-ncvTest(nlfa_lm_log) # p=0.16, null of constant variance not rejected
+ncvTest(nlfa_lm_log) # p=0.19, null of constant variance not rejected
 #' Gamma glm:
-nlfa_glm  <- glm(amf ~ field_type, family = Gamma(link = "log"), data = fa)
+nlfa_glm  <- glm(amf ~ field_type, family = Gamma(link = "log"), data = fa_reps)
 nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -1354,7 +1334,7 @@ plot(patho_ma_lm)
 #' no serious violations observed
 distribution_prob(patho_ma_lm)
 #' Residuals distribution fits normal, response gamma?
-leveneTest(residuals(patho_ma_lm) ~ fa$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
+leveneTest(residuals(patho_ma_lm) ~ its_guild_ma$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
 #' No covariate, response and residuals tests equivalent.
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal.
@@ -1379,7 +1359,7 @@ plot(sapro_ma_lm)
 #' Variance looks consistent, no leverage points, poor qq fit
 distribution_prob(sapro_ma_lm)
 #' Residuals distribution fits normal, so do residuals
-leveneTest(residuals(sapro_ma_lm) ~ sapro_div$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
+leveneTest(residuals(sapro_ma_lm) ~ its_guild_ma$field_type) %>% as.data.frame() %>% kable(format = "pandoc") 
 #' No covariate; response and residuals tests equivalent
 #' Residuals distribution does not suggest the need for transformation.
 #' Levene's p > 0.05 → fail to reject = variances can be considered equal (aka homoscedastic 
@@ -1392,18 +1372,6 @@ sapro_ma_em <- emmeans(sapro_ma_lm, ~ field_type, type = "response")
 kable(summary(sapro_ma_em),
       format = "pandoc",
       caption = "Confidence level used: 0.95")
-#+ sapro_ma_fig,fig.width=4,fig.height=4
-sapro_ma_fig <- 
-  ggplot(summary(sapro_ma_em), aes(x = field_type, y = emmean)) +
-  geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
-  geom_errorbar(aes(ymin = emmean, ymax = upper.CL), width = 0, linewidth = lw) +
-  labs(x = "Field type", y = expression(atop("Biomass (scaled)", paste(bold(`(`), "(", nmol[PLFA], " × ", g[soil]^{-1}, ")", " × ", paste("(rel. abund)", bold(`)`)))))) +
-  # labs(x = "Field Type", y = "Biomass (scaled)") +
-  scale_fill_manual(values = ft_pal) +
-  theme_cor +
-  theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
-        plot.tag.position = c(0, 1.1))
 #' 
 #' ## Unified results
 ## Unified results ———————— ####
@@ -1420,7 +1388,7 @@ list(
   bind_rows(.id = "guild_test") %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 3)),
-         `F` = paste0(statistic, " (", df, ", 21)")) %>% 
+         `F` = paste0(statistic, " (", df, ", 19)")) %>% 
   select(guild_test, term, `F`, p.value, p.adj) %>% 
   kable(format = "pandoc")
 #' 
@@ -1500,22 +1468,17 @@ ggsave(root_path("figs", "figS4.svg"), plot = biomass_fig,
 #' 
 #' ## ITS fungi
 #+ its_ord
-mva_its <- mva(d = d_all$d_its, env = sites, covar = "MEM1")
+mva_its <- mva(d = d_reps$d_its, env = sites_reps)
 #+ its_ord_results
 mva_its$dispersion_test
 mva_its$permanova
 mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>% 
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' No eignevalue correction was needed. Two relative eigenvalues exceeded broken stick model. 
+#' No eignevalue correction was needed. First relative eigenvalue exceeded broken stick model. 
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
 #' a PERMANOVA test. 
-#' 
-#' Clustering revealed that community variation was related to geographic distance, the covariate in 
-#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
 #' 
 #' Plotting results: 
 its_ord_data <- mva_its$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
@@ -1544,7 +1507,7 @@ its_ord <-
 #' ### Standard ordination
 #' Using sequence-based relative abundance, unifrac distance. No inter-site distance covariate.
 #+ amf_ord
-mva_amf <- mva(d = d_all$d_amf, env = sites, corr = "lingoes")
+mva_amf <- mva(d = d_reps$d_amf_uni, env = sites_reps, corr = "lingoes")
 #+ amf_ord_results
 mva_amf$dispersion_test
 mva_amf$permanova
@@ -1555,8 +1518,6 @@ mva_amf$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>%
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
 #' a PERMANOVA test. 
-#' 
-#' Clustering revealed that geographic distance among sites did not significantly explain AMF community variation.
 #' 
 #' Plotting the result:
 amf_ord_data <- mva_amf$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
@@ -1592,7 +1553,7 @@ amf_ord <-
 #' ### Biomass-aware ordination
 #' Using abundance-scaled biomass, B-C distance
 #+ amf_ord_ma
-mva_amf_ma <- mva(d = d_all$d_amf_ma, env = sites, corr = "lingoes")
+mva_amf_ma <- mva(d = d_reps$d_amf_ma, env = sites_reps, corr = "lingoes")
 #+ amf_ord_ma_results
 mva_amf_ma$dispersion_test
 mva_amf_ma$permanova
@@ -1603,11 +1564,6 @@ mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>%
 #' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is 
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of 
 #' a PERMANOVA test. 
-#' 
-#' Clustering revealed that community variation was not related to geographic distance, the covariate in 
-#' the model. With geographic distance accounted for, the test variable 'field type' significantly explained 
-#' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
-#' communities in restored and remnant fields. 
 #' 
 #' Plotting results: 
 amf_ma_ord_data <- mva_amf_ma$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
@@ -1648,8 +1604,8 @@ ggsave(root_path("figs", "figS5.svg"), plot = amf_ma_ord,
 #+ amf_protest
 set.seed(20251111)
 amf_protest <- protest(
-  pcoa(d_all$d_amf, correction = "lingoes")$vectors[, 1:3],
-  pcoa(d_all$d_amf_ma, correction = "lingoes")$vectors[, 1:3],
+  pcoa(d_reps$d_amf_uni, correction = "lingoes")$vectors[, 1:3],
+  pcoa(d_reps$d_amf_ma, correction = "lingoes")$vectors[, 1:3],
   permutations = 1999
 )
 amf_protest
@@ -1660,7 +1616,7 @@ amf_protest
 #' all diagnostics also the same.
 #' 
 #' ## Pathogens
-mva_patho <- mva(d = d_all$d_patho, env = sites, corr = "lingoes")
+mva_patho <- mva(d = d_reps$d_patho, env = sites_reps, corr = "lingoes")
 #' Diagnostics/results
 mva_patho$dispersion_test
 mva_patho$permanova
@@ -1672,7 +1628,6 @@ mva_patho$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>%
 #' Based on the homogeneity of variance test, the null hypothesis 
 #' of equal variance among groups is accepted across all clusters and in pairwise comparison of 
 #' clusters (both p>0.05), supporting the application of a PERMANOVA test.
-#' An effect of geographic distance (covariate) on pathogen communities was not supported. 
 #' 
 #' Plot results
 patho_ord_data <- mva_patho$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
@@ -1699,18 +1654,19 @@ patho_ord <-
 #' ## Saprotrophs
 #' Account for spatial effects
 #+ sapro_ord
-mva_sapro <- mva(d = d_all$d_sapro, env = sites, covar = c("MEM1", "MEM2", "MEM3"))
+mva_sapro <- mva(d = d_reps$d_sapro, env = sites_reps, covar = c("MEM1", "MEM3", "MEM2"))
 #+ sapro_ord_results
 mva_sapro$dispersion_test
 mva_sapro$permanova
 mva_sapro$pairwise_contrasts[c(1,3,2), c(1,2,4,3,8)] %>%
   arrange(group1, desc(group2)) %>% 
   kable(format = "pandoc", caption = "Pairwise permanova contrasts")
-#' Lingoes correction was not necessary. Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is
+#' Lingoes correction was not necessary. One axis was significant based on the broken stick test.
+#' Based on the homogeneity of variance test, the null hypothesis of equal variance among groups is
 #' accepted across all clusters and in pairwise comparison of clusters (both p>0.05), supporting the application of
 #' a PERMANOVA test.
 #'
-#' An effect of geographic distance (covariate) on pathogen communities was detected
+#' An effect of geographic distance (covariate) on pathogen communities was detected for MEM1, MEM3, and MEM2.
 #' With geographic distance accounted for, the test variable 'field type' significantly explained
 #' variation in fungal communities, with a post-hoc test revealing that communities in corn fields differed from
 #' communities in restored and remnant fields.
@@ -1750,7 +1706,7 @@ sapro_ord <-
 #+ unified_permanova_summary,warning=FALSE,message=FALSE
 gl_perms <- list(
   its   = mva_its$permanova,
-  amf   = mva_amf$permanova,
+  amf_uni   = mva_amf$permanova,
   patho = mva_patho$permanova,
   sapro = mva_sapro$permanova
 ) %>% map(\(df) tidy(df) %>% select(term, pseudo_F = statistic, df, R2, p.value))
@@ -1774,7 +1730,7 @@ list(amf_ma = mva_amf_ma$permanova) %>%
   bind_rows(.id = "guild") %>% 
   mutate(p.adj = if_else(term == "field_type", p.adjust(p.value, "fdr"), NA_real_),
          across(where(is.numeric), ~ round(.x, 4)),
-         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 22)")) %>% 
+         `Pseudo_F_(df)` = paste0(pseudo_F, " (", df, ", 20)")) %>% 
   filter(term == "field_type") %>% 
   select(guild, term, `Pseudo_F_(df)`, R2, p.value, p.adj) %>% 
   kable(format = "pandoc")
@@ -1795,6 +1751,129 @@ fig3
 ggsave(root_path("figs", "fig3.svg"), plot = fig3, 
        device = svglite::svglite, fix_text_size = FALSE,
        width = 18, height = 18, units = "cm")
+
+cmdscale(d_reps$d_patho, k = 3, add = TRUE) %>% 
+  scores(choices = c(1,3)) %>%
+  as.data.frame() %>% 
+  rownames_to_column(var = "field_name") %>% 
+  left_join(sites_reps, by = join_by("field_name")) %>% 
+  ggplot(aes(x = Dim1, y = Dim3)) +
+  geom_point(aes(color = field_type)) +
+  geom_text(aes(label = yr_since))
+
+# its nmds
+set.seed(20260211)
+nmds_its <- metaMDS(
+  d_reps$d_its,
+  k = 2,
+  trymax = 200,
+  autotransform = FALSE,
+  trace = FALSE
+)
+nmds_its$stress
+par(mfrow = c(1,1))
+stressplot(nmds_its)
+its_nmds_data <- scores(nmds_its, display = "sites") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("field_name") %>% 
+  left_join(sites_reps, by = join_by(field_name))
+ggplot(its_nmds_data, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(color = field_type)) +
+  geom_text(aes(label = yr_since)) +
+  ggtitle("General fungi")
+
+
+# amf nmds
+set.seed(20260211)
+nmds_amf <- metaMDS(
+  d_reps$d_amf_uni,
+  k = 2,
+  trymax = 200,
+  autotransform = FALSE,
+  trace = FALSE
+)
+nmds_amf$stress
+par(mfrow = c(1,1))
+stressplot(nmds_amf)
+amf_nmds_data <- scores(nmds_amf, display = "sites") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("field_name") %>% 
+  left_join(sites_reps, by = join_by(field_name))
+ggplot(amf_nmds_data, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(color = field_type)) +
+  geom_text(aes(label = yr_since)) +
+  ggtitle("AMF")
+
+
+# pathogens nmds
+set.seed(20260211)
+nmds_patho <- metaMDS(
+  d_reps$d_patho,
+  k = 2,
+  trymax = 200,
+  autotransform = FALSE,
+  trace = FALSE
+)
+nmds_patho$stress
+par(mfrow = c(1,1))
+stressplot(nmds_patho)
+patho_nmds_data <- scores(nmds_patho, display = "sites") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("field_name") %>% 
+  left_join(sites_reps, by = join_by(field_name))
+ggplot(patho_nmds_data, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(color = field_type)) +
+  geom_text(aes(label = yr_since)) +
+  ggtitle("Pathogens")
+
+
+# saprotrophs nmds
+set.seed(20260211)
+nmds_sapro <- metaMDS(
+  d_reps$d_sapro,
+  k = 2,
+  trymax = 200,
+  autotransform = FALSE,
+  trace = FALSE
+)
+nmds_sapro$stress
+par(mfrow = c(1,1))
+stressplot(nmds_sapro)
+sapro_nmds_data <- scores(nmds_sapro, display = "sites") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("field_name") %>% 
+  left_join(sites_reps, by = join_by(field_name))
+ggplot(sapro_nmds_data, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(color = field_type)) +
+  geom_text(aes(label = yr_since)) +
+  ggtitle("Saprotrophs")
+
+
+bind_rows(
+  its = its_nmds_data,
+  amf = amf_nmds_data,
+  patho = patho_nmds_data,
+  sapro = sapro_nmds_data,
+  .id = "guild"
+) %>% 
+  ggplot(aes(x = NMDS1, y = NMDS2)) +
+  facet_wrap(vars(guild), scales = "free") +
+  geom_point(aes(color = field_type)) +
+  geom_text(aes(label = yr_since))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #' 
 #' # Fungal communities and the environment
@@ -1891,7 +1970,7 @@ mod_scor <- scores(
 mod_scor_site <- mod_scor$sites %>% 
   data.frame() %>%
   rownames_to_column(var = "field_name") %>% 
-  left_join(sites, by = join_by(field_name))
+  left_join(sites_wi, by = join_by(field_name))
 mod_scor_bp <- bind_rows(
   mod_scor$biplot %>% 
     data.frame() %>% 
@@ -1914,7 +1993,7 @@ mod_scor_bp <- bind_rows(
 #' 
 #' ### AM fungi
 #' Relative sequence abundance
-#' Env covars processed in the ITS section (see above)
+#' Env covars processed in the ITS section (see above). No distance covariate.
 amf_mod_null <- dbrda(d_wi$d_amf_wi ~ 1, data = env_expl)
 amf_mod_full <- dbrda(d_wi$d_amf_wi ~ ., data = env_expl)
 amf_mod_step <- ordistep(amf_mod_null,
@@ -1950,7 +2029,7 @@ amf_mod_scor <- scores(
 amf_mod_scor_site <- amf_mod_scor$sites %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
-  left_join(sites, by = join_by(field_name))
+  left_join(sites_wi, by = join_by(field_name))
 amf_mod_scor_bp <- bind_rows(
   amf_mod_scor$biplot %>%
     data.frame() %>%
@@ -2005,7 +2084,7 @@ patho_mod_scor <- scores(
 patho_mod_scor_site <- patho_mod_scor$sites %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
-  left_join(sites, by = join_by(field_name))
+  left_join(sites_wi, by = join_by(field_name))
 patho_mod_scor_bp <- bind_rows(
   patho_mod_scor$biplot %>%
     data.frame() %>%
@@ -2029,8 +2108,8 @@ patho_mod_scor_bp <- bind_rows(
 #' ### Saprotrophs
 #' Env covars processed in the ITS section (see above)
 #' Two significant spatial vars
-sapro_mod_null <- dbrda(d_wi$d_sapro_wi ~ 1 + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
-sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + SOM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM1 + MEM2), data = cbind(env_expl, env_cov))
+sapro_mod_null <- dbrda(d_wi$d_sapro_wi ~ 1 + Condition(MEM2 + MEM1), data = cbind(env_expl, env_cov))
+sapro_mod_full <- dbrda(d_wi$d_sapro_wi ~ soil_micro_2 + pH + SOM + NO3 + P + K + gf_axis + pl_rich + Condition(MEM2 + MEM1), data = cbind(env_expl, env_cov))
 sapro_mod_step <- ordistep(sapro_mod_null,
                            scope = formula(sapro_mod_full),
                            direction = "forward",
@@ -2062,7 +2141,7 @@ sapro_mod_scor <- scores(
 sapro_mod_scor_site <- sapro_mod_scor$sites %>%
   data.frame() %>%
   rownames_to_column(var = "field_name") %>%
-  left_join(sites, by = join_by(field_name))
+  left_join(sites_wi, by = join_by(field_name))
 sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
