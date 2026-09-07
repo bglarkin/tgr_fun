@@ -1987,7 +1987,7 @@ mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1, 
     d = sqrt(dbRDA1^2 + dbRDA2^2), 
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA1))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)), 
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
@@ -2046,7 +2046,7 @@ amf_mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1,
     d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA1))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
@@ -2089,7 +2089,7 @@ patho_mod_scor_bp <- bind_rows(
   patho_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c("K", ">forb")),
+    mutate(envlabs = c(">forb", "K")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -patho_mod_scor$biplot["gf_axis", 1],
@@ -2101,7 +2101,7 @@ patho_mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1,
     d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA1))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
@@ -2146,7 +2146,7 @@ sapro_mod_scor_bp <- bind_rows(
   sapro_mod_scor$biplot %>%
     data.frame() %>%
     rownames_to_column(var = "envvar") %>%
-    mutate(envlabs = c(">forb", "SOM", "plant spp.")),
+    mutate(envlabs = c(">forb", "SOM", "NO3-")),
   data.frame(
     envvar = "gf_axis",
     dbRDA1 = -sapro_mod_scor$biplot["gf_axis", 1],
@@ -2158,7 +2158,7 @@ sapro_mod_scor_bp <- bind_rows(
     origin = 0,
     m = dbRDA2 / dbRDA1,
     d = sqrt(dbRDA1^2 + dbRDA2^2),
-    dadd = sqrt((max(dbRDA1)-min(dbRDA2))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
+    dadd = sqrt((max(dbRDA1)-min(dbRDA1))^2 + (max(dbRDA2)-min(dbRDA2))^2)*dadd_adj,
     labx = ((d+dadd)*cos(atan(m)))*(dbRDA1/abs(dbRDA1)),
     laby = ((d+dadd)*sin(atan(m)))*(dbRDA1/abs(dbRDA1)))
 #' 
@@ -2253,8 +2253,8 @@ fig4a <-
   labs(
     x = paste0("db-RDA 1 (", mod_axpct[1], "%; General fungi)"),
     y = paste0("db-RDA 2 (", mod_axpct[2], "%; General fungi)")) +
-  scale_x_continuous(limits = c(-1.5,1.4), breaks = c(-1, 0, 1)) +
-  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  scale_x_continuous(limits = c(-1.2,1.5), breaks = c(-1, 0, 1)) +
+  scale_y_continuous(limits = c(-1.3, 1.8), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -2263,21 +2263,21 @@ fig4a <-
 #' AMF
 #+ fig4b
 fig4b <-
-  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  ggplot(amf_mod_scor_site, aes(x = -1*dbRDA1, y = dbRDA2)) +
   geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
+               aes(x = origin, xend = -1*dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c(pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(data = amf_mod_scor_bp,
-            aes(x = labx, y = laby, label = envlabs),
+            aes(x = -1*labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%; AM fungi)"),
     y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%; AM fungi)")) +
-  scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
-  scale_y_continuous(limits = c(-1.2, 0.95), breaks = c(-1, 0, 1)) +
+  scale_x_continuous(limits = c(-1.2,1.3), breaks = c(-1, 0, 1)) +
+  scale_y_continuous(limits = c(-1.2, 0.9), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
@@ -2299,7 +2299,7 @@ fig4c <-
   labs(
     x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%; Pathogens)"),
     y = paste0("db-RDA 2 (", patho_mod_step_eig[2], "%; Pathogens)")) +
-  scale_x_continuous(limits = c(-1.3,1.3), breaks = c(-1, 0, 1)) +
+  scale_x_continuous(limits = c(-1.1,1.1), breaks = c(-1, 0, 1)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
@@ -2313,7 +2313,7 @@ fig4d <-
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", pfg_col[5], pfg_col[4], "gray20")) +
+               color = c("gray20", "gray20", pfg_col[5], pfg_col[4])) +
   geom_text(data = sapro_mod_scor_bp,
             aes(x = -1 * labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
@@ -2322,7 +2322,7 @@ fig4d <-
   labs(
     x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%; Saprotrophs)"),
     y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%; Saprotrophs)")) +
-  lims(x = c(-1.5,1.5)) +
+  scale_x_continuous(limits = c(-1.3,1.5), breaks = c(-1, 0, 1)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_ord +
@@ -2358,6 +2358,22 @@ fig4
 ggsave(root_path("figs", "fig4.svg"), plot = fig4, 
        device = svglite::svglite, fix_text_size = FALSE,
        width = 18, height = 18, units = "cm")
+
+
+
+
+
+
+# END WORK 2026-09-07
+
+
+
+
+
+
+
+
+
 
 #' 
 #' # Fungal abundance and the environment
