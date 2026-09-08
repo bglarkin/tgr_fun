@@ -571,21 +571,6 @@ ggsave(root_path("figs", "figS3.svg"), plot = pfg_pct_fig,
 #' 
 #' ### Soil properties
 soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #' 
 #' ### Unified species, biomass, and metadata objects
 #' #### Biomass-scaled abundance in guilds
@@ -597,12 +582,7 @@ its_guild_ma <-
   arrange(field_name, -abund) %>%
   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>%
   select(field_name, patho_mass = plant_pathogen, sapro_mass = saprotroph) %>%
-  # left_join(pfg, by = join_by(field_name)) %>%
-  # left_join(gf_axis, by = join_by(field_name)) %>%
-  left_join(sites_reps %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) #%>%
-  # select(field_name, field_type, yr_since, region, everything())
-
-
+  left_join(sites_reps %>% select(field_name, field_type, region, yr_since), by = join_by(field_name))
 #' Wrangle a second set to compare raw sequence abundances and proportion of biomass values together
 #' includes more metadata
 its_guild_wi <- 
@@ -621,76 +601,6 @@ its_guild_wi <-
   left_join(sites_wi %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
   select(field_name, field_type, yr_since, region, everything()) %>% 
   ungroup()
-
-
-# its_guild <- 
-#   its_avg %>% 
-#   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-#   left_join(its_meta %>% select(otu_num, primary_lifestyle), by = join_by(otu_num)) %>% 
-#   group_by(field_name, primary_lifestyle) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
-#   arrange(field_name, -abund) %>% 
-#   pivot_wider(names_from = "primary_lifestyle", values_from = "abund") %>% 
-#   rowwise() %>% 
-#   mutate(fungi_abund = sum(c_across(where(is.numeric)))) %>% 
-#   select(field_name, patho_abund = plant_pathogen, sapro_abund = saprotroph, fungi_abund) %>% 
-#   left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
-#   left_join(pfg, by = join_by(field_name)) %>% 
-#   left_join(gf_axis, by = join_by(field_name)) %>% 
-#   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-#   select(field_name, field_type, yr_since, region, everything()) %>% 
-#   ungroup()
-
-
-
-
-#' 
-#' #### AMF
-# amf_fam <- # sequence abundance in families
-#   amf_all %>% 
-#   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-#   left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
-#   group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
-#   arrange(field_name, -abund) %>% 
-#   pivot_wider(names_from = "family", values_from = "abund") %>% 
-#   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_ab"),
-#               Glomeraceae:Ambisporaceae) %>% 
-#   left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
-#   left_join(gf_axis, by = join_by(field_name)) %>% 
-#   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-#   select(field_name, field_type, yr_since, region, everything())
-# amf_fam_ma <- # family biomass (proportion of total biomass)
-#   amf_avg_ma %>% 
-#   pivot_longer(starts_with("otu"), names_to = "otu_num", values_to = "abund") %>% 
-#   left_join(amf_meta %>% select(otu_num, family), by = join_by(otu_num)) %>% 
-#   group_by(field_name, family) %>% summarize(abund = sum(abund), .groups = "drop") %>% 
-#   arrange(field_name, -abund) %>% 
-#   pivot_wider(names_from = "family", values_from = "abund") %>% 
-#   rename_with(~ paste0(abbreviate(.x, minlength = 5, strict = TRUE), "_mass"),
-#               Glomeraceae:Ambisporaceae) %>% 
-#   left_join(pfg %>% select(field_name, C3_grass:shrubTree), by = join_by(field_name)) %>% 
-#   left_join(gf_axis, by = join_by(field_name)) %>% 
-#   left_join(sites %>% select(field_name, field_type, region, yr_since), by = join_by(field_name)) %>% 
-#   select(field_name, field_type, yr_since, region, everything())
-# amf_fam_ma %>%  # familiy biomass-scaled abundance in families across field types
-#   select(field_type, Glmrc_mass:Ggspr_mass) %>% 
-#   pivot_longer(Glmrc_mass:Ggspr_mass, names_to = "family", values_to = "bscl_abund") %>% 
-#   group_by(field_type, family) %>% 
-#   summarize(bscl_abund = mean(bscl_abund), .groups = "drop") %>% 
-#   pivot_wider(names_from = field_type, values_from = bscl_abund) %>% 
-#   rowwise() %>% 
-#   mutate(total = sum(across(where(is.numeric))),
-#          (across(where(is.numeric), ~ round(.x, 2)))) %>% 
-#   arrange(-total) %>% 
-#   kable(format = "pandoc", caption = "Biomass-scaled abundance of AM fungal families in field types")
-
-
-
-
-
-
-
-
-
 
 #'  
 #' # Composition in guilds
@@ -2359,22 +2269,6 @@ ggsave(root_path("figs", "fig4.svg"), plot = fig4,
        device = svglite::svglite, fix_text_size = FALSE,
        width = 18, height = 18, units = "cm")
 
-
-
-
-
-
-# END WORK 2026-09-07
-
-
-
-
-
-
-
-
-
-
 #' 
 #' # Fungal abundance and the environment
 # FungAbund-env corr ———————— ####
@@ -2386,17 +2280,17 @@ ggsave(root_path("figs", "fig4.svg"), plot = fig4,
 #' 
 #' How variable is biomass across sites?
 (its_ma_cv <- 
-   sd(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) / 
-   mean(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) * 100)
+   sd(fa_all %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) / 
+   mean(fa_all %>% filter(field_name %in% sites_wi$field_name) %>% pull(fungi_18.2)) * 100)
 #' 
 #' Data for tests
 fungi_resto <- its_div %>% 
-  left_join(fa %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
-  left_join(sites, by = join_by(field_name, field_type)) %>% 
+  left_join(fa_all %>% select(field_name, fungi_mass = fungi_18.2), by = join_by(field_name)) %>% 
+  left_join(sites_all, by = join_by(field_name, field_type)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, fungi_ab = depth, fungi_mass, gf_axis, pl_rich, pl_shan)
+  select(field_name, fungi_ab = depth_rich, fungi_mass, gf_axis, pl_rich, pl_shan)
 #' 
 #' ### Plant alpha diversity and fungal biomass
 #' Is plant richness related to pathogen mass?
@@ -2423,17 +2317,17 @@ summary(fuma_rest_m)
 #' 
 #' How variable is biomass across sites?
 (amf_ma_cv <- 
-    sd(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) / 
-    mean(fa %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) * 100)
+    sd(fa_all %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) / 
+    mean(fa_all %>% filter(field_name %in% sites_wi$field_name) %>% pull(amf)) * 100)
 #' 
 #' Data for these tests
 amf_resto <- amf_div %>% 
-  left_join(fa %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
-  left_join(sites, by = join_by(field_name, field_type)) %>% 
+  left_join(fa_all %>% select(field_name, amf_mass = amf), by = join_by(field_name)) %>% 
+  left_join(sites_all, by = join_by(field_name, field_type)) %>% 
+  filter(field_type != "corn", region != "FL") %>% 
   left_join(gf_axis, by = join_by(field_name)) %>% 
   left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
-  filter(field_type != "corn", region != "FL") %>% 
-  select(field_name, amf_ab = depth, amf_mass, gf_axis, pl_rich, pl_shan) 
+  select(field_name, amf_ab = depth_rich, amf_mass, gf_axis, pl_rich, pl_shan) 
 #' 
 #' ### Plant richness and fungal biomass
 #' Is plant richness related to am fungal mass?
@@ -2457,8 +2351,7 @@ summary(amma_rest_m)
 #' ## Pathogens
 ## Pathogens ———————— ####
 #' Data for these tests
-patho_resto <- its_guild %>% 
-  filter(field_type != "corn", region != "FL") %>% 
+patho_resto <- its_guild_wi %>% 
   left_join(its_guild_ma %>% select(field_name, patho_mass), by = join_by(field_name)) %>% 
   left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
   mutate(
@@ -2606,8 +2499,7 @@ paglm_pred <- predict(patho_gf_glm, newdata = paglm_newdat, type = "link", se.fi
 #' ## Saprotrophs
 ## Saprotrophs ———————— ####
 #' Data for these tests
-sapro_resto <- its_guild %>% 
-  filter(field_type != "corn", region != "FL") %>% 
+sapro_resto <- its_guild_wi %>% 
   left_join(its_guild_ma %>% select(field_name, sapro_mass), by = join_by(field_name)) %>% 
   left_join(prich %>% select(field_name, pl_rich, pl_shan), by = join_by(field_name)) %>% 
   mutate(
