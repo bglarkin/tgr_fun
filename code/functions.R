@@ -191,11 +191,12 @@ ci_u <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.975)}
 ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
 #' 
 #' ## Multivariate analysis
-#' Ordination → dispersion check → global & pairwise PERMANOVA
-#' Args: *d* dist, *env* metadata, *corr* PCoA correction, *nperm* permutations.
+#' NMDS ordination → dispersion check → global & pairwise PERMANOVA
+#' Args: *d* dist, *env* metadata, *covar* optional covariates (MEM),
+#' *nperm* permutations.
 #' 
 #+ mva_function
-mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 20260211) {
+mva <- function(d, env, covar = NULL, nperm = 1999, seed = 20260211, plot_stress = TRUE) {
   
   stopifnot(is.data.frame(env))
   if (!("field_type" %in% names(env))) stop("`env` must contain column `field_type`.")
@@ -224,7 +225,7 @@ mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 202602
   } else if (is.matrix(d)) {
     if (is.null(rownames(d))) stop("Distance matrix `d` must have row names.")
     lab <- rownames(d)
-    d <- as.dist(d)  # coerce for betadisper/pcoa convenience
+    d <- as.dist(d)
   } else {
     stop("`d` must be a 'dist' or a symmetric distance matrix.")
   }
@@ -244,18 +245,26 @@ mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 202602
   
   # Set grouping variables
   g_chr     <- as.character(env$field_type)
-  g_levels  <- sort(unique(g_chr))         # deterministic order
+  g_levels  <- sort(unique(g_chr))
   clust_vec <- factor(g_chr, levels = g_levels)
   
-  # Ordination (PCoA)
-  p <- pcoa(d, correction = corr)
-  p_vals <- data.frame(p$values) %>%
-    rownames_to_column(var = "Dim") %>%
-    mutate(Dim = as.integer(Dim))
-  p_eig <- p_vals[1:2, grep("Rel", colnames(p_vals))] %>% round(., 3) * 100
+  # Ordination (NMDS)
+  if (!is.null(seed)) set.seed(seed + 1L)
   
-  p_vec <- data.frame(p$vectors, check.names = FALSE)
-  p_sco <- p_vec[, 1:2, drop = FALSE] %>%
+  p <- metaMDS(
+    d,
+    k = 2,
+    trymax = 100,
+    autotransform = FALSE,
+    trace = FALSE
+  )
+  
+  p_sco <- scores(
+    p,
+    display = "sites",
+    choices = 1:2
+  ) %>%
+    as.data.frame() %>%
     rownames_to_column(var = "field_name") %>%
     left_join(env, by = join_by(field_name))
   
@@ -329,16 +338,169 @@ mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 202602
   
   contrasts$p_value_adj <- round(p.adjust(contrasts$p_value, method = "fdr"), 4)
   
+  if (plot_stress) stressplot(p)
+  
   list(
-    correction_note    = p$note,
-    ordination_values  = p_vals[1:min(10, nrow(p_vals)), ],
-    axis_pct           = p_eig,
-    ordination_scores  = p_sco,
-    dispersion_test    = mvdisper,
-    permanova          = gl_permtest,
-    pairwise_contrasts = contrasts
+    ordination          = p,
+    stress              = p$stress,
+    ordination_scores   = p_sco,
+    dispersion_test     = mvdisper,
+    permanova           = gl_permtest,
+    pairwise_contrasts  = contrasts
   )
 }
+
+
+
+
+#' Ordination → dispersion check → global & pairwise PERMANOVA
+#' Args: *d* dist, *env* metadata, *corr* PCoA correction, *nperm* permutations.
+# mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 20260211) {
+#   
+#   stopifnot(is.data.frame(env))
+#   if (!("field_type" %in% names(env))) stop("`env` must contain column `field_type`.")
+#   
+#   if (is.matrix(d)) {
+#     if (!isTRUE(all.equal(d, t(d)))) stop("`d` matrix must be symmetric.")
+#     diag(d) <- 0
+#   }
+#   
+#   # covariate checks
+#   if (!is.null(covar)) {
+#     if (!is.character(covar)) stop("`covar` must be NULL or a character vector of column names.")
+#     covar <- unique(covar)
+#     if (length(covar) < 1L || length(covar) > 3L) stop("`covar` must be NULL or 1–3 column name strings.")
+#     missing_cov <- setdiff(covar, names(env))
+#     if (length(missing_cov) > 0L) stop("`env` is missing covariate column(s): ", paste(missing_cov, collapse = ", "))
+#     if (anyNA(env[, covar, drop = FALSE])) {
+#       bad <- covar[colSums(is.na(env[, covar, drop = FALSE])) > 0]
+#       stop("Covariate column(s) contain NA: ", paste(bad, collapse = ", "), "; handle before calling mva().")
+#     }
+#   }
+#   
+#   # Distance labels and env alignment
+#   if (inherits(d, "dist")) {
+#     lab <- attr(d, "Labels")
+#   } else if (is.matrix(d)) {
+#     if (is.null(rownames(d))) stop("Distance matrix `d` must have row names.")
+#     lab <- rownames(d)
+#     d <- as.dist(d)  # coerce for betadisper/pcoa convenience
+#   } else {
+#     stop("`d` must be a 'dist' or a symmetric distance matrix.")
+#   }
+#   
+#   # Align feature names across data sources
+#   env <- as.data.frame(env)
+#   if ("field_name" %in% names(env)) rownames(env) <- env$field_name
+#   if (!setequal(rownames(env), lab)) {
+#     miss_env <- setdiff(lab, rownames(env))
+#     miss_d   <- setdiff(rownames(env), lab)
+#     stop("Sample mismatch between `d` and `env`.\n",
+#          "In d not in env: ", paste(miss_env, collapse = ", "),
+#          "\nIn env not in d: ", paste(miss_d, collapse = ", "))
+#   }
+#   env <- env[lab, , drop = FALSE]
+#   env$field_name <- rownames(env)
+#   
+#   # Set grouping variables
+#   g_chr     <- as.character(env$field_type)
+#   g_levels  <- sort(unique(g_chr))         # deterministic order
+#   clust_vec <- factor(g_chr, levels = g_levels)
+#   
+#   # Ordination (PCoA)
+#   p <- pcoa(d, correction = corr)
+#   p_vals <- data.frame(p$values) %>%
+#     rownames_to_column(var = "Dim") %>%
+#     mutate(Dim = as.integer(Dim))
+#   p_eig <- p_vals[1:2, grep("Rel", colnames(p_vals))] %>% round(., 3) * 100
+#   
+#   p_vec <- data.frame(p$vectors, check.names = FALSE)
+#   p_sco <- p_vec[, 1:2, drop = FALSE] %>%
+#     rownames_to_column(var = "field_name") %>%
+#     left_join(env, by = join_by(field_name))
+#   
+#   # Homogeneity of multivariate dispersion
+#   disper <- betadisper(d, clust_vec, bias.adjust = TRUE)
+#   if (!is.null(seed)) set.seed(seed + 2L)
+#   mvdisper <- permutest(disper, pairwise = TRUE, permutations = nperm)
+#   
+#   # Global PERMANOVA
+#   if (!is.null(seed)) set.seed(seed + 3L)
+#   perm_terms <- c(covar, "field_type")
+#   perm_form  <- reformulate(perm_terms, response = "d")
+#   
+#   gl_permtest <- adonis2(
+#     perm_form,
+#     data = env,
+#     permutations = nperm,
+#     by = "terms"
+#   )
+#   
+#   # Pairwise PERMANOVA 
+#   groups <- combn(g_levels, m = 2) %>% t() %>% as.data.frame()
+#   names(groups) <- c("V1", "V2")
+#   
+#   contrasts <- data.frame(
+#     group1   = groups$V1,
+#     group2   = groups$V2,
+#     R2       = NA_real_,
+#     F_value  = NA_real_,
+#     df1      = NA_integer_,
+#     df2      = NA_integer_,
+#     p_value  = NA_real_
+#   )
+#   
+#   d_mat <- as.matrix(d)
+#   
+#   for (i in seq_len(nrow(contrasts))) {
+#     g1 <- contrasts$group1[i]
+#     g2 <- contrasts$group2[i]
+#     keep <- clust_vec %in% c(g1, g2)
+#     
+#     contrast_mat <- d_mat[keep, keep, drop = FALSE]
+#     env_sub <- env[keep, , drop = FALSE]
+#     env_sub$field_type <- droplevels(factor(env_sub$field_type))
+#     
+#     if (!is.null(seed)) set.seed(seed + 100L + i)
+#     
+#     perm_terms_pw <- c(covar, "field_type")
+#     perm_form_pw  <- reformulate(perm_terms_pw, response = "contrast_mat")
+#     
+#     fit <- adonis2(
+#       perm_form_pw,
+#       data = env_sub,
+#       permutations = nperm,
+#       by = "terms"
+#     )
+#     
+#     rn <- rownames(fit)
+#     term_row <- grep("(^field_type$)|field_type", rn)
+#     if (length(term_row) != 1L) {
+#       stop("Could not uniquely identify `field_type` row in pairwise adonis2 result.\nRows were: ",
+#            paste(rn, collapse = ", "))
+#     }
+#     
+#     contrasts$R2[i]      <- round(fit[term_row, "R2"], 3)
+#     contrasts$F_value[i] <- round(fit[term_row, "F"], 3)
+#     contrasts$df1[i]     <- fit[term_row, "Df"]
+#     contrasts$df2[i]     <- fit[grep("^Residual", rn), "Df"]
+#     contrasts$p_value[i] <- fit[term_row, "Pr(>F)"]
+#   }
+#   
+#   contrasts$p_value_adj <- round(p.adjust(contrasts$p_value, method = "fdr"), 4)
+#   
+#   list(
+#     correction_note    = p$note,
+#     ordination_values  = p_vals[1:min(10, nrow(p_vals)), ],
+#     axis_pct           = p_eig,
+#     ordination_scores  = p_sco,
+#     dispersion_test    = mvdisper,
+#     permanova          = gl_permtest,
+#     pairwise_contrasts = contrasts
+#   )
+# }
+
+
 #' 
 #' ## Permanova on soil data
 #' Simplified version of `mva()` for use with the soil properties data

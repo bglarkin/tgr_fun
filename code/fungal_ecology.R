@@ -1379,6 +1379,7 @@ ggsave(root_path("figs", "figS4.svg"), plot = biomass_fig,
 #' ## ITS fungi
 #+ its_ord
 mva_its <- mva(d = d_reps$d_its, env = sites_reps)
+mva_its$stress %>% round(., 3)
 #+ its_ord_results
 mva_its$dispersion_test
 mva_its$permanova
@@ -1391,27 +1392,39 @@ mva_its$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>%
 #' a PERMANOVA test. 
 #' 
 #' Plotting results: 
-its_ord_data <- mva_its$ordination_scores %>% mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+its_ord_data <- mva_its$ordination_scores %>% 
+  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 p_its_centers <- its_ord_data %>% 
   group_by(field_type) %>% 
-  summarize(across(starts_with("Axis"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
-  mutate(across(c(ci_l_Axis.1, ci_u_Axis.1), ~ mean_Axis.1 + .x),
-         across(c(ci_l_Axis.2, ci_u_Axis.2), ~ mean_Axis.2 + .x))
+  summarize(across(starts_with("NMDS"), list(mean = mean, ci_l = ci_l, ci_u = ci_u), .names = "{.fn}_{.col}"), .groups = "drop") %>% 
+  mutate(across(c(ci_l_NMDS1, ci_u_NMDS1), ~ mean_NMDS1 + .x),
+         across(c(ci_l_NMDS2, ci_u_NMDS2), ~ mean_NMDS2 + .x))
 its_ord <- 
-  ggplot(its_ord_data, aes(x = Axis.1, y = Axis.2)) +
-  geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, xmin = ci_l_Axis.1, xmax = ci_u_Axis.1), linewidth = lw) +
-  geom_linerange(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, ymin = ci_l_Axis.2, ymax = ci_u_Axis.2), linewidth = lw) +
-  geom_point(data = p_its_centers, aes(x = mean_Axis.1, y = mean_Axis.2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
+  ggplot(its_ord_data, aes(x = NMDS1, y = NMDS2)) +
+  geom_linerange(data = p_its_centers, aes(x = mean_NMDS1, y = mean_NMDS2, xmin = ci_l_NMDS1, xmax = ci_u_NMDS1), linewidth = lw) +
+  geom_linerange(data = p_its_centers, aes(x = mean_NMDS1, y = mean_NMDS2, ymin = ci_l_NMDS2, ymax = ci_u_NMDS2), linewidth = lw) +
+  geom_point(data = p_its_centers, aes(x = mean_NMDS1, y = mean_NMDS2, fill = field_type), size = lg_size, stroke = lw, shape = 21) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
-    x = paste0("PCoA 1 (", mva_its$axis_pct[1], "%; General fungi)"),
-    y = paste0("PCoA 2 (", mva_its$axis_pct[2], "%; General fungi)")) +
+    x = paste0("NMDS 1 — General fungi"),
+    y = paste0("NMDS 2 — General fungi")) +
+  scale_x_reverse() +
   scale_fill_manual(values = ft_pal) +
   theme_ord +
   theme(legend.position = "none",
         plot.tag = element_text(size = 14, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
+#### The x axis label looks cut off. check this out. 
+
+
+#### 2026-09-08
+
+
+
+
+
+
 #' 
 #' ## AM fungi
 #' ### Standard ordination
