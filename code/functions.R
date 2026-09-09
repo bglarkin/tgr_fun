@@ -338,6 +338,7 @@ mva <- function(d, env, covar = NULL, nperm = 1999, seed = 20260211, plot_stress
   
   contrasts$p_value_adj <- round(p.adjust(contrasts$p_value, method = "fdr"), 4)
   
+  par(mfrow = c(1,1))
   if (plot_stress) stressplot(p)
   
   list(
