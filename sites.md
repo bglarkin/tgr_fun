@@ -101,7 +101,7 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
     ## 
     ## 
     ## Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
-    ## connected to: https://overpass-api.de/api/interpreter
+    ## connected to: https://maps.mail.ru/osm/tools/overpass/api/interpreter
     ## 
     ## 
     ## Attaching package: 'cowplot'
