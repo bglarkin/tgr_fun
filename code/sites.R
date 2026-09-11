@@ -181,8 +181,15 @@ area_crop <- st_crop(cont, area_box)
 area_cities_crop <- st_crop(area_cities, area_box)
 #+ counties_crop,message=FALSE,warning=FALSE
 counties_crop <- st_crop(st_transform(counties, 4326), area_box)
-#+ area_roads,message=FALSE,warning=FALSE
-# area_roads <- get_osm_roads(area_box, density = 2) # leave commented unless missing from env
+#' 
+#' #### Retrieve area roads data
+#' Area roads: the overpass utility makes retrieving OSM data difficult. Don't execute get_osm_roads 
+#' unless a data refresh is necessary; leave the lines to retrieve data and save RDS commented out. 
+#' Use the RDS data saved locally most of the time.
+#' 
+# area_roads <- get_osm_roads(area_box, density = 2)
+# saveRDS(area_roads, "resources/area_roads.rds")
+area_roads <- readRDS("resources/area_roads.rds")
 #' 
 #' ### Site map data
 sites_sf <- st_as_sf(sites, coords = c("long", "lat"), crs = 4326, remove = FALSE)
@@ -192,13 +199,20 @@ bb_BM <- bbox_buffer_km(sites_sf %>% filter(region == "BM"), buffer_km = 5)
 bb_FG <- bbox_buffer_km(sites_sf %>% filter(region == "FG"), buffer_km = 0.3)
 bb_FL <- bbox_buffer_km(sites_sf %>% filter(region == "FL"), buffer_km = 1)
 bb_LP <- bbox_buffer_km(sites_sf %>% filter(region == "LP"), buffer_km = 0.2)
-#' Retrieve roads data
-# Don't execute if roads data are in the local env to save time
+#' 
+#' #### Retrieve site roads data
+#' Site roads: the overpass utility makes retrieving OSM data difficult. Don't execute get_osm_roads 
+#' unless a data refresh is necessary; leave the lines to retrieve data and save RDS commented out. 
+#' Use the RDS data saved locally most of the time.
+#' 
 # rd_BM = get_osm_roads(bb_BM, density=4)
 # rd_FG = get_osm_roads(bb_FG, density=8)
 # rd_FL = get_osm_roads(bb_FL, density=8)
 # rd_LP = get_osm_roads(bb_LP, density=8)
 # site_roads <- list(rd_BM = rd_BM, rd_FG = rd_FG, rd_FL= rd_FL, rd_LP = rd_LP)
+# saveRDS(site_roads, "resources/site_roads.rds")
+site_roads <- readRDS("resources/site_roads.rds")
+
 #' 
 #' 
 #' ### Map styles
