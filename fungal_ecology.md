@@ -344,6 +344,9 @@ amf_reps_uni <- amf_reps %>%
   left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
   select(otu_ID, everything(), -otu_num) %>% 
   as_tibble()
+```
+
+``` r
 amf_reps_ps <- phyloseq(
   otu_table(amf_reps_uni %>% column_to_rownames("otu_ID"), taxa_are_rows = TRUE),
   tax_table(amf_meta %>% column_to_rownames("otu_ID") %>% as.matrix()),
@@ -352,34 +355,6 @@ amf_reps_ps <- phyloseq(
   sample_data(sites_reps %>% column_to_rownames(var = "field_name"))
 )
 ```
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'RNeXML'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'RNeXML'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'RNeXML'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'RNeXML'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'RNeXML'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'RNeXML'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'RNeXML'
 
 ### Species distance matrices
 
@@ -1790,7 +1765,7 @@ Anova(sapro_rich_glm_i, type = 3, test.statistic = "LR") # interaction detected
 check_model(sapro_rich_glm_i)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-69-1.png)<!-- -->
 
 ``` r
 check_overdispersion(sapro_rich_glm_i) # not overdispersed
@@ -2666,7 +2641,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-101-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-100-1.png)<!-- -->
 
 variance differs slightly in groups. Tails on qq plot diverge, lots of
 groups structure visible.
@@ -2753,7 +2728,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-106-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-105-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -2818,7 +2793,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-108-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-107-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.19, null of constant variance not rejected
@@ -2836,7 +2811,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-109-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-108-1.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2897,7 +2872,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-111-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-110-1.png)<!-- -->
 
 no serious violations observed
 
@@ -2981,7 +2956,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-115-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-114-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -3581,7 +3556,7 @@ same for the sequence-based and biomass-aware analyses.
 mva_patho <- mva(d = d_reps$d_patho, env = sites_reps)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-125-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-124-1.png)<!-- -->
 
 ``` r
 mva_patho$ordination
@@ -5331,7 +5306,7 @@ Diagnostics
 check_model(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-168-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-167-1.png)<!-- -->
 
 ``` r
 check_collinearity(patho_gf_glm)
@@ -5446,7 +5421,7 @@ View partial regression plots for consistency.
 avPlots(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-172-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-171-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear structure is obvious. Both variables seem valuable.
@@ -5624,7 +5599,7 @@ distribution_prob(saprofa_prich_lm)
 check_model(saprofa_prich_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-179-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-178-1.png)<!-- -->
 
 Passes visual diagnostics
 
@@ -5711,7 +5686,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-183-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-182-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5818,7 +5793,7 @@ covariate than the test variable.
 avPlots(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-187-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-186-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear behavior is obvious, increasing spread with fungal
@@ -5969,7 +5944,7 @@ distribution_prob(saprofa_pshan_lm)
 check_model(saprofa_pshan_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-191-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-190-1.png)<!-- -->
 
 ``` r
 summary(saprofa_pshan_lm)

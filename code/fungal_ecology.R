@@ -217,12 +217,14 @@ amf_reps_ma <- amf_all_ma %>%
 #' Fermi biofuel control plots have already been averaged in `amf_reps`, so each
 #' row represents one independent analytical replicate. The phyloseq object is
 #' used to calculate weighted UniFrac distances.
+#+ amf_reps_uni,message=FALSE
 amf_reps_uni <- amf_reps %>%
   column_to_rownames("field_name") %>%
   t() %>% as.data.frame() %>% rownames_to_column("otu_num") %>%
   left_join(amf_meta %>% select(otu_num, otu_ID), by = "otu_num") %>%
   select(otu_ID, everything(), -otu_num) %>% 
   as_tibble()
+#+ amf_reps_ps,message=FALSE
 amf_reps_ps <- phyloseq(
   otu_table(amf_reps_uni %>% column_to_rownames("otu_ID"), taxa_are_rows = TRUE),
   tax_table(amf_meta %>% column_to_rownames("otu_ID") %>% as.matrix()),
