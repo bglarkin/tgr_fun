@@ -2,7 +2,7 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 04 August, 2026
+Last updated: 11 September, 2026
 
 - [Description](#description)
 - [Resources](#resources)
@@ -18,6 +18,7 @@ Last updated: 04 August, 2026
   - [Sequencing depth in sites](#sequencing-depth-in-sites)
   - [OTU recovery](#otu-recovery)
 - [Sampling depth and coverage](#sampling-depth-and-coverage)
+  - [Rarefaction: ITS sample](#rarefaction-its-sample)
   - [Rarefaction: ITS site-averaged](#rarefaction-its-site-averaged)
   - [Rarefaction: AMF sample](#rarefaction-amf-sample)
   - [Rarefaction: AMF site-averaged](#rarefaction-amf-site-averaged)
@@ -42,11 +43,45 @@ curves.
 ``` r
 packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", 
                      "rlang", "patchwork", "cowplot")
-
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
+
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.2.1     ✔ readr     2.2.0
+    ## ✔ forcats   1.0.1     ✔ stringr   1.6.0
+    ## ✔ ggplot2   4.0.3     ✔ tibble    3.3.1
+    ## ✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+    ## ✔ purrr     1.2.2     
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+    ## Loading required package: permute
+    ## 
+    ## 
+    ## Attaching package: 'rlang'
+    ## 
+    ## 
+    ## The following objects are masked from 'package:purrr':
+    ## 
+    ##     flatten, flatten_chr, flatten_dbl, flatten_int, flatten_lgl,
+    ##     flatten_raw, invoke, splice
+    ## 
+    ## 
+    ## 
+    ## Attaching package: 'cowplot'
+    ## 
+    ## 
+    ## The following object is masked from 'package:patchwork':
+    ## 
+    ##     align_plots
+    ## 
+    ## 
+    ## The following object is masked from 'package:lubridate':
+    ## 
+    ##     stamp
 
 # Functions
 
@@ -92,12 +127,12 @@ sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>%
 ## ETL processing
 
 ``` r
-its <- etl(spe = its_otu, taxa = its_taxa, traits = traits, varname = "otu_num", gene = "ITS",
+its <- etl(spe = its_otu, env = sites, taxa = its_taxa, traits = traits, varname = "otu_num", gene = "ITS",
            colname_prefix = "ITS_TGP_", folder = "clean_data")
 ```
 
 ``` r
-amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
+amf <- etl(spe = amf_otu, env = sites, taxa = amf_taxa, varname = "otu_num", gene = "18S",
            colname_prefix = "18S_TGP_", folder = "clean_data")
 ```
 
@@ -194,7 +229,9 @@ Script running `rarecurve()` is commented out because it takes so long
 to execute. Data were saved to the wd and are used for making figures.
 These files are too large to upload to GitHub and are ignored. Please
 run the calls to `rarecurve()` to create your own rarefaction and
-species accumulation data files. \## Rarefaction: ITS sample
+species accumulation data files.
+
+## Rarefaction: ITS sample
 
 ``` r
 # its_rc <- rarecurve(
@@ -235,9 +272,11 @@ summarize(across(starts_with(“otu”), sum), .groups = “drop”) %\>%
 column_to_rownames(“field_name”), step = 1, tidy = TRUE)
 write_csv(its_rc_site, root_path(“clean_data”, “its_rare_site.csv”))
 
-\#’ Read in the data already produced by `rarecurve()`. its_rc_site \<-
-read_csv(root_path(“clean_data”, “its_rare_site.csv”), show_col_types =
-FALSE)
+\#’ Read in the data already produced by `rarecurve()`.
+
+``` r
+its_rc_site <- read_csv(root_path("clean_data", "its_rare_site.csv"), show_col_types = FALSE)
+```
 
 ``` r
 its_rc_site %>%

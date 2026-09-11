@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 04 August, 2026
+Last updated: 11 September, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -45,6 +45,53 @@ if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
 
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.2.1     ✔ readr     2.2.0
+    ## ✔ forcats   1.0.1     ✔ stringr   1.6.0
+    ## ✔ ggplot2   4.0.3     ✔ tibble    3.3.1
+    ## ✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+    ## ✔ purrr     1.2.2     
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+    ## Loading required package: permute
+    ## 
+    ## 
+    ## Attaching package: 'ape'
+    ## 
+    ## 
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     where
+    ## 
+    ## 
+    ## Registered S3 methods overwritten by 'adegraphics':
+    ##   method         from
+    ##   biplot.dudi    ade4
+    ##   kplot.foucart  ade4
+    ##   kplot.mcoa     ade4
+    ##   kplot.mfa      ade4
+    ##   kplot.pta      ade4
+    ##   kplot.sepan    ade4
+    ##   kplot.statis   ade4
+    ##   scatter.coa    ade4
+    ##   scatter.dudi   ade4
+    ##   scatter.nipals ade4
+    ##   scatter.pco    ade4
+    ##   score.acm      ade4
+    ##   score.mix      ade4
+    ##   score.pca      ade4
+    ##   screeplot.dudi ade4
+    ## 
+    ## Registered S3 method overwritten by 'spdep':
+    ##   method   from
+    ##   plot.mst ape 
+    ## 
+    ## Registered S3 method overwritten by 'adespatial':
+    ##   method          from       
+    ##   plot.multispati adegraphics
+
 ## Root path function
 
 ``` r
@@ -65,17 +112,36 @@ source(root_path("resources", "styles.R"))
 source(root_path("code", "functions.R"))
 ```
 
-\#’ \# Data \## Site metadata and design
+\#’ \# Data \## Site metadata and design Identify plots that need to be
+collapsed into single replicate for the biofuel plots. Average location
+data from collapsed plots.
 
 ``` r
+biofuel_plots <- c("FLRSP1", "FLRSP2", "FLRSP3")
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
-  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+  mutate(
+    biofuel = field_name %in% biofuel_plots,
+    field_key = if_else(biofuel, 12, field_key),
+    field_name = if_else(biofuel, "FLRSP1", field_name),
+    field_code = if_else(biofuel, "FL-6", field_code),
+    field_type = factor(field_type, levels = c("corn", "restored", "remnant"))
+  ) %>% 
+  group_by(field_key, field_name, field_code, field_type, region, yr_restore, yr_since) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop")
 ```
 
 ## Soil properties
 
+Remove rows 26-27 which were old fields and not applicable here. FLRSP1,
+2, and 3 are replicate control plots within a single biofuel experiment,
+not independent restored fields. Collapse to FLRSP1.
+
 ``` r
-soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ]
+soil <- read_csv(root_path("clean_data/soil.csv"), show_col_types = FALSE)[-c(26:27), ] %>% 
+  select(-field_key) %>% 
+  mutate(field_name = if_else(field_name %in% biofuel_plots, "FLRSP1", field_name)) %>% 
+  group_by(field_name) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop")
 soil_units <- read_csv(root_path("clean_data/soil_units.csv"), show_col_types = FALSE)
 ```
 
@@ -98,7 +164,6 @@ setequal(sites$field_name, rownames(mem))
 soil_ft_avg <- 
   soil %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  select(-field_key) %>% 
   pivot_longer(pH:Na, names_to = "soil_property", values_to = "qty") %>% 
   group_by(field_type, soil_property) %>% 
   summarize(avg_qty = mean(qty), .groups = "drop") %>% 
@@ -121,7 +186,7 @@ soil_p_main <-
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
   left_join(soil_ft_avg %>% select(soil_property, cv, units), by = join_by(soil_property)) %>% 
   mutate(facet_labs = paste0(soil_property, " (", units, ")"),
-         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>% 
+         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>%
   ggplot(aes(x = field_type, y = value)) +
   facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
   labs(x = NULL, y = NULL) +
@@ -159,19 +224,19 @@ split(soil_kw_data, soil_kw_data$soil_property) %>%
 
 | property | kw_stat |  p.val |  p.adj |
 |:---------|--------:|-------:|-------:|
-| P        | 11.8235 | 0.0027 | 0.0201 |
-| NO3      | 11.5559 | 0.0031 | 0.0201 |
-| K        |  7.8097 | 0.0201 | 0.0873 |
-| Na       |  2.4656 | 0.2915 | 0.5889 |
-| Cu       |  2.0546 | 0.3580 | 0.5889 |
-| pH       |  1.9008 | 0.3866 | 0.5889 |
-| SOM      |  1.8699 | 0.3926 | 0.5889 |
-| Ca       |  1.8602 | 0.3945 | 0.5889 |
-| Fe       |  1.7945 | 0.4077 | 0.5889 |
-| SO4      |  1.4453 | 0.4855 | 0.6311 |
-| Zn       |  1.1236 | 0.5702 | 0.6738 |
-| Mn       |  0.3223 | 0.8512 | 0.9221 |
-| Mg       |  0.1515 | 0.9270 | 0.9270 |
+| P        | 12.0440 | 0.0024 | 0.0210 |
+| NO3      | 11.4670 | 0.0032 | 0.0210 |
+| K        |  7.4989 | 0.0235 | 0.1020 |
+| Na       |  2.9518 | 0.2286 | 0.5842 |
+| Fe       |  2.6944 | 0.2600 | 0.5842 |
+| Zn       |  2.2565 | 0.3236 | 0.5842 |
+| SOM      |  2.1520 | 0.3409 | 0.5842 |
+| Ca       |  1.8388 | 0.3988 | 0.5842 |
+| Cu       |  1.8104 | 0.4045 | 0.5842 |
+| pH       |  1.3833 | 0.5007 | 0.6265 |
+| SO4      |  1.2694 | 0.5301 | 0.6265 |
+| Mn       |  0.3990 | 0.8192 | 0.8874 |
+| Mg       |  0.0875 | 0.9572 | 0.9572 |
 
 Kruskal-Wallis rank sum test results on soil properties across field
 types. Df=2, FDR correction used.
@@ -179,7 +244,7 @@ types. Df=2, FDR correction used.
 ## PCA ordination, variable correlations, and PERMANOVA
 
 ``` r
-soil_z <- decostand(data.frame(soil[, -1], row.names = 1), "standardize")
+soil_z <- decostand(data.frame(soil, row.names = 1), "standardize")
 soil_pca <- rda(soil_z)
 summary(soil_pca)
 ```
@@ -196,13 +261,17 @@ summary(soil_pca)
     ## Eigenvalues, and their contribution to the variance 
     ## 
     ## Importance of components:
-    ##                          PC1    PC2    PC3    PC4     PC5     PC6     PC7     PC8     PC9     PC10     PC11    PC12     PC13
-    ## Eigenvalue            4.4790 2.3301 1.7896 1.4132 1.16188 0.70120 0.38467 0.27747 0.20308 0.129286 0.069183 0.04186 0.019432
-    ## Proportion Explained  0.3445 0.1792 0.1377 0.1087 0.08938 0.05394 0.02959 0.02134 0.01562 0.009945 0.005322 0.00322 0.001495
-    ## Cumulative Proportion 0.3445 0.5238 0.6614 0.7701 0.85952 0.91346 0.94305 0.96440 0.98002 0.989963 0.995285 0.99851 1.000000
+    ##                          PC1    PC2    PC3    PC4     PC5     PC6     PC7
+    ## Eigenvalue            4.5726 2.3551 1.8160 1.4454 1.05915 0.71450 0.37842
+    ## Proportion Explained  0.3517 0.1812 0.1397 0.1112 0.08147 0.05496 0.02911
+    ## Cumulative Proportion 0.3517 0.5329 0.6726 0.7838 0.86525 0.92021 0.94932
+    ##                           PC8     PC9     PC10     PC11     PC12     PC13
+    ## Eigenvalue            0.25333 0.16652 0.116394 0.065487 0.038287 0.018816
+    ## Proportion Explained  0.01949 0.01281 0.008953 0.005037 0.002945 0.001447
+    ## Cumulative Proportion 0.96881 0.98162 0.990570 0.995607 0.998553 1.000000
 
-Axes 1 and 2 explain 52% of the variation in sites. Axes 1 through 6
-account for 91%.
+Axes 1 and 2 explain 53% of the variation in sites. Axes 1 through 6
+account for 92%.
 
 ## Test spatial structure on soil data
 
@@ -221,18 +290,18 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.266500 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.122000 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
-    ## 1      MEM3     3 0.1621929 0.1621929 0.1257666 4.452622  2e-03
-    ## 2      MEM1     1 0.1373308 0.2995238 0.2358441 4.313178  5e-04
+    ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525  1e-03
+    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814  5e-04
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
 round(RsquareAdj(soil_mem_rda)$adj.r.squared, 3)
 ```
 
-    ## [1] 0.236
+    ## [1] 0.245
 
 ``` r
 anova(soil_mem_rda, permutations = 1999) %>% 
@@ -243,10 +312,10 @@ anova(soil_mem_rda, permutations = 1999) %>%
 
 |          |  Df | Variance |        F | Pr(\>F) | p.adj |
 |----------|----:|---------:|---------:|--------:|------:|
-| Model    |   2 | 3.893809 | 4.703603 |   5e-04 | 5e-04 |
-| Residual |  22 | 9.106191 |       NA |      NA |    NA |
+| Model    |   2 |  4.07937 | 4.572962 |   5e-04 | 5e-04 |
+| Residual |  20 |  8.92063 |       NA |      NA |    NA |
 
-MEM3 and MEM1 explain 23.6%
+MEM3 and MEM1 explain 24.5%
 
 ## Soil variable loadings and correlations
 
@@ -277,19 +346,19 @@ soil_ft_avg %>%
 
 | soil_property | units                |    corn | restored | remnant |   cv | PCA_cor |
 |:--------------|:---------------------|--------:|---------:|--------:|-----:|--------:|
-| P             | mg/L (Mehlich P-III) |   64.40 |     8.06 |    5.50 | 1.28 |    0.95 |
-| NO3           | mg/L                 |   21.54 |     5.07 |    4.38 | 0.94 |    0.85 |
-| K             | mg/L                 |  214.40 |   111.62 |   96.00 | 0.46 |    0.57 |
-| SOM           | % LOI                |    4.68 |     5.26 |    7.28 | 0.24 |    0.95 |
-| Ca            | mg/L                 | 2803.20 |  1992.75 | 2856.50 | 0.19 |    0.91 |
-| Zn            | mg/L                 |    2.72 |     3.60 |    2.61 | 0.18 |    0.40 |
-| SO4           | mg/L                 |   21.20 |    16.69 |   16.00 | 0.16 |    0.79 |
-| Cu            | mg/L                 |    2.90 |     2.73 |    2.15 | 0.15 |    0.33 |
-| Mn            | mg/L                 |   15.42 |    20.36 |   16.70 | 0.15 |    0.79 |
-| Fe            | mg/L                 |   47.34 |    50.16 |   55.92 | 0.09 |    0.27 |
-| Na            | mg/L                 |   15.00 |    13.31 |   13.75 | 0.06 |    0.52 |
-| Mg            | mg/L                 |  562.40 |   556.56 |  512.75 | 0.05 |    0.87 |
-| pH            | NULL                 |    6.88 |     6.42 |    6.68 | 0.03 |    0.72 |
+| P             | mg/L (Mehlich P-III) |   64.40 |     8.98 |    5.50 | 1.26 |    0.95 |
+| NO3           | mg/L                 |   21.54 |     4.01 |    4.38 | 1.00 |    0.93 |
+| K             | mg/L                 |  214.40 |   116.62 |   96.00 | 0.44 |    0.56 |
+| SOM           | % LOI                |    4.68 |     5.19 |    7.28 | 0.24 |    0.95 |
+| Zn            | mg/L                 |    2.72 |     3.66 |    2.61 | 0.19 |    0.40 |
+| Ca            | mg/L                 | 2803.20 |  2029.86 | 2856.50 | 0.18 |    0.91 |
+| Cu            | mg/L                 |    2.90 |     2.82 |    2.15 | 0.16 |    0.33 |
+| Mn            | mg/L                 |   15.42 |    20.88 |   16.70 | 0.16 |    0.80 |
+| SO4           | mg/L                 |   21.20 |    16.88 |   16.00 | 0.15 |    0.78 |
+| Fe            | mg/L                 |   47.34 |    43.23 |   55.92 | 0.13 |    0.13 |
+| Na            | mg/L                 |   15.00 |    13.12 |   13.75 | 0.07 |    0.56 |
+| Mg            | mg/L                 |  562.40 |   567.31 |  512.75 | 0.06 |    0.88 |
+| pH            | NULL                 |    6.88 |     6.49 |    6.68 | 0.03 |    0.71 |
 
 Axis 1 & 2 eigenvalue proportions
 
@@ -318,16 +387,16 @@ mva_soil$dispersion_test
     ## Number of permutations: 1999
     ## 
     ## Response: Distances
-    ##           Df Sum Sq Mean Sq      F N.Perm Pr(>F)
-    ## Groups     2  0.066 0.03278 0.0157   1999 0.9805
-    ## Residuals 22 45.980 2.08998                     
+    ##           Df Sum Sq Mean Sq     F N.Perm Pr(>F)
+    ## Groups     2  0.091 0.04553 0.021   1999 0.9755
+    ## Residuals 20 43.265 2.16323                    
     ## 
     ## Pairwise comparisons:
     ## (Observed p-value below diagonal, permuted p-value above diagonal)
     ##             corn remnant restored
-    ## corn             0.99150   0.8810
-    ## remnant  0.99277           0.8885
-    ## restored 0.87268 0.89386
+    ## corn             0.91350   0.8245
+    ## remnant  0.91894           0.9760
+    ## restored 0.82943 0.97691
 
 ``` r
 mva_soil$permanova
@@ -340,11 +409,11 @@ mva_soil$permanova
     ## 
     ## adonis2(formula = perm_form, data = env, permutations = nperm, by = "terms")
     ##            Df SumOfSqs      R2      F Pr(>F)    
-    ## MEM3        1   50.604 0.16219 6.1548  5e-04 ***
-    ## MEM1        1   42.847 0.13733 5.2113  5e-04 ***
-    ## field_type  2   54.110 0.17343 3.2906  5e-04 ***
-    ## Residual   20  164.439 0.52705                  
-    ## Total      24  312.000 1.00000                  
+    ## MEM3        1   50.281 0.17581 6.1188 0.0005 ***
+    ## MEM1        1   39.465 0.13799 4.8026 0.0015 ** 
+    ## field_type  2   48.339 0.16902 2.9413 0.0020 ** 
+    ## Residual   18  147.914 0.51718                  
+    ## Total      22  286.000 1.00000                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -356,9 +425,9 @@ mva_soil$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>%
 
 | group1  | group2   | F_value |    R2 | p_value | p_value_adj |
 |:--------|:---------|--------:|------:|--------:|------------:|
-| corn    | restored |   5.249 | 0.165 |  0.0005 |      0.0015 |
-| corn    | remnant  |   4.627 | 0.277 |  0.0010 |      0.0015 |
-| remnant | restored |   0.577 | 0.023 |  0.7470 |      0.7470 |
+| corn    | restored |   4.350 | 0.153 |  0.0010 |      0.0023 |
+| corn    | remnant  |   4.195 | 0.272 |  0.0015 |      0.0023 |
+| remnant | restored |   0.569 | 0.025 |  0.7550 |      0.7550 |
 
 Pairwise permanova contrasts
 

@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 04 August, 2026
+Last updated: 11 September, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -40,27 +40,81 @@ if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
 
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.2.1     ✔ readr     2.2.0
+    ## ✔ forcats   1.0.1     ✔ stringr   1.6.0
+    ## ✔ ggplot2   4.0.3     ✔ tibble    3.3.1
+    ## ✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+    ## ✔ purrr     1.2.2     
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+    ## 
+    ## Attaching package: 'gridExtra'
+    ## 
+    ## 
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     combine
+    ## 
+    ## 
     ## Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
-
+    ## 
+    ## 
+    ## Attaching package: 'rnaturalearthdata'
+    ## 
+    ## 
+    ## The following object is masked from 'package:rnaturalearth':
+    ## 
+    ##     countries110
+    ## 
+    ## 
+    ## 
+    ## Attaching package: 'maps'
+    ## 
+    ## 
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     map
+    ## 
+    ## 
     ## Loading required package: ggpp
-
+    ## 
     ## Registered S3 methods overwritten by 'ggpp':
     ##   method                  from   
     ##   heightDetails.titleGrob ggplot2
     ##   widthDetails.titleGrob  ggplot2
-
+    ## 
     ## 
     ## Attaching package: 'ggpp'
-
+    ## 
+    ## 
     ## The following objects are masked from 'package:ggpubr':
     ## 
     ##     as_npc, as_npcx, as_npcy
-
+    ## 
+    ## 
     ## The following object is masked from 'package:ggplot2':
     ## 
     ##     annotate
-
+    ## 
+    ## 
     ## Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
+    ## connected to: https://maps.mail.ru/osm/tools/overpass/api/interpreter
+    ## 
+    ## 
+    ## Attaching package: 'cowplot'
+    ## 
+    ## 
+    ## The following object is masked from 'package:ggpubr':
+    ## 
+    ##     get_legend
+    ## 
+    ## 
+    ## The following object is masked from 'package:lubridate':
+    ## 
+    ##     stamp
 
 ## Root path function
 
@@ -94,10 +148,21 @@ source(root_path("code", "functions.R"))
 
 # Sites
 
+Identify plots that need to be collapsed into single replicate for the
+biofuel plots. Average location data from collapsed plots.
+
 ``` r
-sites <-
-  read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
-  mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
+biofuel_plots <- c("FLRSP1", "FLRSP2", "FLRSP3")
+sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>% 
+  mutate(
+    biofuel = field_name %in% biofuel_plots,
+    field_key = if_else(biofuel, 12, field_key),
+    field_name = if_else(biofuel, "FLRSP1", field_name),
+    field_code = if_else(biofuel, "FL-6", field_code),
+    field_type = factor(field_type, levels = c("corn", "restored", "remnant"))
+  ) %>% 
+  group_by(field_key, field_name, field_code, field_type, region, yr_restore, yr_since) %>% 
+  summarize(across(where(is.numeric), mean), .groups = "drop")
 ```
 
 Calculate region locations
@@ -129,7 +194,7 @@ kable(field_types,
 |:-------|-------:|-----------:|----------:|----------------:|----------------:|
 | BM     |      1 |          7 |         1 |               2 |              28 |
 | FG     |      1 |          1 |         1 |              15 |              15 |
-| FL     |      2 |          6 |         1 |              10 |              40 |
+| FL     |      2 |          4 |         1 |              10 |              40 |
 | LP     |      1 |          2 |         1 |               4 |               4 |
 
 Count of sites by type in each area & age of restored fields: BM = Blue
@@ -174,9 +239,9 @@ rbind(
 |:-------|--------:|-------:|--------:|
 | BM     |     0.1 |   21.3 |    38.7 |
 | FG     |     0.1 |    2.0 |     2.1 |
-| FL     |     0.1 |    2.1 |     2.9 |
+| FL     |     0.1 |    2.2 |     2.9 |
 | LP     |     0.2 |    0.5 |     0.9 |
-| All    |     0.1 |   87.7 |   187.9 |
+| All    |     0.1 |   81.2 |   187.9 |
 
 Summary of intra-region and overall pairwise distances (km)
 
@@ -199,21 +264,19 @@ kable(reg_ft_stats, format = "pandoc", caption = "Summary of intra-region and fi
 | region | group_pair        | min_dist | median_dist | max_dist |
 |:-------|:------------------|---------:|------------:|---------:|
 | FG     | corn-remnant      |      0.1 |        0.10 |      0.1 |
-| LP     | restored-restored |      0.2 |        0.20 |      0.2 |
-| LP     | remnant-restored  |      0.3 |        0.35 |      0.4 |
-| LP     | corn-remnant      |      0.5 |        0.50 |      0.5 |
-| LP     | corn-restored     |      0.8 |        0.85 |      0.9 |
+| LP     | restored-restored |      0.1 |        0.10 |      0.1 |
+| LP     | corn-remnant      |      0.2 |        0.20 |      0.2 |
+| FL     | restored-restored |      0.1 |        1.05 |      2.1 |
 | FL     | corn-remnant      |      0.2 |        1.45 |      2.7 |
-| FL     | restored-restored |      0.1 |        1.90 |      2.2 |
 | FG     | corn-restored     |      2.0 |        2.00 |      2.0 |
 | FG     | remnant-restored  |      2.1 |        2.10 |      2.1 |
-| FL     | corn-restored     |      0.2 |        2.40 |      2.8 |
+| FL     | corn-restored     |      0.3 |        2.45 |      2.8 |
 | FL     | corn-corn         |      2.5 |        2.50 |      2.5 |
 | FL     | remnant-restored  |      2.8 |        2.90 |      2.9 |
-| BM     | remnant-restored  |      0.1 |       17.40 |     21.4 |
-| BM     | corn-remnant      |     21.3 |       21.30 |     21.3 |
-| BM     | restored-restored |      0.1 |       21.40 |     38.7 |
-| BM     | corn-restored     |      0.2 |       22.50 |     33.4 |
+| BM     | restored-restored |      0.2 |       33.30 |    119.6 |
+| BM     | remnant-restored  |      0.1 |       33.40 |    117.1 |
+| LP     | corn-restored     |    114.2 |      114.25 |    114.3 |
+| LP     | remnant-restored  |    114.4 |      114.40 |    114.4 |
 
 Summary of intra-region and field type pairwise distances (km)
 
@@ -228,11 +291,11 @@ kable(ft_stats, format = "pandoc", caption = "Summary of field type pairwise dis
 
 | group_pair        | median_dist |
 |:------------------|------------:|
-| corn-remnant      |         1.0 |
-| restored-restored |         1.9 |
-| corn-restored     |         2.2 |
+| corn-remnant      |         0.2 |
+| restored-restored |         1.0 |
 | corn-corn         |         2.5 |
-| remnant-restored  |         2.5 |
+| corn-restored     |         2.5 |
+| remnant-restored  |        18.1 |
 
 Summary of field type pairwise distances
 
@@ -344,8 +407,17 @@ area_cities_crop <- st_crop(area_cities, area_box)
 counties_crop <- st_crop(st_transform(counties, 4326), area_box)
 ```
 
+#### Retrieve area roads data
+
+Area roads: the overpass utility makes retrieving OSM data difficult.
+Don’t execute get_osm_roads unless a data refresh is necessary; leave
+the lines to retrieve data and save RDS commented out. Use the RDS data
+saved locally most of the time.
+
 ``` r
-# area_roads <- get_osm_roads(area_box, density = 2) # leave commented unless missing from env
+# area_roads <- get_osm_roads(area_box, density = 2)
+# saveRDS(area_roads, "resources/area_roads.rds")
+area_roads <- readRDS("resources/area_roads.rds")
 ```
 
 ### Site map data
@@ -364,15 +436,21 @@ bb_FL <- bbox_buffer_km(sites_sf %>% filter(region == "FL"), buffer_km = 1)
 bb_LP <- bbox_buffer_km(sites_sf %>% filter(region == "LP"), buffer_km = 0.2)
 ```
 
-Retrieve roads data
+#### Retrieve site roads data
+
+Site roads: the overpass utility makes retrieving OSM data difficult.
+Don’t execute get_osm_roads unless a data refresh is necessary; leave
+the lines to retrieve data and save RDS commented out. Use the RDS data
+saved locally most of the time.
 
 ``` r
-# Don't execute if roads data are in the local env to save time
 # rd_BM = get_osm_roads(bb_BM, density=4)
 # rd_FG = get_osm_roads(bb_FG, density=8)
 # rd_FL = get_osm_roads(bb_FL, density=8)
 # rd_LP = get_osm_roads(bb_LP, density=8)
 # site_roads <- list(rd_BM = rd_BM, rd_FG = rd_FG, rd_FL= rd_FL, rd_LP = rd_LP)
+# saveRDS(site_roads, "resources/site_roads.rds")
+site_roads <- readRDS("resources/site_roads.rds")
 ```
 
 ### Map styles
@@ -409,10 +487,6 @@ inset_map <- ggplot() +
           fill = cstyle$land_col,
           color = cstyle$border_col,
           linewidth = cstyle$continent_border_width) +
-  # geom_sf(data = st_crop(us_states, na_bbox),
-  #         fill = "transparent",
-  #         color = cstyle$border_col,
-  #         linewidth = cstyle$continent_border_width) +
   geom_sf(data = st_crop(st_make_valid(lakes) %>% filter(scalerank < 3), na_bbox),
           fill = "aliceblue", color = cstyle$border_col,
           linewidth = cstyle$continent_border_width) +
@@ -424,13 +498,17 @@ inset_map <- ggplot() +
         panel.border = element_rect(color = "gray30", fill = NA, linewidth = 0.5))
 ```
 
-    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
+    ## although coordinates are longitude/latitude, st_intersection assumes that they
+    ## are planar
 
-    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
+    ## Warning: attribute variables are assumed to be spatially constant throughout
+    ## all geometries
 
-    ## although coordinates are longitude/latitude, st_intersection assumes that they are planar
+    ## although coordinates are longitude/latitude, st_intersection assumes that they
+    ## are planar
 
-    ## Warning: attribute variables are assumed to be spatially constant throughout all geometries
+    ## Warning: attribute variables are assumed to be spatially constant throughout
+    ## all geometries
 
 ## Continental map
 

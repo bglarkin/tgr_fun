@@ -14,7 +14,7 @@
 #' ## Sequence data processing functions
 #' ### ETL: clean OTU data and return formatted objects
 #+ function_etl
-etl <- function(spe, env = sites, taxa, traits = NULL, varname, gene, cluster_type = "otu",
+etl <- function(spe, env, taxa, traits = NULL, varname, gene, cluster_type = "otu",
                 colname_prefix, folder) {
   varname <- enquo(varname)
   data <- spe %>% left_join(taxa, by = join_by(`#OTU ID`))

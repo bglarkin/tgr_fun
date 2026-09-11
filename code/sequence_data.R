@@ -20,14 +20,14 @@
 #' **Note:** individual sample based data needed to produce collection curves.
 #'
 #' # Resources
-
+#' 
 #' ## Packages
 packages_needed <- c("tidyverse", "vegan", "knitr", "colorspace", "plotrix", "rprojroot", 
                      "rlang", "patchwork", "cowplot")
-
 to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
+
 #' 
 #' # Functions
 #' ## Root path function
@@ -41,10 +41,8 @@ source(root_path("code", "functions.R"))
 #+ graphics_styles
 source(root_path("resources", "styles.R"))
 
-
 #' 
 #' # Load and process data
-
 #' ## Import data
 #+ species_taxa_traits,message=FALSE
 its_otu <- read_delim(root_path("otu_tables/ITS/ITS_otu_raw.txt"), show_col_types = FALSE)
@@ -53,21 +51,20 @@ amf_otu <- read_delim(root_path("otu_tables/18S/18S_otu_raw.txt"), show_col_type
 amf_taxa <- read_delim(root_path("otu_tables/18S/18S_otu_taxonomy.txt"), show_col_types = FALSE)
 traits <- read_csv(root_path("otu_tables/2023-02-23_fungal_traits.csv"), show_col_types = FALSE) %>%
     select(phylum:primary_lifestyle)
-
 #+ import_sites,message=FALSE
 sites <- read_csv(root_path("clean_data/sites.csv"), show_col_types = FALSE) %>%
     mutate(field_type = factor(field_type, levels = c("corn", "restored", "remnant"))) %>%
     select(-lat, -long, -yr_restore)
-
+#' 
 #' ## ETL processing
 #+ process_its,message=FALSE
-its <- etl(spe = its_otu, taxa = its_taxa, traits = traits, varname = "otu_num", gene = "ITS",
+its <- etl(spe = its_otu, env = sites, taxa = its_taxa, traits = traits, varname = "otu_num", gene = "ITS",
            colname_prefix = "ITS_TGP_", folder = "clean_data")
-
 #+ process_18S,message=FALSE,warning=FALSE
-amf <- etl(spe = amf_otu, taxa = amf_taxa, varname = "otu_num", gene = "18S",
+amf <- etl(spe = amf_otu, env = sites, taxa = amf_taxa, varname = "otu_num", gene = "18S",
            colname_prefix = "18S_TGP_", folder = "clean_data")
 
+#' 
 #' # Summary stats
 #' ## Sequencing depth in samples
 list(
@@ -103,12 +100,13 @@ list(
             select(starts_with("otu")) %>% 
             colnames() %>% length())
 
+#' 
 #' # Sampling depth and coverage
 #' Script running `rarecurve()` is commented out because it takes so long to execute.
 #' Data were saved to the wd and are used for making figures. These files are too large
 #' to upload to GitHub and are ignored. Please run the calls to `rarecurve()` to create
 #' your own rarefaction and species accumulation data files. 
-
+#' 
 #' ## Rarefaction: ITS sample
 # its_rc <- rarecurve(
 #     its$spe_samps %>%
@@ -117,10 +115,9 @@ list(
 #         select(-field_name, -sample),
 #     step = 1, tidy = TRUE)
 # write_csv(its_rc, root_path("clean_data", "its_rare_samp.csv"))
-
+#' 
 #' Read in the data already produced with `rarecurve()`.
 its_rc <- read_csv(root_path("clean_data", "its_rare_samp.csv"), show_col_types = FALSE)
-
 #+ its_rarefaction,fig.width=4,fig.height=7
 its_rc %>%
     separate_wider_delim(Site, delim = "_", names = c("field_name", "sample_key"), cols_remove = FALSE) %>% 
@@ -133,7 +130,7 @@ its_rc %>%
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS samples") +
     theme_corf +
     theme(legend.position = "none")
-
+#' 
 #' ## Rarefaction: ITS site-averaged
 #' its_rc_site <- rarecurve(
 #'     its$spe_samps %>%
@@ -144,8 +141,7 @@ its_rc %>%
 #' write_csv(its_rc_site, root_path("clean_data", "its_rare_site.csv"))
 #' 
 #' #' Read in the data already produced by `rarecurve()`.
-#' its_rc_site <- read_csv(root_path("clean_data", "its_rare_site.csv"), show_col_types = FALSE)
-
+its_rc_site <- read_csv(root_path("clean_data", "its_rare_site.csv"), show_col_types = FALSE)
 #+ its_rarefaction_site_avg,fig.width=4,fig.height=7
 its_rc_site %>%
     rename(seq_abund = Sample, otus = Species, field_name = Site) %>%
@@ -157,7 +153,7 @@ its_rc_site %>%
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of ITS (site-averaged)") +
     theme_corf +
     theme(legend.position = "none")
-
+#' 
 #' ## Rarefaction: AMF sample
 #+ amf_rc,message=FALSE,warning=FALSE
 # amf_rc <- rarecurve(
@@ -167,10 +163,10 @@ its_rc_site %>%
 #         select(-field_name, -sample),
 #     step = 1, tidy = TRUE)
 # write_csv(amf_rc, root_path("clean_data", "amf_rare_samp.csv"))
-
+#' 
 #' Read in data produced by `rarecurve()`.
 amf_rc <- read_csv(root_path("clean_data", "amf_rare_samp.csv"), show_col_types = FALSE)
-
+#' 
 #+ amf_rarefaction,fig.width=4,fig.height=7
 amf_rc %>%
     separate_wider_delim(Site, delim = "_", names = c("field_name", "sample_key"), cols_remove = FALSE) %>% 
@@ -183,7 +179,7 @@ amf_rc %>%
     labs(x = "Sequence abundance", y = "OTUs", title = "Rarefaction of 18S samples") +
     theme_corf +
     theme(legend.position = "none")
-
+#' 
 #' ## Rarefaction: AMF site-averaged
 #+ amf_rc_site,message=FALSE,warning=FALSE
 # amf_rc_site <- rarecurve(
@@ -193,10 +189,10 @@ amf_rc %>%
 #         column_to_rownames("field_name"),
 #     step = 1, tidy = TRUE)
 # write_csv(amf_rc_site, root_path("clean_data", "amf_rare_site.csv"))
-
+#' 
 #' Read in data already produced by `rarecurve()`.
 amf_rc_site <- read_csv(root_path("clean_data", "amf_rare_site.csv"), show_col_types = FALSE)
-
+#' 
 #+ amf_rarefaction_site_avg,fig.width=4,fig.height=7
 amf_rc_site %>%
     rename(seq_abund = Sample, otus = Species, field_name = Site) %>%
@@ -209,6 +205,7 @@ amf_rc_site %>%
     theme_corf +
     theme(legend.position = "none")
 
+#' 
 #' # Figure data
 #+ species_accumulation,message=FALSE,warning=FALSE
 accum <- bind_rows(

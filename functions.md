@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 04 August, 2026
+Last updated: 11 September, 2026
 
 - [Description](#description)
   - [Sequence data processing
@@ -29,7 +29,7 @@ space elsewhere
 ### ETL: clean OTU data and return formatted objects
 
 ``` r
-etl <- function(spe, env = sites, taxa, traits = NULL, varname, gene, cluster_type = "otu",
+etl <- function(spe, env, taxa, traits = NULL, varname, gene, cluster_type = "otu",
                 colname_prefix, folder) {
   varname <- enquo(varname)
   data <- spe %>% left_join(taxa, by = join_by(`#OTU ID`))
@@ -112,26 +112,76 @@ ci <- function(x) std.error(x) * qnorm(0.975)
 ## Alpha diversity calculations
 
 Returns a dataframe of alpha diversity (richness, Shannon’s) for
-analysis and plotting.
+analysis and plotting. Handles the biofuel plot collapse internally
 
 ``` r
-calc_div <- function(spe, site_dat) {
-  div_data <- 
-    spe %>% 
+calc_div <- function(spe, site_dat, biofuel_plots = c("FLRSP1", "FLRSP2", "FLRSP3")) {
+  
+  # Calculate sequencing depth and alpha diversity for each sampled plot
+  div_data <- spe %>% 
     rowwise() %>% 
     mutate(
       depth = sum(c_across(starts_with("otu"))),
       richness = sum(c_across(starts_with("otu")) > 0),
       shannon = exp(diversity(c_across(starts_with("otu"))))
     ) %>% 
-    select(-starts_with("otu")) %>% 
-    as_tibble() %>% 
-    ungroup() %>% 
-    left_join(site_dat %>% select(field_type, field_name), by = join_by(field_name)) %>% 
-    select(field_name, field_type, depth, richness, shannon)
+    select(field_name, depth, richness, shannon) %>% 
+    ungroup()
   
-  return(div_data)
+  # Retain ordinary sites unchanged
+  div_other <- div_data %>% 
+    filter(!field_name %in% biofuel_plots) %>% 
+    mutate(
+      depth_rich = depth,
+      depth_shan = depth
+    ) %>% 
+    select(field_name, depth_rich, depth_shan, richness, shannon)
   
+  # Collapse Fermi biofuel control plots to one independent replicate
+  biofuel <- div_data %>% 
+    filter(field_name %in% biofuel_plots)
+  
+  if (nrow(biofuel) > 0) {
+    
+    median_richness <- median(biofuel$richness)
+    
+    div_biofuel <- tibble(
+      field_name = "FLRSP1",
+      depth_rich = biofuel %>% 
+        filter(richness == median_richness) %>% 
+        summarize(depth = mean(depth)) %>% 
+        pull(depth),
+      depth_shan = mean(biofuel$depth),
+      richness = median_richness,
+      shannon = mean(biofuel$shannon)
+    )
+    
+    div_data <- bind_rows(div_other, div_biofuel)
+    
+  } else {
+    div_data <- div_other
+  }
+  
+  # Join site metadata and prepare transformed sequencing-depth covariates
+  div_data %>% 
+    left_join(
+      site_dat %>% select(field_type, field_name),
+      by = join_by(field_name)
+    ) %>% 
+    mutate(
+      depth_rich_csq = sqrt(depth_rich) - mean(sqrt(depth_rich)),
+      depth_shan_csq = sqrt(depth_shan) - mean(sqrt(depth_shan))
+    ) %>% 
+    select(
+      field_name,
+      field_type,
+      depth_rich,
+      depth_rich_csq,
+      depth_shan,
+      depth_shan_csq,
+      richness,
+      shannon
+    )
 }
 ```
 
@@ -146,11 +196,12 @@ ci_l <- function(x) {(sd(x) / sqrt(length(x))) * qnorm(0.025)}
 
 ## Multivariate analysis
 
-Ordination → dispersion check → global & pairwise PERMANOVA Args: *d*
-dist, *env* metadata, *corr* PCoA correction, *nperm* permutations.
+NMDS ordination → dispersion check → global & pairwise PERMANOVA Args:
+*d* dist, *env* metadata, *covar* optional covariates (MEM), *nperm*
+permutations.
 
 ``` r
-mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 20260211) {
+mva <- function(d, env, covar = NULL, nperm = 1999, seed = 20260211, plot_stress = TRUE) {
   
   stopifnot(is.data.frame(env))
   if (!("field_type" %in% names(env))) stop("`env` must contain column `field_type`.")
@@ -179,7 +230,7 @@ mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 202602
   } else if (is.matrix(d)) {
     if (is.null(rownames(d))) stop("Distance matrix `d` must have row names.")
     lab <- rownames(d)
-    d <- as.dist(d)  # coerce for betadisper/pcoa convenience
+    d <- as.dist(d)
   } else {
     stop("`d` must be a 'dist' or a symmetric distance matrix.")
   }
@@ -199,18 +250,26 @@ mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 202602
   
   # Set grouping variables
   g_chr     <- as.character(env$field_type)
-  g_levels  <- sort(unique(g_chr))         # deterministic order
+  g_levels  <- sort(unique(g_chr))
   clust_vec <- factor(g_chr, levels = g_levels)
   
-  # Ordination (PCoA)
-  p <- pcoa(d, correction = corr)
-  p_vals <- data.frame(p$values) %>%
-    rownames_to_column(var = "Dim") %>%
-    mutate(Dim = as.integer(Dim))
-  p_eig <- p_vals[1:2, grep("Rel", colnames(p_vals))] %>% round(., 3) * 100
+  # Ordination (NMDS)
+  if (!is.null(seed)) set.seed(seed + 1L)
   
-  p_vec <- data.frame(p$vectors, check.names = FALSE)
-  p_sco <- p_vec[, 1:2, drop = FALSE] %>%
+  p <- metaMDS(
+    d,
+    k = 2,
+    trymax = 100,
+    autotransform = FALSE,
+    trace = FALSE
+  )
+  
+  p_sco <- scores(
+    p,
+    display = "sites",
+    choices = 1:2
+  ) %>%
+    as.data.frame() %>%
     rownames_to_column(var = "field_name") %>%
     left_join(env, by = join_by(field_name))
   
@@ -284,14 +343,16 @@ mva <- function(d, env, corr = "none", covar = NULL, nperm = 1999, seed = 202602
   
   contrasts$p_value_adj <- round(p.adjust(contrasts$p_value, method = "fdr"), 4)
   
+  par(mfrow = c(1,1))
+  if (plot_stress) stressplot(p)
+  
   list(
-    correction_note    = p$note,
-    ordination_values  = p_vals[1:min(10, nrow(p_vals)), ],
-    axis_pct           = p_eig,
-    ordination_scores  = p_sco,
-    dispersion_test    = mvdisper,
-    permanova          = gl_permtest,
-    pairwise_contrasts = contrasts
+    ordination          = p,
+    stress              = p$stress,
+    ordination_scores   = p_sco,
+    dispersion_test     = mvdisper,
+    permanova           = gl_permtest,
+    pairwise_contrasts  = contrasts
   )
 }
 ```

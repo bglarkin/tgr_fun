@@ -64,6 +64,7 @@ conflicts_prefer(
 #' 
 #+ graphics_styles
 source(root_path("resources", "styles.R"))
+
 #' 
 #' # Functions
 #' Executed from a separate script to save lines here; to view the function navigate to 
