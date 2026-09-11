@@ -1690,29 +1690,6 @@ ggsave(root_path("figs", "fig3.svg"), plot = fig3,
        device = svglite::svglite, fix_text_size = FALSE,
        width = 18, height = 18, units = "cm")
 
-
-
-
-
-
-
-cmdscale(d_reps$d_patho, k = 3, add = TRUE) %>% 
-  scores(choices = c(1,2)) %>%
-  as.data.frame() %>% 
-  rownames_to_column(var = "field_name") %>% 
-  left_join(sites_reps, by = join_by("field_name")) %>% 
-  ggplot(aes(x = Dim1, y = Dim2)) +
-  geom_point(aes(color = field_type)) +
-  geom_text(na.rm = TRUE, aes(label = yr_since))
-
-
-
-
-
-
-
-
-
 #' 
 #' # Fungal communities and the environment
 # FungComm-env corr ———————— ####
