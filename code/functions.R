@@ -478,23 +478,47 @@ guildseq <- function(spe, meta, guild) {
 reg_dist_stats <- function(dist_mat,
                            sites_df,
                            filt_rg) {
-  dm  <- round(as.matrix(dist_mat) / 1000, 1)
+  dm <- round(as.matrix(dist_mat) / 1000, 1)
+  
+  if (!setequal(rownames(dm), as.character(sites_df$field_key))) {
+    stop("Distance matrix labels do not match sites_df$field_key")
+  }
+  
   idx <- which(upper.tri(dm), arr.ind = TRUE)
   
-  pairs <- tibble(site1 = rownames(dm)[idx[, 1]],
-                  site2 = colnames(dm)[idx[, 2]],
-                  dist  = dm[idx])
+  pairs <- tibble(
+    site1 = rownames(dm)[idx[, 1]],
+    site2 = colnames(dm)[idx[, 2]],
+    dist  = dm[idx]
+  )
   
   meta <- sites_df %>%
-    select(site = field_key, ft = field_type, rg = region) %>% 
-    mutate(site = as.character(site), ft = as.character(ft)) %>% 
+    select(site = field_key, ft = field_type, rg = region) %>%
+    mutate(
+      site = as.character(site),
+      ft = as.character(ft)
+    ) %>%
     filter(rg == filt_rg)
   
   pairs %>%
-    filter(site1 %in% meta$site, site2 %in% meta$site) %>% 
-    left_join(meta %>% select(site, ft), by = c("site1" = "site")) %>% rename(ft1 = ft) %>%
-    left_join(meta %>% select(site, ft), by = c("site2" = "site")) %>% rename(ft2 = ft) %>%
-    mutate(group_pair = paste(pmin(ft1, ft2), pmax(ft1, ft2), sep = "-")) %>%
+    filter(site1 %in% meta$site, site2 %in% meta$site) %>%
+    left_join(
+      meta %>% select(site, ft),
+      by = c("site1" = "site")
+    ) %>%
+    rename(ft1 = ft) %>%
+    left_join(
+      meta %>% select(site, ft),
+      by = c("site2" = "site")
+    ) %>%
+    rename(ft2 = ft) %>%
+    mutate(
+      group_pair = paste(
+        pmin(ft1, ft2),
+        pmax(ft1, ft2),
+        sep = "-"
+      )
+    ) %>%
     group_by(group_pair) %>%
     summarize(
       min_dist = min(dist, na.rm = TRUE),

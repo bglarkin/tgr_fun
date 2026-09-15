@@ -80,7 +80,9 @@ kable(field_types,
 #'
 #' ## Site pairwise distances
 #' Convert site coordinates to distances using the haversine method (package geosphere). 
-field_dist <- as.dist(distm(sites[, c("long", "lat")], fun = distHaversine))
+field_dist_mat <- distm(sites[, c("long", "lat")], fun = distHaversine)
+rownames(field_dist_mat) <- colnames(field_dist_mat) <- as.character(sites$field_key)
+field_dist <- as.dist(field_dist_mat)
 #' Stats, pairwise distances in regions
 rbind(
     split(sites, sites$region) %>% 
