@@ -1169,9 +1169,9 @@ ggsave(root_path("figs", "fig2.svg"), plot = fig2,
        width = 8.5, height = 17, units = "cm")
 
 #' 
-#' # Abundance
-# Abundance ———————— ####
-#' Biomass and abundance-scaled biomass
+#' # Biomass
+# Biomass ———————— ####
+#' Biomass and biomass-scaled abundance
 #' 
 #' ## ITS fungi (PLFA)
 plfa_lm <- lm(fungi_18.2 ~ field_type, data = fa_reps)
