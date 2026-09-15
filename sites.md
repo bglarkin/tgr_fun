@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 11 September, 2026
+Last updated: 15 September, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -206,7 +206,9 @@ Convert site coordinates to distances using the haversine method
 (package geosphere).
 
 ``` r
-field_dist <- as.dist(distm(sites[, c("long", "lat")], fun = distHaversine))
+field_dist_mat <- distm(sites[, c("long", "lat")], fun = distHaversine)
+rownames(field_dist_mat) <- colnames(field_dist_mat) <- as.character(sites$field_key)
+field_dist <- as.dist(field_dist_mat)
 ```
 
 Stats, pairwise distances in regions
@@ -264,8 +266,10 @@ kable(reg_ft_stats, format = "pandoc", caption = "Summary of intra-region and fi
 | region | group_pair        | min_dist | median_dist | max_dist |
 |:-------|:------------------|---------:|------------:|---------:|
 | FG     | corn-remnant      |      0.1 |        0.10 |      0.1 |
-| LP     | restored-restored |      0.1 |        0.10 |      0.1 |
-| LP     | corn-remnant      |      0.2 |        0.20 |      0.2 |
+| LP     | restored-restored |      0.2 |        0.20 |      0.2 |
+| LP     | remnant-restored  |      0.3 |        0.35 |      0.4 |
+| LP     | corn-remnant      |      0.5 |        0.50 |      0.5 |
+| LP     | corn-restored     |      0.8 |        0.85 |      0.9 |
 | FL     | restored-restored |      0.1 |        1.05 |      2.1 |
 | FL     | corn-remnant      |      0.2 |        1.45 |      2.7 |
 | FG     | corn-restored     |      2.0 |        2.00 |      2.0 |
@@ -273,10 +277,10 @@ kable(reg_ft_stats, format = "pandoc", caption = "Summary of intra-region and fi
 | FL     | corn-restored     |      0.3 |        2.45 |      2.8 |
 | FL     | corn-corn         |      2.5 |        2.50 |      2.5 |
 | FL     | remnant-restored  |      2.8 |        2.90 |      2.9 |
-| BM     | restored-restored |      0.2 |       33.30 |    119.6 |
-| BM     | remnant-restored  |      0.1 |       33.40 |    117.1 |
-| LP     | corn-restored     |    114.2 |      114.25 |    114.3 |
-| LP     | remnant-restored  |    114.4 |      114.40 |    114.4 |
+| BM     | remnant-restored  |      0.1 |       17.40 |     21.4 |
+| BM     | corn-remnant      |     21.3 |       21.30 |     21.3 |
+| BM     | restored-restored |      0.1 |       21.40 |     38.7 |
+| BM     | corn-restored     |      0.2 |       22.50 |     33.4 |
 
 Summary of intra-region and field type pairwise distances (km)
 
@@ -291,11 +295,11 @@ kable(ft_stats, format = "pandoc", caption = "Summary of field type pairwise dis
 
 | group_pair        | median_dist |
 |:------------------|------------:|
-| corn-remnant      |         0.2 |
+| corn-remnant      |         1.0 |
 | restored-restored |         1.0 |
+| corn-restored     |         2.2 |
 | corn-corn         |         2.5 |
-| corn-restored     |         2.5 |
-| remnant-restored  |        18.1 |
+| remnant-restored  |         2.5 |
 
 Summary of field type pairwise distances
 

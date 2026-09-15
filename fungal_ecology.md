@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 11 September, 2026
+Last updated: 15 September, 2026
 
 - [Description](#description)
   - [Notes](#notes)
@@ -23,7 +23,7 @@ Last updated: 11 September, 2026
   - [Richness](#richness)
   - [Shannon diversity](#shannon-diversity)
   - [Unified results](#unified-results)
-- [Abundance](#abundance)
+- [Biomass](#biomass)
   - [ITS fungi (PLFA)](#its-fungi-plfa)
   - [AM fungi (NLFA)](#am-fungi-nlfa)
   - [Pathogens](#pathogens-4)
@@ -2625,13 +2625,13 @@ fig2
 
 ![](resources/fungal_ecology_files/figure-gfm/div_fig-1.png)<!-- -->
 
-# Abundance
+# Biomass
 
 ``` r
-# Abundance ———————— ####
+# Biomass ———————— ####
 ```
 
-Biomass and abundance-scaled biomass
+Biomass and biomass-scaled abundance
 
 ## ITS fungi (PLFA)
 
