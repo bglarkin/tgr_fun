@@ -10,10 +10,10 @@ Last updated: 15 September, 2026
   - [Soil properties](#soil-properties)
   - [Distance-based MEM](#distance-based-mem)
 - [Results](#results)
-  - [Averages in field types](#averages-in-field-types)
-  - [Boxplot displays](#boxplot-displays)
   - [Test differences among field
     types](#test-differences-among-field-types)
+  - [Averages in field types](#averages-in-field-types)
+  - [Boxplot displays](#boxplot-displays)
   - [PCA ordination, variable correlations, and
     PERMANOVA](#pca-ordination-variable-correlations-and-permanova)
   - [Test spatial structure on soil
@@ -158,6 +158,46 @@ setequal(sites$field_name, rownames(mem))
 
 # Results
 
+## Test differences among field types
+
+Use Kruskal-Wallis tests with FDR corrected p values
+
+``` r
+soil_kw_data <- 
+  soil %>% 
+  pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name))
+soil_kw <- 
+  split(soil_kw_data, soil_kw_data$soil_property) %>% 
+  map(\(df) kruskal.test(df$value, df$field_type) %>% 
+        tidy()) %>% 
+  bind_rows(.id = "soil_property") %>% 
+  mutate(p.adj = p.adjust(p.value, "fdr"), 
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
+  select(soil_property, kw_stat = statistic, p.val = p.value, p.adj) %>% 
+  arrange(p.val)
+kable(soil_kw, format = "pandoc", caption = "Kruskal-Wallis rank sum test results on soil properties across field types.\nDf=2, FDR correction used.")
+```
+
+| soil_property | kw_stat |  p.val |  p.adj |
+|:--------------|--------:|-------:|-------:|
+| P             | 12.0440 | 0.0024 | 0.0210 |
+| NO3           | 11.4670 | 0.0032 | 0.0210 |
+| K             |  7.4989 | 0.0235 | 0.1020 |
+| Na            |  2.9518 | 0.2286 | 0.5842 |
+| Fe            |  2.6944 | 0.2600 | 0.5842 |
+| Zn            |  2.2565 | 0.3236 | 0.5842 |
+| SOM           |  2.1520 | 0.3409 | 0.5842 |
+| Ca            |  1.8388 | 0.3988 | 0.5842 |
+| Cu            |  1.8104 | 0.4045 | 0.5842 |
+| pH            |  1.3833 | 0.5007 | 0.6265 |
+| SO4           |  1.2694 | 0.5301 | 0.6265 |
+| Mn            |  0.3990 | 0.8192 | 0.8874 |
+| Mg            |  0.0875 | 0.9572 | 0.9572 |
+
+Kruskal-Wallis rank sum test results on soil properties across field
+types. Df=2, FDR correction used.
+
 ## Averages in field types
 
 ``` r
@@ -170,11 +210,8 @@ soil_ft_avg <-
   pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
   left_join(soil_units, by = join_by(soil_property)) %>% 
   select(soil_property, units, everything()) %>% 
-  rowwise() %>% 
-  mutate(
-    cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)), across(where(is.numeric), ~ round(.x, 2))
-    ) %>% 
-  arrange(-cv)
+  left_join(soil_kw %>% select(soil_property, kw_stat), by = join_by(soil_property)) %>% 
+  arrange(-kw_stat)
 ```
 
 ## Boxplot displays
@@ -184,9 +221,9 @@ soil_p_main <-
   soil %>% 
   pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  left_join(soil_ft_avg %>% select(soil_property, cv, units), by = join_by(soil_property)) %>% 
+  left_join(soil_ft_avg %>% select(soil_property, kw_stat, units), by = join_by(soil_property)) %>% 
   mutate(facet_labs = paste0(soil_property, " (", units, ")"),
-         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>%
+         facet_labs = fct_reorder(as.factor(facet_labs), -kw_stat)) %>%
   ggplot(aes(x = field_type, y = value)) +
   facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
   labs(x = NULL, y = NULL) +
@@ -201,45 +238,6 @@ ggsave(root_path("figs", "figS6.svg"), plot = soil_p_main,
        device = svglite::svglite, fix_text_size = FALSE, 
        width = 19, height = 20, units = "cm")
 ```
-
-## Test differences among field types
-
-Use Kruskal-Wallis tests with FDR corrected p values
-
-``` r
-soil_kw_data <- 
-  soil %>% 
-  pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name))
-split(soil_kw_data, soil_kw_data$soil_property) %>% 
-  map(\(df) kruskal.test(df$value, df$field_type) %>% 
-        tidy()) %>% 
-  bind_rows(.id = "property") %>% 
-  mutate(p.adj = p.adjust(p.value, "fdr"), 
-         across(where(is.numeric), ~ round(.x, 4))) %>% 
-  select(property, kw_stat = statistic, p.val = p.value, p.adj) %>% 
-  arrange(p.val) %>% 
-  kable(format = "pandoc", caption = "Kruskal-Wallis rank sum test results on soil properties across field types.\nDf=2, FDR correction used.")
-```
-
-| property | kw_stat |  p.val |  p.adj |
-|:---------|--------:|-------:|-------:|
-| P        | 12.0440 | 0.0024 | 0.0210 |
-| NO3      | 11.4670 | 0.0032 | 0.0210 |
-| K        |  7.4989 | 0.0235 | 0.1020 |
-| Na       |  2.9518 | 0.2286 | 0.5842 |
-| Fe       |  2.6944 | 0.2600 | 0.5842 |
-| Zn       |  2.2565 | 0.3236 | 0.5842 |
-| SOM      |  2.1520 | 0.3409 | 0.5842 |
-| Ca       |  1.8388 | 0.3988 | 0.5842 |
-| Cu       |  1.8104 | 0.4045 | 0.5842 |
-| pH       |  1.3833 | 0.5007 | 0.6265 |
-| SO4      |  1.2694 | 0.5301 | 0.6265 |
-| Mn       |  0.3990 | 0.8192 | 0.8874 |
-| Mg       |  0.0875 | 0.9572 | 0.9572 |
-
-Kruskal-Wallis rank sum test results on soil properties across field
-types. Df=2, FDR correction used.
 
 ## PCA ordination, variable correlations, and PERMANOVA
 
@@ -290,11 +288,11 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.133500 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.140000 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
-    ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525 0.0015
-    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814 0.0010
+    ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525  5e-04
+    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814  5e-04
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
@@ -344,21 +342,21 @@ soil_ft_avg %>%
     kable(format = "pandoc")
 ```
 
-| soil_property | units                |    corn | restored | remnant |   cv | PCA_cor |
-|:--------------|:---------------------|--------:|---------:|--------:|-----:|--------:|
-| P             | mg/L (Mehlich P-III) |   64.40 |     8.98 |    5.50 | 1.26 |    0.95 |
-| NO3           | mg/L                 |   21.54 |     4.01 |    4.38 | 1.00 |    0.93 |
-| K             | mg/L                 |  214.40 |   116.62 |   96.00 | 0.44 |    0.56 |
-| SOM           | % LOI                |    4.68 |     5.19 |    7.28 | 0.24 |    0.95 |
-| Zn            | mg/L                 |    2.72 |     3.66 |    2.61 | 0.19 |    0.40 |
-| Ca            | mg/L                 | 2803.20 |  2029.86 | 2856.50 | 0.18 |    0.91 |
-| Cu            | mg/L                 |    2.90 |     2.82 |    2.15 | 0.16 |    0.33 |
-| Mn            | mg/L                 |   15.42 |    20.88 |   16.70 | 0.16 |    0.80 |
-| SO4           | mg/L                 |   21.20 |    16.88 |   16.00 | 0.15 |    0.78 |
-| Fe            | mg/L                 |   47.34 |    43.23 |   55.92 | 0.13 |    0.13 |
-| Na            | mg/L                 |   15.00 |    13.12 |   13.75 | 0.07 |    0.56 |
-| Mg            | mg/L                 |  562.40 |   567.31 |  512.75 | 0.06 |    0.88 |
-| pH            | NULL                 |    6.88 |     6.49 |    6.68 | 0.03 |    0.71 |
+| soil_property | units | corn | restored | remnant | kw_stat | PCA_cor | cv |
+|:---|:---|---:|---:|---:|---:|---:|---:|
+| P | mg/L (Mehlich P-III) | 64.40 | 8.98 | 5.50 | 12.04 | 0.95 | 1.26 |
+| NO3 | mg/L | 21.54 | 4.01 | 4.38 | 11.47 | 0.93 | 1.00 |
+| K | mg/L | 214.40 | 116.62 | 96.00 | 7.50 | 0.56 | 0.44 |
+| SOM | % LOI | 4.68 | 5.19 | 7.28 | 2.15 | 0.95 | 0.24 |
+| Zn | mg/L | 2.72 | 3.66 | 2.61 | 2.26 | 0.40 | 0.19 |
+| Ca | mg/L | 2803.20 | 2029.86 | 2856.50 | 1.84 | 0.91 | 0.18 |
+| Cu | mg/L | 2.90 | 2.82 | 2.15 | 1.81 | 0.33 | 0.16 |
+| Mn | mg/L | 15.42 | 20.88 | 16.70 | 0.40 | 0.80 | 0.16 |
+| SO4 | mg/L | 21.20 | 16.88 | 16.00 | 1.27 | 0.78 | 0.15 |
+| Fe | mg/L | 47.34 | 43.23 | 55.92 | 2.69 | 0.13 | 0.13 |
+| Na | mg/L | 15.00 | 13.12 | 13.75 | 2.95 | 0.56 | 0.07 |
+| Mg | mg/L | 562.40 | 567.31 | 512.75 | 0.09 | 0.88 | 0.06 |
+| pH | NULL | 6.88 | 6.49 | 6.68 | 1.38 | 0.71 | 0.03 |
 
 Axis 1 & 2 eigenvalue proportions
 
