@@ -75,6 +75,24 @@ mem <- dbmem(coord_tbl) %>% as.data.frame()
 setequal(sites$field_name, rownames(mem))
 #' 
 #' # Results
+#' 
+#' ## Test differences among field types
+#' Use Kruskal-Wallis tests with FDR corrected p values
+soil_kw_data <- 
+  soil %>% 
+  pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
+  left_join(sites %>% select(field_name, field_type), by = join_by(field_name))
+soil_kw <- 
+  split(soil_kw_data, soil_kw_data$soil_property) %>% 
+  map(\(df) kruskal.test(df$value, df$field_type) %>% 
+        tidy()) %>% 
+  bind_rows(.id = "soil_property") %>% 
+  mutate(p.adj = p.adjust(p.value, "fdr"), 
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
+  select(soil_property, kw_stat = statistic, p.val = p.value, p.adj) %>% 
+  arrange(p.val)
+kable(soil_kw, format = "pandoc", caption = "Kruskal-Wallis rank sum test results on soil properties across field types.\nDf=2, FDR correction used.")
+#' 
 #' ## Averages in field types
 soil_ft_avg <- 
   soil %>% 
@@ -85,20 +103,17 @@ soil_ft_avg <-
   pivot_wider(names_from = "field_type", values_from = "avg_qty") %>% 
   left_join(soil_units, by = join_by(soil_property)) %>% 
   select(soil_property, units, everything()) %>% 
-  rowwise() %>% 
-  mutate(
-    cv = sd(c_across(corn:remnant)) / mean(c_across(corn:remnant)), across(where(is.numeric), ~ round(.x, 2))
-    ) %>% 
-  arrange(-cv)
+  left_join(soil_kw %>% select(soil_property, kw_stat), by = join_by(soil_property)) %>% 
+  arrange(-kw_stat)
 #' 
 #' ## Boxplot displays
 soil_p_main <- 
   soil %>% 
   pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
   left_join(sites %>% select(field_name, field_type), by = join_by(field_name)) %>% 
-  left_join(soil_ft_avg %>% select(soil_property, cv, units), by = join_by(soil_property)) %>% 
+  left_join(soil_ft_avg %>% select(soil_property, kw_stat, units), by = join_by(soil_property)) %>% 
   mutate(facet_labs = paste0(soil_property, " (", units, ")"),
-         facet_labs = fct_reorder(as.factor(facet_labs), -cv)) %>%
+         facet_labs = fct_reorder(as.factor(facet_labs), -kw_stat)) %>%
   ggplot(aes(x = field_type, y = value)) +
   facet_wrap(vars(facet_labs), ncol = 4, scales = "free_y") +
   labs(x = NULL, y = NULL) +
@@ -110,22 +125,6 @@ soil_p_main <-
 ggsave(root_path("figs", "figS6.svg"), plot = soil_p_main, 
        device = svglite::svglite, fix_text_size = FALSE, 
        width = 19, height = 20, units = "cm")
-#' 
-#' ## Test differences among field types
-#' Use Kruskal-Wallis tests with FDR corrected p values
-soil_kw_data <- 
-  soil %>% 
-  pivot_longer(pH:Na, names_to = "soil_property", values_to = "value") %>% 
-  left_join(sites %>% select(field_name, field_type), by = join_by(field_name))
-split(soil_kw_data, soil_kw_data$soil_property) %>% 
-  map(\(df) kruskal.test(df$value, df$field_type) %>% 
-        tidy()) %>% 
-  bind_rows(.id = "property") %>% 
-  mutate(p.adj = p.adjust(p.value, "fdr"), 
-         across(where(is.numeric), ~ round(.x, 4))) %>% 
-  select(property, kw_stat = statistic, p.val = p.value, p.adj) %>% 
-  arrange(p.val) %>% 
-  kable(format = "pandoc", caption = "Kruskal-Wallis rank sum test results on soil properties across field types.\nDf=2, FDR correction used.")
 #' 
 #' ## PCA ordination, variable correlations, and PERMANOVA
 soil_z <- decostand(data.frame(soil, row.names = 1), "standardize")
