@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 15 September, 2026
+Last updated: 16 September, 2026
 
 - [Description](#description)
   - [Notes](#notes)
@@ -4232,16 +4232,17 @@ amf_mod_step
     ##   73.9   26.1
 
 ``` r
-amf_mod_step$anova %>% 
+anova(amf_mod_step, by = "margin", permutations = 1999) %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
 ```
 
-|            |  Df |       AIC |        F | Pr(\>F) | p.adj |
-|------------|----:|----------:|---------:|--------:|------:|
-| \+ gf_axis |   1 | -14.67259 | 4.686311 |  0.0005 | 0.001 |
-| \+ pH      |   1 | -15.71209 | 2.634020 |  0.0280 | 0.028 |
+|          |  Df |  SumOfSqs |        F | Pr(\>F) | p.adj |
+|----------|----:|----------:|---------:|--------:|------:|
+| gf_axis  |   1 | 0.1200312 | 5.886725 |  0.0005 | 0.001 |
+| pH       |   1 | 0.0537081 | 2.634020 |  0.0240 | 0.024 |
+| Residual |  10 | 0.2039015 |       NA |      NA |    NA |
 
 Based on permutation tests with n=1999 permutations, after accounting
 for inter-site pairwise distance as a covariate, the model shows a
@@ -4346,7 +4347,7 @@ patho_mod_step
     ## 
     ## Model: dbrda(formula = d_wi$d_patho_wi ~ Condition(env_cov[, "MEM2"]) + gf_axis + K, data = env_expl)
     ##          Df SumOfSqs     F Pr(>F)   
-    ## Model     2  0.45006 2.684 0.0015 **
+    ## Model     2  0.45006 2.684  0.004 **
     ## Residual  9  0.75456                
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -4361,10 +4362,10 @@ patho_mod_step
     ## Number of permutations: 1999
     ## 
     ## Model: dbrda(formula = d_wi$d_patho_wi ~ Condition(env_cov[, "MEM2"]) + gf_axis + K, data = env_expl)
-    ##          Df SumOfSqs      F Pr(>F)   
-    ## dbRDA1    1  0.29422 3.5092 0.0025 **
-    ## dbRDA2    1  0.15584 2.0653 0.0545 . 
-    ## Residual  9  0.75456                 
+    ##          Df SumOfSqs      F Pr(>F)    
+    ## dbRDA1    1  0.29422 3.5092  0.001 ***
+    ## dbRDA2    1  0.15584 2.0653  0.050 *  
+    ## Residual  9  0.75456                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -4376,16 +4377,17 @@ patho_mod_step
     ##   65.4   34.6
 
 ``` r
-patho_mod_step$anova %>% 
+anova(patho_mod_step, by = "margin", permutations = 1999) %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
 ```
 
-|            |  Df |      AIC |        F | Pr(\>F) |  p.adj |
-|------------|----:|---------:|---------:|--------:|-------:|
-| \+ gf_axis |   1 | 4.300079 | 2.672949 |  0.0055 | 0.0110 |
-| \+ K       |   1 | 3.298446 | 2.337540 |  0.0195 | 0.0195 |
+|          |  Df |  SumOfSqs |       F | Pr(\>F) |  p.adj |
+|----------|----:|----------:|--------:|--------:|-------:|
+| gf_axis  |   1 | 0.2907872 | 3.46834 |  0.0010 | 0.0020 |
+| K        |   1 | 0.1959804 | 2.33754 |  0.0235 | 0.0235 |
+| Residual |   9 | 0.7545639 |      NA |      NA |     NA |
 
 Based on permutation tests with n=1999 permutations, after accounting
 for inter-site pairwise distance as a covariate, the model shows no
@@ -4488,7 +4490,7 @@ sapro_mod_step
     ## 
     ## Model: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM2 + MEM1) + gf_axis + SOM + NO3, data = cbind(env_expl, env_cov))
     ##          Df SumOfSqs      F Pr(>F)    
-    ## Model     3   1.2237 2.0324  5e-04 ***
+    ## Model     3   1.2237 2.0324  0.001 ***
     ## Residual  7   1.4048                  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -4504,9 +4506,9 @@ sapro_mod_step
     ## 
     ## Model: dbrda(formula = d_wi$d_sapro_wi ~ Condition(MEM2 + MEM1) + gf_axis + SOM + NO3, data = cbind(env_expl, env_cov))
     ##          Df SumOfSqs      F Pr(>F)   
-    ## dbRDA1    1  0.54260 2.7037  0.002 **
-    ## dbRDA2    1  0.39136 2.2287  0.002 **
-    ## dbRDA3    1  0.28970 1.8559  0.014 * 
+    ## dbRDA1    1  0.54260 2.7037 0.0035 **
+    ## dbRDA2    1  0.39136 2.2287 0.0035 **
+    ## dbRDA3    1  0.28970 1.8559 0.0080 **
     ## Residual  7  1.40484                 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -4519,17 +4521,18 @@ sapro_mod_step
     ##   44.3   32.0   23.7
 
 ``` r
-sapro_mod_step$anova %>% 
+anova(sapro_mod_step, by = "margin", permutations = 1999) %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
 ```
 
-|            |  Df |      AIC |        F | Pr(\>F) |   p.adj |
-|------------|----:|---------:|---------:|--------:|--------:|
-| \+ gf_axis |   1 | 16.81572 | 2.083589 |  0.0045 | 0.01350 |
-| \+ SOM     |   1 | 16.18929 | 1.791104 |  0.0225 | 0.03375 |
-| \+ NO3     |   1 | 15.37848 | 1.689598 |  0.0365 | 0.03650 |
+|          |  Df |  SumOfSqs |        F | Pr(\>F) |   p.adj |
+|----------|----:|----------:|---------:|--------:|--------:|
+| gf_axis  |   1 | 0.4861431 | 2.422336 |  0.0010 | 0.00300 |
+| SOM      |   1 | 0.3705412 | 1.846319 |  0.0255 | 0.03825 |
+| NO3      |   1 | 0.3390886 | 1.689598 |  0.0435 | 0.04350 |
+| Residual |   7 | 1.4048431 |       NA |      NA |      NA |
 
 Based on permutation tests with n=1999 permutations, after accounting
 for inter-site pairwise distance as a covariate, the model shows
@@ -4622,10 +4625,10 @@ list(
 
 | guild       | term  | pseudo_F\_(df) | r2adj | p.value |  p.adj |
 |:------------|:------|:---------------|------:|--------:|-------:|
-| all_fungi   | Model | 2.28 (2, 9)    | 0.177 |  0.0005 | 0.0007 |
-| amf         | Model | 4.01 (2, 10)   | 0.334 |  0.0005 | 0.0007 |
-| pathogens   | Model | 2.68 (2, 9)    | 0.189 |  0.0015 | 0.0015 |
-| saprotrophs | Model | 2.03 (3, 7)    | 0.216 |  0.0005 | 0.0007 |
+| all_fungi   | Model | 2.28 (2, 9)    | 0.177 |   5e-04 | 0.0010 |
+| amf         | Model | 4.01 (2, 10)   | 0.334 |   5e-04 | 0.0010 |
+| pathogens   | Model | 2.68 (2, 9)    | 0.189 |   4e-03 | 0.0040 |
+| saprotrophs | Model | 2.03 (3, 7)    | 0.216 |   1e-03 | 0.0013 |
 
 #### Component axes
 
@@ -4652,20 +4655,21 @@ list(
 | all_fungi   | dbRDA2 | 1.62 (1, 9)    |  0.0050 | 0.0075 |
 | amf         | dbRDA1 | 5.92 (1, 10)   |  0.0005 | 0.0023 |
 | amf         | dbRDA2 | 2.3 (1, 10)    |  0.0230 | 0.0259 |
-| pathogens   | dbRDA1 | 3.51 (1, 9)    |  0.0025 | 0.0045 |
-| pathogens   | dbRDA2 | 2.07 (1, 9)    |  0.0545 | 0.0545 |
-| saprotrophs | dbRDA1 | 2.7 (1, 7)     |  0.0020 | 0.0045 |
-| saprotrophs | dbRDA2 | 2.23 (1, 7)    |  0.0020 | 0.0045 |
-| saprotrophs | dbRDA3 | 1.86 (1, 7)    |  0.0140 | 0.0180 |
+| pathogens   | dbRDA1 | 3.51 (1, 9)    |  0.0010 | 0.0030 |
+| pathogens   | dbRDA2 | 2.07 (1, 9)    |  0.0500 | 0.0500 |
+| saprotrophs | dbRDA1 | 2.7 (1, 7)     |  0.0035 | 0.0063 |
+| saprotrophs | dbRDA2 | 2.23 (1, 7)    |  0.0035 | 0.0063 |
+| saprotrophs | dbRDA3 | 1.86 (1, 7)    |  0.0080 | 0.0103 |
 
-#### Selected constraining variables
+#### Spatial conditioned variables
+
+These were significant for only ITS, pathogens, and saprotrophs
 
 ``` r
 list(
-  all_fungi   = mod_step$anova,
-  amf         = amf_mod_step$anova,
-  pathogens   = patho_mod_step$anova,
-  saprotrophs = sapro_mod_step$anova
+  all_fungi   = anova(mem_step_its_wi, by = "margin", permutations = 1999),
+  pathogens   = anova(mem_step_patho_wi, by = "margin", permutations = 1999),
+  saprotrophs = anova(mem_step_sapro_wi, by = "margin", permutations = 1999)
 ) %>% 
   map(\(df) df %>% tidy()) %>% 
   bind_rows(.id = "guild") %>% 
@@ -4676,21 +4680,65 @@ list(
          p.adj = p.adjust(p.value, "fdr"),
          across(where(is.numeric), ~ round(.x, 4))) %>% 
   select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  filter(term != "Residual") %>% 
   arrange(guild, p.value) %>% 
-  kable(format = "pandoc")
+  kable(format = "pandoc", caption = "Significant conditioning variables in db-RDA")
 ```
+
+    ## Warning: The column name SumOfSqs in ANOVA output was not recognized or transformed.
+    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
+    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
+
+| guild       | term | pseudo_F\_(df) | p.value |  p.adj |
+|:------------|:-----|:---------------|--------:|-------:|
+| all_fungi   | MEM2 | 1.825 (1, 9)   |  0.0205 | 0.0353 |
+| pathogens   | MEM2 | 3.873 (1, 9)   |  0.0040 | 0.0160 |
+| saprotrophs | MEM2 | 1.639 (1, 7)   |  0.0265 | 0.0353 |
+| saprotrophs | MEM1 | 1.519 (1, 7)   |  0.0460 | 0.0460 |
+
+Significant conditioning variables in db-RDA
+
+#### Selected constraining variables
+
+``` r
+list(
+  all_fungi   = anova(mod_step, by = "margin", permutations = 1999),
+  amf         = anova(amf_mod_step, by = "margin", permutations = 1999),
+  pathogens   = anova(patho_mod_step, by = "margin", permutations = 1999),
+  saprotrophs = anova(sapro_mod_step, by = "margin", permutations = 1999)
+) %>% 
+  map(\(df) df %>% tidy()) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(dbrda_rdf, by = join_by(guild)) %>% 
+  mutate(statistic = round(statistic, 3),
+         `pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ "),
+         p.adj = p.adjust(p.value, "fdr"),
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  filter(term != "Residual") %>% 
+  arrange(guild, p.value) %>% 
+  kable(format = "pandoc", caption = "Selected constraining variables in db-RDA")
+```
+
+    ## Warning: The column name SumOfSqs in ANOVA output was not recognized or transformed.
+    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
+    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
+    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
 
 | guild       | term    | pseudo_F\_(df) | p.value |  p.adj |
 |:------------|:--------|:---------------|--------:|-------:|
-| all_fungi   | gf_axis | 2.687 (1, 9)   |  0.0010 | 0.0045 |
-| all_fungi   | pl_rich | 1.691 (1, 9)   |  0.0455 | 0.0455 |
-| amf         | gf_axis | 4.686 (1, 10)  |  0.0005 | 0.0045 |
-| amf         | pH      | 2.634 (1, 10)  |  0.0280 | 0.0360 |
-| pathogens   | gf_axis | 2.673 (1, 9)   |  0.0055 | 0.0124 |
-| pathogens   | K       | 2.338 (1, 9)   |  0.0195 | 0.0338 |
-| saprotrophs | gf_axis | 2.084 (1, 7)   |  0.0045 | 0.0124 |
-| saprotrophs | SOM     | 1.791 (1, 7)   |  0.0225 | 0.0338 |
-| saprotrophs | NO3     | 1.69 (1, 7)    |  0.0365 | 0.0411 |
+| all_fungi   | gf_axis | 3.08 (1, 9)    |  0.0005 | 0.0011 |
+| all_fungi   | pl_rich | 1.691 (1, 9)   |  0.0340 | 0.0383 |
+| amf         | gf_axis | 5.887 (1, 10)  |  0.0005 | 0.0011 |
+| amf         | pH      | 2.634 (1, 10)  |  0.0220 | 0.0315 |
+| pathogens   | gf_axis | 3.468 (1, 9)   |  0.0005 | 0.0011 |
+| pathogens   | K       | 2.338 (1, 9)   |  0.0245 | 0.0315 |
+| saprotrophs | gf_axis | 2.422 (1, 7)   |  0.0005 | 0.0011 |
+| saprotrophs | SOM     | 1.846 (1, 7)   |  0.0240 | 0.0315 |
+| saprotrophs | NO3     | 1.69 (1, 7)    |  0.0410 | 0.0410 |
+
+Selected constraining variables in db-RDA
 
 #### Biplot panels
 
