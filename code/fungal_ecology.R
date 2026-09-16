@@ -1825,7 +1825,7 @@ amf_mod_step
 (amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
 (amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999))
 (amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1))
-amf_mod_step$anova %>% 
+anova(amf_mod_step, by = "margin", permutations = 1999) %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
@@ -1883,7 +1883,7 @@ patho_mod_step
 (patho_mod_glax <- anova(patho_mod_step, permutations = 1999))
 (patho_mod_inax <- anova(patho_mod_step, by = "axis", permutations = 1999))
 (patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$eig), 1))
-patho_mod_step$anova %>% 
+anova(patho_mod_step, by = "margin", permutations = 1999) %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
@@ -1939,7 +1939,7 @@ sapro_mod_step
 (sapro_mod_glax <- anova(sapro_mod_step, permutations = 1999))
 (sapro_mod_inax <- anova(sapro_mod_step, by = "axis", permutations = 1999))
 (sapro_mod_axpct <- round(100 * sapro_mod_step$CCA$eig / sum(sapro_mod_step$CCA$eig), 1))
-sapro_mod_step$anova %>% 
+anova(sapro_mod_step, by = "margin", permutations = 1999) %>% 
   as.data.frame() %>% 
   mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
   kable(, format = "pandoc")
@@ -2033,14 +2033,14 @@ list(
          across(where(is.numeric), ~ round(.x, 4))) %>% 
   select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
   kable(format = "pandoc")
-#' 
-#' #### Selected constraining variables
-#+ dbrda_var_summary
+#'
+#' #### Spatial conditioned variables
+#' These were significant for only ITS, pathogens, and saprotrophs
+#+ dbrda_condvar_summary
 list(
-  all_fungi   = mod_step$anova,
-  amf         = amf_mod_step$anova,
-  pathogens   = patho_mod_step$anova,
-  saprotrophs = sapro_mod_step$anova
+  all_fungi   = anova(mem_step_its_wi, by = "margin", permutations = 1999),
+  pathogens   = anova(mem_step_patho_wi, by = "margin", permutations = 1999),
+  saprotrophs = anova(mem_step_sapro_wi, by = "margin", permutations = 1999)
 ) %>% 
   map(\(df) df %>% tidy()) %>% 
   bind_rows(.id = "guild") %>% 
@@ -2051,8 +2051,30 @@ list(
          p.adj = p.adjust(p.value, "fdr"),
          across(where(is.numeric), ~ round(.x, 4))) %>% 
   select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  filter(term != "Residual") %>% 
   arrange(guild, p.value) %>% 
-  kable(format = "pandoc")
+  kable(format = "pandoc", caption = "Significant conditioning variables in db-RDA")
+#' 
+#' #### Selected constraining variables
+#+ dbrda_var_summary
+list(
+  all_fungi   = anova(mod_step, by = "margin", permutations = 1999),
+  amf         = anova(amf_mod_step, by = "margin", permutations = 1999),
+  pathogens   = anova(patho_mod_step, by = "margin", permutations = 1999),
+  saprotrophs = anova(sapro_mod_step, by = "margin", permutations = 1999)
+) %>% 
+  map(\(df) df %>% tidy()) %>% 
+  bind_rows(.id = "guild") %>% 
+  left_join(dbrda_rdf, by = join_by(guild)) %>% 
+  mutate(statistic = round(statistic, 3),
+         `pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+         term = str_remove(term, "\\+ "),
+         p.adj = p.adjust(p.value, "fdr"),
+         across(where(is.numeric), ~ round(.x, 4))) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+  filter(term != "Residual") %>% 
+  arrange(guild, p.value) %>% 
+  kable(format = "pandoc", caption = "Selected constraining variables in db-RDA")
 #' 
 #' #### Biplot panels
 #' All soil fungi
