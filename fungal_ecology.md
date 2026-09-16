@@ -4685,10 +4685,6 @@ list(
   kable(format = "pandoc", caption = "Significant conditioning variables in db-RDA")
 ```
 
-    ## Warning: The column name SumOfSqs in ANOVA output was not recognized or transformed.
-    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
-    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
-
 | guild       | term | pseudo_F\_(df) | p.value |  p.adj |
 |:------------|:-----|:---------------|--------:|-------:|
 | all_fungi   | MEM2 | 1.825 (1, 9)   |  0.0205 | 0.0353 |
@@ -4720,11 +4716,6 @@ list(
   arrange(guild, p.value) %>% 
   kable(format = "pandoc", caption = "Selected constraining variables in db-RDA")
 ```
-
-    ## Warning: The column name SumOfSqs in ANOVA output was not recognized or transformed.
-    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
-    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
-    ## The column name SumOfSqs in ANOVA output was not recognized or transformed.
 
 | guild       | term    | pseudo_F\_(df) | p.value |  p.adj |
 |:------------|:--------|:---------------|--------:|-------:|

@@ -288,11 +288,11 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.129500 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.123000 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
     ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525  5e-04
-    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814  1e-03
+    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814  5e-04
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
