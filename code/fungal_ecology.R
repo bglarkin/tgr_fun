@@ -2036,7 +2036,7 @@ list(
 #'
 #' #### Spatial conditioned variables
 #' These were significant for only ITS, pathogens, and saprotrophs
-#+ dbrda_condvar_summary
+#+ dbrda_condvar_summary,message=FALSE,warning=FALSE
 list(
   all_fungi   = anova(mem_step_its_wi, by = "margin", permutations = 1999),
   pathogens   = anova(mem_step_patho_wi, by = "margin", permutations = 1999),
@@ -2056,7 +2056,7 @@ list(
   kable(format = "pandoc", caption = "Significant conditioning variables in db-RDA")
 #' 
 #' #### Selected constraining variables
-#+ dbrda_var_summary
+#+ dbrda_var_summary,message=FALSE,warning=FALSE
 list(
   all_fungi   = anova(mod_step, by = "margin", permutations = 1999),
   amf         = anova(amf_mod_step, by = "margin", permutations = 1999),
