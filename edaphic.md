@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 16 September, 2026
+Last updated: 17 September, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -288,7 +288,7 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.123000 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.129000 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
     ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525  5e-04

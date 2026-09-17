@@ -2,12 +2,13 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 16 September, 2026
+Last updated: 17 September, 2026
 
 - [Description](#description)
   - [Sequence data processing
     functions](#sequence-data-processing-functions)
   - [Confidence interval helper](#confidence-interval-helper)
+  - [Select spatial eigenvectors](#select-spatial-eigenvectors)
   - [Alpha diversity calculations](#alpha-diversity-calculations)
   - [Confidence intervals](#confidence-intervals)
   - [Multivariate analysis](#multivariate-analysis)
@@ -107,6 +108,31 @@ spe_accum <- function(data) {
 
 ``` r
 ci <- function(x) std.error(x) * qnorm(0.975)
+```
+
+## Select spatial eigenvectors
+
+Fit null and full db-RDA models using dbMEM spatial variables and
+forward-select spatial eigenvectors associated with community
+composition.
+
+``` r
+mem_select <- function(d, mem, seed = 20260211, permutations = 1999) {
+  
+  stopifnot(identical(labels(d), rownames(mem)))
+  
+  mod_null <- dbrda(d ~ 1, data = mem)
+  mod_full <- dbrda(d ~ ., data = mem)
+  
+  set.seed(seed)
+  ordistep(
+    mod_null,
+    scope = formula(mod_full),
+    direction = "forward",
+    permutations = permutations,
+    trace = FALSE
+  )
+}
 ```
 
 ## Alpha diversity calculations
