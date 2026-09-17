@@ -89,6 +89,27 @@ spe_accum <- function(data) {
 #+ function_confint
 ci <- function(x) std.error(x) * qnorm(0.975)
 #' 
+#' ## Select spatial eigenvectors
+#' Fit null and full db-RDA models using dbMEM spatial variables and
+#' forward-select spatial eigenvectors associated with community composition.
+#+ mem_function
+mem_select <- function(d, mem, seed = 20260211, permutations = 1999) {
+  
+  stopifnot(identical(labels(d), rownames(mem)))
+  
+  mod_null <- dbrda(d ~ 1, data = mem)
+  mod_full <- dbrda(d ~ ., data = mem)
+  
+  set.seed(seed)
+  ordistep(
+    mod_null,
+    scope = formula(mod_full),
+    direction = "forward",
+    permutations = permutations,
+    trace = FALSE
+  )
+}
+#' 
 #' ## Alpha diversity calculations
 #' Returns a dataframe of alpha diversity (richness, Shannon's) for analysis and plotting.
 #' Handles the biofuel plot collapse internally
