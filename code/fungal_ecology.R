@@ -273,7 +273,6 @@ d_wi$d_amf_wi <- UniFrac(amf_ps_wi, weighted = TRUE, normalized = TRUE)
 #' and remnant sites in Wisconsin.
 #' 
 #' ### Independent analytical replicates
-#' db-MEM
 sites_reps_sf <- st_as_sf(
   sites_reps,
   coords = c("long", "lat"),
@@ -283,70 +282,53 @@ sites_reps_sf <- st_as_sf(
 coord_tbl <- st_coordinates(sites_reps_sf)
 rownames(coord_tbl) <- sites_reps$field_name
 mem <- dbmem(coord_tbl) %>% as.data.frame()
-identical(labels(d_reps$d_its), rownames(mem))
-identical(labels(d_reps$d_amf_uni), rownames(mem))
-identical(labels(d_reps$d_patho), rownames(mem))
-identical(labels(d_reps$d_sapro), rownames(mem))
+#' Select spatial eigenvectors for each fungal group
+mem_step_its   <- mem_select(d_reps$d_its, mem)
+mem_step_amf   <- mem_select(d_reps$d_amf_uni, mem)
+mem_step_patho <- mem_select(d_reps$d_patho, mem)
+mem_step_sapro <- mem_select(d_reps$d_sapro, mem)
 #' 
-#' #### ITS fungi
-mem_null_its <- dbrda(d_reps$d_its ~ 1, data = mem)
-mem_full_its <- dbrda(d_reps$d_its ~ ., data = mem)
-set.seed(20260211)
-mem_step_its <- ordistep(mem_null_its, scope = formula(mem_full_its), direction = "forward", 
-                         permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_its, permutations = 1999)$adj.r.squared
-anova(mem_step_its, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' None
+#' #### All sites (reps) summary
+#' P values should be adjusted for guilds with multiple significant MEM;
+#' see summary in db-RDA section.
+set.seed(20260917)
+mems_r2 <- list(
+  all_fungi   = data.frame(R2 = RsquareAdj(mem_step_its, permutations = 1999)$adj.r.squared),
+  amf         = data.frame(R2 = RsquareAdj(mem_step_amf, permutations = 1999)$adj.r.squared),
+  pathogens   = data.frame(R2 = RsquareAdj(mem_step_patho, permutations = 1999)$adj.r.squared),
+  saprotrophs = data.frame(R2 = RsquareAdj(mem_step_sapro, permutations = 1999)$adj.r.squared)
+) %>%
+  bind_rows(.id = "guild") %>%
+  mutate(R2 = round(R2, 3) * 100)
+set.seed(20260917)
+mems <- list(
+  all_fungi   = anova(mem_step_its, by = "margin", permutations = 1999),
+  amf         = anova(mem_step_amf, by = "margin", permutations = 1999),
+  pathogens   = anova(mem_step_patho, by = "margin", permutations = 1999),
+  saprotrophs = anova(mem_step_sapro, by = "margin", permutations = 1999)
+)
+#+ mems_summary,warning=FALSE,message=FALSE
+mems %>%
+  map(\(df) df %>%
+        tidy() %>%
+        mutate(p.adj = p.adjust(p.value, method = "fdr")))
+mems_r2
 #' 
-#' #### AMF
-#' Unifrac distance
-mem_null_amf <- dbrda(d_reps$d_amf_uni ~ 1, data = mem)
-mem_full_amf <- dbrda(d_reps$d_amf_uni ~ ., data = mem)
-set.seed(20260211)
-mem_step_amf <- ordistep(mem_null_amf, scope = formula(mem_full_amf), direction = "forward", 
-                         permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_amf, permutations = 1999)$adj.r.squared
-anova(mem_step_amf, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' None
+#' ITS: None
+#' AMF: None 
+#' Pathogens: None
+#' Saprotrophs: MEM1, MEM3, MEM2 (7.2% R2)
 #' 
-#' #### Pathogens
-mem_null_patho <- dbrda(d_reps$d_patho ~ 1, data = mem)
-mem_full_patho <- dbrda(d_reps$d_patho ~ ., data = mem)
-set.seed(20260211)
-mem_step_patho <- ordistep(mem_null_patho, scope = formula(mem_full_patho), direction = "forward", 
-                         permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_patho, permutations = 1999)$adj.r.squared
-anova(mem_step_patho, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' None
-#' 
-#' #### Saprotrophs
-mem_null_sapro <- dbrda(d_reps$d_sapro ~ 1, data = mem)
-mem_full_sapro <- dbrda(d_reps$d_sapro ~ ., data = mem)
-set.seed(20260211)
-mem_step_sapro <- ordistep(mem_null_sapro, scope = formula(mem_full_sapro), direction = "forward", 
-                           permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_sapro, permutations = 1999)$adj.r.squared
-anova(mem_step_sapro, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' MEM1, MEM3, MEM2 (7.2% R2)
-#' Join eigenvectors to sites
-if (!(c("MEM1") %in% colnames(sites_reps))) {
-  sites_reps <- sites_reps %>% left_join(mem %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
-} 
+#' Join eigenvectors to sites data frame
+if (!("MEM1" %in% colnames(sites_reps))) {
+  sites_reps <- sites_reps %>%
+    left_join(
+      mem %>% rownames_to_column(var = "field_name"),
+      by = join_by(field_name)
+    )
+}
 #' 
 #' ### Wisconsin sites
-#' db-MEM
 sites_wi_sf <- st_as_sf(
   sites_wi,
   coords = c("long", "lat"),
@@ -356,68 +338,52 @@ sites_wi_sf <- st_as_sf(
 coord_tbl_wi <- st_coordinates(sites_wi_sf)
 rownames(coord_tbl_wi) <- sites_wi$field_name
 mem_wi <- dbmem(coord_tbl_wi) %>% as.data.frame()
-identical(labels(d_wi$d_its_wi), rownames(mem_wi))
-identical(labels(d_wi$d_amf_wi), rownames(mem_wi))
-identical(labels(d_wi$d_patho_wi), rownames(mem_wi))
-identical(labels(d_wi$d_sapro_wi), rownames(mem_wi))
+#' Select spatial eigenvectors for each fungal group
+mem_step_its_wi   <- mem_select(d_wi$d_its_wi, mem_wi)
+mem_step_amf_wi   <- mem_select(d_wi$d_amf_wi, mem_wi)
+mem_step_patho_wi <- mem_select(d_wi$d_patho_wi, mem_wi)
+mem_step_sapro_wi <- mem_select(d_wi$d_sapro_wi, mem_wi)
 #' 
-#' #### ITS fungi
-mem_null_its_wi <- dbrda(d_wi$d_its_wi ~ 1, data = mem_wi)
-mem_full_its_wi <- dbrda(d_wi$d_its_wi ~ ., data = mem_wi)
-set.seed(20260211)
-mem_step_its_wi <- ordistep(mem_null_its_wi, scope = formula(mem_full_its_wi), direction = "forward", 
-                         permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_its_wi, permutations = 1999)$adj.r.squared
-anova(mem_step_its_wi, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' MEM2, 6.4% R2
+#' #### Wisconsin sites summary
+#' P values should be adjusted for guilds with multiple significant MEM;
+#' see summary in db-RDA section.
+set.seed(20260917)
+mems_r2_wi <- list(
+  all_fungi   = data.frame(R2 = RsquareAdj(mem_step_its_wi, permutations = 1999)$adj.r.squared),
+  amf         = data.frame(R2 = RsquareAdj(mem_step_amf_wi, permutations = 1999)$adj.r.squared),
+  pathogens   = data.frame(R2 = RsquareAdj(mem_step_patho_wi, permutations = 1999)$adj.r.squared),
+  saprotrophs = data.frame(R2 = RsquareAdj(mem_step_sapro_wi, permutations = 1999)$adj.r.squared)
+) %>%
+  bind_rows(.id = "guild") %>%
+  mutate(R2 = round(R2, 3) * 100)
+set.seed(20260917)
+mems_wi <- list(
+  all_fungi   = anova(mem_step_its_wi, by = "margin", permutations = 1999),
+  amf         = anova(mem_step_amf_wi, by = "margin", permutations = 1999),
+  pathogens   = anova(mem_step_patho_wi, by = "margin", permutations = 1999),
+  saprotrophs = anova(mem_step_sapro_wi, by = "margin", permutations = 1999)
+)
+#+ mems_wi_summary,warning=FALSE,message=FALSE
+mems_wi %>%
+  map(\(df) df %>%
+        tidy() %>%
+        mutate(p.adj = p.adjust(p.value, method = "fdr")))
+mems_r2_wi
+
+#' ITS: MEM2, 6.4% R2
+#' AMF: None 
+#' Pathogens: MEM2, 19.3% R2 — Considerable spatial structure here,
+#' especially considering the number of sites.
+#' Saprotrophs: MEM2, MEM1, 8.8% R2
 #' 
-#' #### AMF
-#' Unifrac distance
-mem_null_amf_wi <- dbrda(d_wi$d_amf_wi ~ 1, data = mem_wi)
-mem_full_amf_wi <- dbrda(d_wi$d_amf_wi ~ ., data = mem_wi)
-set.seed(20260211)
-mem_step_amf_wi <- ordistep(mem_null_amf_wi, scope = formula(mem_full_amf_wi), direction = "forward", 
-                         permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_amf_wi, permutations = 1999)$adj.r.squared
-anova(mem_step_amf_wi, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' None
-#' 
-#' #### Pathogens
-mem_null_patho_wi <- dbrda(d_wi$d_patho_wi ~ 1, data = mem_wi)
-mem_full_patho_wi <- dbrda(d_wi$d_patho_wi ~ ., data = mem_wi)
-set.seed(20260211)
-mem_step_patho_wi <- ordistep(mem_null_patho_wi, scope = formula(mem_full_patho_wi), direction = "forward", 
-                           permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_patho_wi, permutations = 1999)$adj.r.squared
-anova(mem_step_patho_wi, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' MEM2, 19.3% R2, padj = 0.005
-#' Considerable spatial structure here, especially considering the number of sites. 
-#' 
-#' #### Saprotrophs
-mem_null_sapro_wi <- dbrda(d_wi$d_sapro_wi ~ 1, data = mem_wi)
-mem_full_sapro_wi <- dbrda(d_wi$d_sapro_wi ~ ., data = mem_wi)
-set.seed(20260211)
-mem_step_sapro_wi <- ordistep(mem_null_sapro_wi, scope = formula(mem_full_sapro_wi), direction = "forward", 
-                           permutations = 1999, trace = FALSE)
-RsquareAdj(mem_step_sapro_wi, permutations = 1999)$adj.r.squared
-anova(mem_step_sapro_wi, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' MEM2, MEM1, 8.8% R2
-#' Join eigenvectors to sites
-if (!(c("MEM1") %in% colnames(sites_wi))) {
-  sites_wi <- sites_wi %>% left_join(mem_wi %>% rownames_to_column(var = "field_name"), by = join_by(field_name))
-} 
+#' Join eigenvectors to sites data frame
+if (!("MEM1" %in% colnames(sites_wi))) {
+  sites_wi <- sites_wi %>%
+    left_join(
+      mem_wi %>% rownames_to_column(var = "field_name"),
+      by = join_by(field_name)
+    )
+}
 #' 
 #' ## Environmental data
 ## Env data ———————— ####
@@ -1767,17 +1733,12 @@ mod_step <- ordistep(mod_null,
                      trace = FALSE)
 #' Results
 mod_step
-(mod_r2   <- RsquareAdj(mod_step, permutations = 1999))
-(mod_glax <- anova(mod_step, permutations = 1999))
-(mod_inax <- anova(mod_step, by = "axis", permutations = 1999))
-(mod_axpct <- round(100 * mod_step$CCA$eig / sum(mod_step$CCA$eig), 1))
-anova(mod_step, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
+mod_r2   <- RsquareAdj(mod_step, permutations = 1999)
+mod_glax <- anova(mod_step, permutations = 1999)
+mod_inax <- anova(mod_step, by = "axis", permutations = 1999)
+mod_axpct <- round(100 * mod_step$CCA$eig / sum(mod_step$CCA$eig), 1)
 #' 
-#' Create the figure objects. Figure will be produced with panels from other groups. 
-#+ fig6_objects
+#' Figure data
 mod_step_eig <- round(mod_step$CCA$eig * 100, 1)
 mod_scor <- scores(
   mod_step,
@@ -1821,22 +1782,12 @@ amf_mod_step <- ordistep(amf_mod_null,
                          trace = FALSE)
 #' Results
 amf_mod_step
-(amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999))
-(amf_mod_glax <- anova(amf_mod_step, permutations = 1999))
-(amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999))
-(amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1))
-anova(amf_mod_step, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' Based on permutation tests with n=1999 permutations, 
-#' after accounting for inter-site pairwise distance as a covariate, the model shows a significant
-#' correlation between the site ordination on fungal communities
-#' and the selected explanatory variables.
+amf_mod_r2   <- RsquareAdj(amf_mod_step, permutations = 1999)
+amf_mod_glax <- anova(amf_mod_step, permutations = 1999)
+amf_mod_inax <- anova(amf_mod_step, by = "axis", permutations = 1999)
+amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1)
 #' 
-#' #### AMF constrained figure
-#' Produce figure objects. Code for multipanel fig 6 is shown in the saprotroph section.
-#+ amf_fig6_objects
+#' Figure data
 amf_mod_step_eig <- round(amf_mod_step$CCA$eig * 100, 1)
 amf_mod_scor <- scores(
   amf_mod_step,
@@ -1879,19 +1830,12 @@ patho_mod_step <- ordistep(patho_mod_null,
                            trace = FALSE)
 #' Results
 patho_mod_step
-(patho_mod_r2   <- RsquareAdj(patho_mod_step, permutations = 1999))
-(patho_mod_glax <- anova(patho_mod_step, permutations = 1999))
-(patho_mod_inax <- anova(patho_mod_step, by = "axis", permutations = 1999))
-(patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$eig), 1))
-anova(patho_mod_step, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' Based on permutation tests with n=1999 permutations, 
-#' after accounting for inter-site pairwise distance as a covariate, the model shows 
-#' no significant correlation between pathogen community turnover and explanatory variables.
+patho_mod_r2   <- RsquareAdj(patho_mod_step, permutations = 1999)
+patho_mod_glax <- anova(patho_mod_step, permutations = 1999)
+patho_mod_inax <- anova(patho_mod_step, by = "axis", permutations = 1999)
+patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$eig), 1)
 #' 
-#' #### Pathogen constrained figure
+#' Figure data
 patho_mod_step_eig <- c(round(patho_mod_step$CCA$eig * 100, 1), round(patho_mod_step$CA$eig * 100, 1)[1])
 patho_mod_scor <- scores(
   patho_mod_step,
@@ -1935,20 +1879,12 @@ sapro_mod_step <- ordistep(sapro_mod_null,
                            trace = FALSE)
 #' Results
 sapro_mod_step
-(sapro_mod_r2   <- RsquareAdj(sapro_mod_step, permutations = 1999))
-(sapro_mod_glax <- anova(sapro_mod_step, permutations = 1999))
-(sapro_mod_inax <- anova(sapro_mod_step, by = "axis", permutations = 1999))
-(sapro_mod_axpct <- round(100 * sapro_mod_step$CCA$eig / sum(sapro_mod_step$CCA$eig), 1))
-anova(sapro_mod_step, by = "margin", permutations = 1999) %>% 
-  as.data.frame() %>% 
-  mutate(p.adj = p.adjust(`Pr(>F)`, "fdr")) %>% 
-  kable(, format = "pandoc")
-#' Based on permutation tests with n=1999 permutations, 
-#' after accounting for inter-site pairwise distance as a covariate, the model shows 
-#' correlations between the site ordination on saprotroph communities
-#' and the selected explanatory variables.
+sapro_mod_r2   <- RsquareAdj(sapro_mod_step, permutations = 1999)
+sapro_mod_glax <- anova(sapro_mod_step, permutations = 1999)
+sapro_mod_inax <- anova(sapro_mod_step, by = "axis", permutations = 1999)
+sapro_mod_axpct <- round(100 * sapro_mod_step$CCA$eig / sum(sapro_mod_step$CCA$eig), 1)
 #' 
-#' #### Saprotroph constrained figure
+#' Figure data
 sapro_mod_step_eig <- round(sapro_mod_step$CCA$eig * 100, 1)
 sapro_mod_scor <- scores(
   sapro_mod_step,
@@ -2036,33 +1972,36 @@ list(
 #'
 #' #### Spatial conditioned variables
 #' These were significant for only ITS, pathogens, and saprotrophs
+dbrda_mem_rdf <- mems_wi %>% 
+  map(\(df) max(df$Df)) %>% 
+  bind_rows() %>% 
+  t() %>% as.data.frame() %>% 
+  rownames_to_column(var = "guild")
 #+ dbrda_condvar_summary,message=FALSE,warning=FALSE
-list(
-  all_fungi   = anova(mem_step_its_wi, by = "margin", permutations = 1999),
-  pathogens   = anova(mem_step_patho_wi, by = "margin", permutations = 1999),
-  saprotrophs = anova(mem_step_sapro_wi, by = "margin", permutations = 1999)
-) %>% 
+mems_wi %>% 
   map(\(df) df %>% tidy()) %>% 
   bind_rows(.id = "guild") %>% 
-  left_join(dbrda_rdf, by = join_by(guild)) %>% 
-  mutate(statistic = round(statistic, 3),
-         `pseudo_F_(df)` = paste0(statistic, " (", df, ", ", rdf, ")"),
+  left_join(dbrda_mem_rdf, by = join_by(guild)) %>% 
+  mutate(statistic = round(statistic, 2),
+         `pseudo_F_(df)` = paste0(statistic, " (", df, ", ", V1, ")"),
          term = str_remove(term, "\\+ "),
-         p.adj = p.adjust(p.value, "fdr"),
-         across(where(is.numeric), ~ round(.x, 4))) %>% 
-  select(guild, term, `pseudo_F_(df)`, p.value, p.adj) %>% 
+         across(where(is.numeric), ~ round(.x, 3))) %>% 
+  select(guild, term, `pseudo_F_(df)`, p.value) %>% 
   filter(term != "Residual") %>% 
   arrange(guild, p.value) %>% 
   kable(format = "pandoc", caption = "Significant conditioning variables in db-RDA")
 #' 
 #' #### Selected constraining variables
 #+ dbrda_var_summary,message=FALSE,warning=FALSE
-list(
+set.seed(20260917)
+dbrda_selvar <- list(
   all_fungi   = anova(mod_step, by = "margin", permutations = 1999),
   amf         = anova(amf_mod_step, by = "margin", permutations = 1999),
   pathogens   = anova(patho_mod_step, by = "margin", permutations = 1999),
   saprotrophs = anova(sapro_mod_step, by = "margin", permutations = 1999)
-) %>% 
+)
+#+ dbrda_selvar,message=FALSE,warning=FALSE
+dbrda_selvar %>%  
   map(\(df) df %>% tidy()) %>% 
   bind_rows(.id = "guild") %>% 
   left_join(dbrda_rdf, by = join_by(guild)) %>% 
@@ -2080,20 +2019,20 @@ list(
 #' All soil fungi
 #+ fig4a
 fig4a <- 
-  ggplot(mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
+  ggplot(mod_scor_site, aes(x = -1*dbRDA1, y = dbRDA2)) +
   geom_segment(data = mod_scor_bp, 
-               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2), 
+               aes(x = origin, xend = -1*dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c(pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(na.rm = TRUE, data = mod_scor_bp, 
-            aes(x = labx, y = laby, label = envlabs), 
+            aes(x = -1*labx, y = laby, label = envlabs), 
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", mod_axpct[1], "%; General fungi)"),
     y = paste0("db-RDA 2 (", mod_axpct[2], "%; General fungi)")) +
-  scale_x_continuous(limits = c(-1.2,1.5), breaks = c(-1, 0, 1)) +
+  scale_x_continuous(limits = c(-1.5,1.2), breaks = c(-1, 0, 1)) +
   scale_y_continuous(limits = c(-1.3, 1.8), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
@@ -2103,20 +2042,20 @@ fig4a <-
 #' AMF
 #+ fig4b
 fig4b <-
-  ggplot(amf_mod_scor_site, aes(x = -1*dbRDA1, y = dbRDA2)) +
+  ggplot(amf_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_segment(data = amf_mod_scor_bp,
-               aes(x = origin, xend = -1*dbRDA1, y = origin, yend = dbRDA2),
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c(pfg_col[5], pfg_col[4], "gray20")) +
   geom_text(na.rm = TRUE, data = amf_mod_scor_bp,
-            aes(x = -1*labx, y = laby, label = envlabs),
+            aes(x = labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%; AM fungi)"),
     y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%; AM fungi)")) +
-  scale_x_continuous(limits = c(-1.2,1.3), breaks = c(-1, 0, 1)) +
+  scale_x_continuous(limits = c(-1.3,1.2), breaks = c(-1, 0, 1)) +
   scale_y_continuous(limits = c(-1.2, 0.9), breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
@@ -2126,13 +2065,13 @@ fig4b <-
 #' Pathogens, PCoA fig
 #+ fig4c
 fig4c <-
-  ggplot(patho_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
+  ggplot(patho_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_segment(data = patho_mod_scor_bp,
-               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("gray20", pfg_col[5], pfg_col[4])) +
   geom_text(na.rm = TRUE, data = patho_mod_scor_bp,
-            aes(x = -1 * labx, y = laby, label = envlabs),
+            aes(x = labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
@@ -2149,20 +2088,20 @@ fig4c <-
 #' Saprotrophs
 #+ fig4d
 fig4d <-
-  ggplot(sapro_mod_scor_site, aes(x = -1 * dbRDA1, y = dbRDA2)) +
+  ggplot(sapro_mod_scor_site, aes(x = dbRDA1, y = dbRDA2)) +
   geom_segment(data = sapro_mod_scor_bp,
-               aes(x = origin, xend = -1 * dbRDA1, y = origin, yend = dbRDA2),
+               aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
                color = c("gray20", "gray20", pfg_col[5], pfg_col[4])) +
   geom_text(na.rm = TRUE, data = sapro_mod_scor_bp,
-            aes(x = -1 * labx, y = laby, label = envlabs),
+            aes(x = labx, y = laby, label = envlabs),
             size = 3, color = "gray20", fontface = 2) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
   geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%; Saprotrophs)"),
     y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%; Saprotrophs)")) +
-  scale_x_continuous(limits = c(-1.3,1.5), breaks = c(-1, 0, 1)) +
+  scale_x_continuous(limits = c(-1.5,1.3), breaks = c(-1, 0, 1)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_ord +
