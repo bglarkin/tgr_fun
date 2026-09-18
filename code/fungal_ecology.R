@@ -1600,7 +1600,7 @@ list(
   its = mva_its$stress,
   amf_uni = mva_amf$stress,
   amf_ma = mva_amf_ma$stress,
-  patho = mva_patho$stress,µ
+  patho = mva_patho$stress,
   sapro = mva_sapro$stress
 ) %>% map(\(.x) round(.x, 3)) %>% 
   bind_rows(.id = "guild") %>% 
