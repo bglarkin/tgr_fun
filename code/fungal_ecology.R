@@ -1452,7 +1452,7 @@ mva_amf_ma$pairwise_contrasts[c(1,3,2), c(1,2,4,3,7,8)] %>%
 #' 
 #' Plotting results: 
 amf_ma_ord_data <- mva_amf_ma$ordination_scores %>% 
-  mutate(NMDS1 = -NMDS1,
+  mutate(NMDS1 = NMDS1,
          field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 p_amf_ma_centers <- amf_ma_ord_data %>% 
   group_by(field_type) %>% 
