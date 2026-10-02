@@ -686,3 +686,6 @@ add_fig7_rug <- function(p, comp_df,
     ) +
     coord_cartesian(clip = "off")
 }
+#' 
+#' ### Label size convert
+map_pt_to_mm <- function(pt) pt / ggplot2::.pt

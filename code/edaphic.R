@@ -195,7 +195,7 @@ soil_ord_ftypes <-
              aes(x = mean_PC1, y = mean_PC2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, shape = 21, stroke = lw, show.legend = c(fill = TRUE)) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   scale_fill_manual(name = "Field type", values = ft_pal) +
   xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
   ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +

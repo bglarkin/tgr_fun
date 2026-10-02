@@ -231,7 +231,6 @@ cstyle <- list(
 # ggrepel/geom_text use millimetres, so convert only at the layer call.
 map_font <- "Helvetica"
 map_text_pt <- list(city = 6, state = 7.5, region = 10, tag = 10)
-map_pt_to_mm <- function(pt) pt / ggplot2::.pt
 state_lab_size <- map_pt_to_mm(map_text_pt$state)
 state_lab_col <- "darkslateblue"
 city_lab_size <- map_pt_to_mm(map_text_pt$city)

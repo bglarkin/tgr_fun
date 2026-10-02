@@ -21,8 +21,8 @@ div_dodw <- 0.75
 div_colw <- 0.65
 div_patfil <- "grey40"
 div_patcol <- "grey40"
-div_patden <- 0.15
-div_patspa <- 0.034
+div_patden <- 0.4
+div_patspa <- 0.025
 # Ordination style
 theme_ord <-
   theme_bw() +
