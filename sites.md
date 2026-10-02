@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 17 September, 2026
+Last updated: 02 October, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -339,10 +339,10 @@ Retrieve metadata for populated places (cities)
 
 ``` r
 cities <- ne_download( 
-    scale = 50,
-    type = "populated_places",
-    category = "cultural",
-    returnclass = "sf"
+  scale = 50,
+  type = "populated_places",
+  category = "cultural",
+  returnclass = "sf"
 )
 ```
 
@@ -352,10 +352,10 @@ Continental mapping objects
 
 ``` r
 cont_box <- st_bbox(c(
-    xmin = -95,
-    ymin = 39.25,
-    xmax = -81,
-    ymax = 49.5
+  xmin = -95,
+  ymin = 39.25,
+  xmax = -81,
+  ymax = 49.5
 ), crs = 4326)
 sf_use_s2(FALSE)
 ```
@@ -374,10 +374,10 @@ cities_crop <- st_crop(cities, cont_box)
 
 ``` r
 area_cities <- ne_download(
-    scale = 10,
-    type = "populated_places",
-    category = "cultural",
-    returnclass = "sf"
+  scale = 10,
+  type = "populated_places",
+  category = "cultural",
+  returnclass = "sf"
 )
 ```
 
@@ -391,10 +391,10 @@ Area mapping objects
 
 ``` r
 area_box <- st_bbox(c(
-    xmin = -90.3,
-    ymin = 41.4,
-    xmax = -87.4,
-    ymax = 43.6
+  xmin = -90.3,
+  ymin = 41.4,
+  xmax = -87.4,
+  ymax = 43.6
 ), crs = 4326)
 sf_use_s2(FALSE)
 ```
@@ -473,14 +473,75 @@ cstyle <- list(
 Map panels
 
 ``` r
-state_lab_size <- 2.5
+# All configurable label sizes below are in points.
+# ggrepel/geom_text use millimetres, so convert only at the layer call.
+map_font <- "Helvetica"
+map_text_pt <- list(city = 6, state = 7.5, region = 10, tag = 10)
+state_lab_size <- map_pt_to_mm(map_text_pt$state)
 state_lab_col <- "darkslateblue"
-city_lab_size <- 1.8
+city_lab_size <- map_pt_to_mm(map_text_pt$city)
 city_pt_size <- 1.2
-city_col <- "grey35"
+city_col <- "grey15"
 panel_lab_x <- 0.02
 panel_lab_y <- 0.98
 tag_pos <- c(0.02, 0.96)
+```
+
+### Site-panel helper
+
+Updated from the project helper; keep yrtx_size unchanged.
+
+``` r
+make_zoom_map <- function(bb, panel_tag = NULL, pos = c(0,1), show_counties = FALSE, road_data = NULL) {
+  
+  crop_states   <- st_crop(cont, bb)
+  crop_counties <- if (show_counties) st_crop(st_transform(counties, 4326), bb) else NULL
+  roads         <- road_data
+  
+  pts <- sites_sf %>%
+    filter(long >= bb["xmin"], long <= bb["xmax"],
+           lat  >= bb["ymin"], lat  <= bb["ymax"]) %>%
+    st_drop_geometry()
+  
+  # Labels only where yr_since is available (restored sites)
+  pts_lab <- sites_plot %>%
+    filter(!is.na(yr_since)) %>%
+    mutate(lbl = as.character(round(yr_since, 0)))
+  
+  g <- ggplot() +
+    geom_sf(data = crop_states, fill = "ivory", color = "black", linewidth = 0.5) +
+    { if (!is.null(crop_counties)) geom_sf(data = crop_counties, fill = NA, color = "gray85", linewidth = 0.3) } +
+    { if (!is.null(roads)) geom_sf(data = roads, color = "grey70", linewidth = 0.3) } +
+    geom_point(
+      data = sites_plot,
+      aes(x = long_plot, y = lat_plot, fill = field_type),
+      shape = 21, size = sm_size, stroke = lw, color = "black"
+    ) +
+    geom_text(
+      data = pts_lab,
+      aes(x = long_plot, y = lat_plot, label = lbl),
+      size = yrtx_size, family = map_font, fontface = 2, color = "black"
+    ) +
+    scale_fill_manual(values = ft_pal) +
+    annotation_scale(location = "bl", width_hint = 0.35,
+                     text_family = map_font, height = grid::unit(0.15, "cm")) +
+    coord_sf(
+      xlim = c(bb["xmin"], bb["xmax"]),
+      ylim = c(bb["ymin"], bb["ymax"]),
+      expand = FALSE
+    ) +
+    labs(tag = panel_tag) +
+    theme_void() +
+    theme(
+      panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
+      legend.position = "none",
+      plot.tag = element_text(size = map_text_pt$tag, family = map_font, face = 1, hjust = 0),
+      plot.tag.position = pos
+    )
+  
+  g
+  
+}
 ```
 
 ## Inset map
@@ -541,6 +602,7 @@ cont_map <-
                                             "Ohio", "Illinois", "Wisconsin","Indiana")),
     aes(x = longitude, y = latitude, label = name),
     size = state_lab_size,
+    family = map_font,
     color = state_lab_col,
     segment.color = NA
   ) +
@@ -554,12 +616,14 @@ cont_map <-
     data = cities_crop,
     aes(x = LONGITUDE, y = LATITUDE, label = NAME),
     size = city_lab_size,
+    family = map_font,
     color = city_col,
     nudge_y = 0
   ) +
   annotation_scale(
     location = "bl",
     width_hint = 0.4,
+    text_family = map_font,
     height = unit(0.15, "cm")
   ) +
   scale_x_continuous(breaks = c(-94, -88, -82)) +
@@ -572,9 +636,12 @@ cont_map <-
   labs(tag = "A") +
   theme_map +
   theme(
+    text = element_text(family = map_font),
+    axis.text = element_text(family = map_font),
+    axis.title = element_blank(),
     panel.grid.major = element_blank(),
     panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
-    plot.tag = element_text(size = 14, face = 1, hjust = 0),
+    plot.tag = element_text(size = map_text_pt$tag, family = map_font, face = 1, hjust = 0),
     plot.tag.position = c(tag_pos[1]+0.02, tag_pos[2])
   )
 ```
@@ -600,7 +667,8 @@ area_map <-
     aes(x = long_cen, y = lat_cen, label = region),
     color = "black",
     fill = "white",
-    size = 4,
+    size = map_pt_to_mm(map_text_pt$region),
+    family = map_font,
     fontface = "bold",
     label.r = unit(0.3, "mm"),
     label.size = 0.4,
@@ -620,6 +688,7 @@ area_map <-
     data = area_crop %>% filter(name %in% c("Wisconsin", "Illinois")),
     aes(x = longitude, y = latitude, label = name),
     size = state_lab_size,
+    family = map_font,
     color = state_lab_col,
     nudge_x = c(0.8, 0.1),
     nudge_y = c(-1, 1.8),
@@ -635,12 +704,14 @@ area_map <-
     data = area_cities_crop,
     aes(x = LONGITUDE, y = LATITUDE, label = NAME),
     size = city_lab_size,
+    family = map_font,
     color = city_col,
     nudge_y = 0
   ) +
   annotation_scale(
     location = "bl",
     width_hint = 0.4,
+    text_family = map_font,
     height = unit(0.15, "cm")
   ) +
   annotation_north_arrow(
@@ -650,7 +721,7 @@ area_map <-
     width = unit(0.75, "cm"),
     pad_x = unit(0.2, "cm"),
     pad_y = unit(0.25, "cm"),
-    style = north_arrow_fancy_orienteering()
+    style = north_arrow_fancy_orienteering(text_family = map_font)
   ) +
   scale_x_continuous(breaks = c(-90, -89, -88)) +
   scale_y_continuous(breaks = c(42, 43)) +
@@ -662,9 +733,12 @@ area_map <-
   labs(tag = "B") +
   theme_map +
   theme(
+    text = element_text(family = map_font),
+    axis.text = element_text(family = map_font),
+    axis.title = element_blank(),
     panel.grid.major = element_blank(),
     panel.background = element_rect(fill = "aliceblue", color = "black", linewidth = 0.5),
-    plot.tag = element_text(size = 14, face = 1, hjust = 0),
+    plot.tag = element_text(size = map_text_pt$tag, family = map_font, face = 1, hjust = 0),
     plot.tag.position = c(tag_pos[1]+0.02, tag_pos[2])
   )
 ```
@@ -680,11 +754,11 @@ meters); negative values nudge to the west or south.
 sites_plot <-
   nudge_coords(sites %>%
                  mutate(nudge_e_m = case_when(
-                     field_name %in% c("FLRP4") ~ 220,
-                     field_name %in% c("FLRSP3") ~ -140,
-                     field_name %in% c("FLRP5") ~ -180,
-                     field_name %in% c("FLREM1") ~ -60,
-                     TRUE ~ 0),
+                   field_name %in% c("FLRP4") ~ 220,
+                   field_name %in% c("FLRSP3") ~ -140,
+                   field_name %in% c("FLRP5") ~ -180,
+                   field_name %in% c("FLREM1") ~ -60,
+                   TRUE ~ 0),
                    nudge_n_m = case_when(
                      field_name %in% c("MBRP1", "PHRP1", "MHRP2") ~ -1900,
                      field_name %in% c("FLRSP1") ~ -140,
@@ -741,8 +815,8 @@ legend_plot <-
     legend.box           = "horizontal",
     legend.key.height    = unit(4, "mm"),
     legend.key.width     = unit(8, "mm"),
-    legend.text          = element_text(size = 8),
-    legend.title        = element_text(size = 8),
+    legend.text          = element_text(size = 8, family = map_font),
+    legend.title        = element_text(size = 8, family = map_font),
     plot.margin          = margin(0, 0, 0, 0)
   )
 legend_grob <- cowplot::get_legend(legend_plot)
@@ -752,7 +826,7 @@ credits_grob <- textGrob(
   y = 0.5,
   hjust = 1,
   vjust = 0.5,
-  gp = gpar(cex = 0.5, col = "grey20")
+  gp = gpar(cex = 0.5, col = "grey20", fontfamily = map_font)
 )
 footer_row <- arrangeGrob(
   grobs   = list(legend_grob, credits_grob),
@@ -784,7 +858,7 @@ maps_fig <- ggarrange(
       ), 
       area_map, 
       nrow = 1, ncol = 2
-      ),
+    ),
     NULL,
     region_zoom_grid,
     nrow = 3, heights = fhs

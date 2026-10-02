@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 17 September, 2026
+Last updated: 02 October, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -288,11 +288,11 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.129000 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.121000 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
-    ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525  5e-04
-    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814  5e-04
+    ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525 0.0025
+    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814 0.0010
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])
@@ -445,7 +445,7 @@ soil_ord_ftypes <-
              aes(x = mean_PC1, y = mean_PC2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, shape = 21, stroke = lw, show.legend = c(fill = TRUE)) +
-  geom_text(aes(label = yr_since), size = yrtx_size, family = "serif", fontface = 2, color = "black") +
+  geom_text(aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   scale_fill_manual(name = "Field type", values = ft_pal) +
   xlab(paste0("PCA 1 (", eig_prop[1], "%)")) +
   ylab(paste0("PCA 2 (", eig_prop[2], "%)")) +

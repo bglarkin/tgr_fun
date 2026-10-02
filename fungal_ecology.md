@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 17 September, 2026
+Last updated: 02 October, 2026
 
 - [Description](#description)
   - [Notes](#notes)
@@ -763,7 +763,7 @@ plt_div <-
   scale_fill_discrete_qualitative(name = "Diversity index", palette = "Dynamic", 
                                   labels = c(expression("richness"), expression(paste("Shannon (", italic(e)^{italic(H)*"\u2032"}, ")")))) +
   theme_cor +
-  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+  theme(plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 pfg_comp <- 
   pfg %>% 
@@ -786,7 +786,7 @@ pfg_comp_fig <-
                     labels = c(expression("shrub, tree"), expression("legume"), 
                                expression("grass ("*C[3]*")"), expression("grass ("*C[4]*")"), expression("forb"))) +
   theme_cor +
-  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+  theme(plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 pfg_pct <- 
   pfg %>% 
@@ -806,7 +806,7 @@ gf_pct_fig <-
                      labels = c(expression("grass ("*C[4]*")"), expression("forb"))) +
   labs(x = NULL, y = "Cover (%)") +
   theme_cor +
-  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+  theme(plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 gfi_yrs_fig <- 
   gfi_yrs %>% 
@@ -816,7 +816,7 @@ gfi_yrs_fig <-
   labs(x = NULL, y = expression(atop("Age", "(years)"))) +
   lims(y = c(0,30)) +
   theme_cor +
-  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+  theme(plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 gfi_loc_fig <- 
   gfi_yrs %>% 
@@ -827,7 +827,7 @@ gfi_loc_fig <-
   labs(y = NULL, x = "Grass-forb axis") +
   scale_color_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
-  theme(plot.tag = element_text(size = 14, face = 1, hjust = 0),
+  theme(plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1.1),
         axis.text.y = element_text(hjust = 0))
 ```
@@ -2408,12 +2408,12 @@ its_div_fig <-
   geom_col_pattern(
     aes(fill = field_type, pattern = index),
     position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+    pattern_fill = div_patfil, pattern_colour = NA, pattern_size = 0, pattern_density = div_patden, pattern_spacing = div_patspa
   ) +
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
   geom_text(na.rm = TRUE, aes(y = ucl, label = c("A", "B", "B", "a", "b", "b"), group = index), 
-            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
+            position = position_dodge(width = div_dodw), vjust = -1, family = "Helvetica", size = map_pt_to_mm(9)) +
   labs(x = NULL) +
   scale_y_continuous(name = expression(atop("General fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 700), 
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 100, 200))) +
@@ -2421,7 +2421,7 @@ its_div_fig <-
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = div_tagpos)
 ```
 
@@ -2438,12 +2438,12 @@ amf_div_fig <-
   geom_col_pattern(
     aes(fill = field_type, pattern = index),
     position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+    pattern_fill = div_patfil, pattern_colour = NA, pattern_size = 0, pattern_density = div_patden, pattern_spacing = div_patspa
   ) +
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index), 
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
   geom_text(na.rm = TRUE, aes(y = ucl, label = c("A", "B", "B", "a", "b", "b"), group = index), 
-            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
+            position = position_dodge(width = div_dodw), vjust = -1, family = "Helvetica", size = map_pt_to_mm(9)) +
   labs(x = NULL) +
   scale_y_continuous(name = expression(atop("AM fungal", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 80), 
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 15, 30))) +
@@ -2451,7 +2451,7 @@ amf_div_fig <-
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = div_tagpos)
 ```
 
@@ -2468,7 +2468,7 @@ patho_div_fig <-
   geom_col_pattern(
     aes(fill = field_type, pattern = index),
     position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+    pattern_fill = div_patfil, pattern_colour = NA, pattern_size = 0, pattern_density = div_patden, pattern_spacing = div_patspa
   ) +
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
@@ -2479,7 +2479,7 @@ patho_div_fig <-
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = div_tagpos)
 ```
 
@@ -2496,12 +2496,12 @@ sapro_div_fig <-
   geom_col_pattern(
     aes(fill = field_type, pattern = index),
     position = position_dodge(width = div_dodw), width = div_colw, color = "black", linewidth = lw,
-    pattern_fill = div_patfil, pattern_colour = div_patcol, pattern_density = div_patden, pattern_spacing = div_patspa
+    pattern_fill = div_patfil, pattern_colour = NA, pattern_size = 0, pattern_density = div_patden, pattern_spacing = div_patspa
   ) +
   geom_errorbar(aes(ymin = mean, ymax = ucl, group = index),
                 position = position_dodge(width = div_dodw), width = 0, linewidth = lw) +
   geom_text(na.rm = TRUE, aes(y = ucl, label = c("A", "B", "B", "", "", ""), group = index), 
-            position = position_dodge(width = div_dodw), vjust = -1, family = "sans", size = 3.5) +
+            position = position_dodge(width = div_dodw), vjust = -1, family = "Helvetica", size = map_pt_to_mm(9)) +
   labs(x = NULL) +
   scale_y_continuous(name = expression(atop("Saprotroph", paste("Richness (", italic(n), " OTUs)"))), limits = c(0, 180),  
                      sec.axis = sec_axis(~ . , name = expression(Shannon~diversity~paste("(", italic(e)^italic(H), ")")), breaks = c(0, 20, 40))) +
@@ -2509,7 +2509,7 @@ sapro_div_fig <-
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = div_tagpos)
 ```
 
@@ -2972,7 +2972,7 @@ plfa_fig <-
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 
@@ -2981,13 +2981,13 @@ nlfa_fig <-
   ggplot(summary(nlfa_em), aes(x = field_type, y = response)) +
   geom_col(aes(fill = field_type), color = "black", width = 0.5, linewidth = lw) +
   geom_errorbar(aes(ymin = response, ymax = upper.CL), width = 0, linewidth = lw) +
-  geom_text(na.rm = TRUE, aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "sans", size = 3.5) +
+  geom_text(na.rm = TRUE, aes(y = upper.CL, label = c("a", "b", "b")),  vjust = -1, family = "Helvetica", size = map_pt_to_mm(9)) +
   labs(x = NULL, y = expression(atop("Biomass", paste("(", nmol[NLFA], " × ", g[soil]^{-1}, ")")))) +
   scale_fill_manual(values = ft_pal) +
   lims(y = c(0, 75)) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 
@@ -3000,7 +3000,7 @@ patho_ma_fig <-
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 
@@ -3013,7 +3013,7 @@ sapro_ma_fig <-
   scale_fill_manual(values = ft_pal) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 
@@ -3158,7 +3158,7 @@ its_ord <-
              aes(x = mean_NMDS1, y = mean_NMDS2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   labs(
     x = paste0("NMDS 1 — General fungi"),
     y = paste0("NMDS 2 — General fungi")) +
@@ -3167,7 +3167,7 @@ its_ord <-
   scale_fill_manual(values = ft_pal) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 ```
 
@@ -3279,7 +3279,7 @@ amf_ord <-
              aes(x = mean_NMDS1, y = mean_NMDS2, fill = field_type),
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   scale_x_continuous(breaks = c(-0.2,0,0.2)) +
   scale_fill_manual(name = "Field type", values = ft_pal) +
   labs(
@@ -3292,7 +3292,7 @@ amf_ord <-
         legend.text = element_text(size = 8, face = 1),
         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
         legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 ```
 
@@ -3386,7 +3386,7 @@ Plotting results:
 
 ``` r
 amf_ma_ord_data <- mva_amf_ma$ordination_scores %>% 
-  mutate(NMDS1 = -NMDS1,
+  mutate(NMDS1 = NMDS1,
          field_type = factor(field_type, levels = c("corn", "restored", "remnant")))
 p_amf_ma_centers <- amf_ma_ord_data %>% 
   group_by(field_type) %>% 
@@ -3401,7 +3401,7 @@ amf_ma_ord <-
              aes(x = mean_NMDS1, y = mean_NMDS2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   scale_x_continuous(breaks = c(-1.1,0,1.1)) +
   scale_y_continuous(breaks = c(-0.7,0,0.7)) +
   scale_fill_manual(name = "Field Type", values = ft_pal) +
@@ -3559,7 +3559,7 @@ patho_ord <-
              aes(x = mean_NMDS1, y = mean_NMDS2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   scale_x_continuous(breaks = c(-0.7,0,0.6)) +
   scale_y_continuous(breaks = c(-0.5,0,0.5)) +
   scale_fill_manual(name = "Field Type", values = ft_pal) +
@@ -3568,7 +3568,7 @@ patho_ord <-
     y = paste0("NMDS 2 — Pathogens")) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 
@@ -3687,7 +3687,7 @@ sapro_ord <-
              aes(x = mean_NMDS1, y = mean_NMDS2, fill = field_type), 
              size = lg_size, stroke = lw, shape = 21, show.legend = c(fill = FALSE)) +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   scale_x_continuous(breaks = c(-0.8,0,0.7)) +
   scale_y_continuous(breaks = c(-0.9,0,0.9)) +
   scale_fill_manual(name = "Field Type", values = ft_pal) +
@@ -3696,7 +3696,7 @@ sapro_ord <-
     y = paste0("NMDS 2 — Saprotrophs")) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 
@@ -3957,7 +3957,6 @@ mod_axpct <- round(100 * mod_step$CCA$eig / sum(mod_step$CCA$eig), 1)
 Figure data
 
 ``` r
-mod_step_eig <- round(mod_step$CCA$eig * 100, 1)
 mod_scor <- scores(
   mod_step,
   choices = c(1, 2),
@@ -4040,7 +4039,6 @@ amf_mod_axpct <- round(100 * amf_mod_step$CCA$eig / sum(amf_mod_step$CCA$eig), 1
 Figure data
 
 ``` r
-amf_mod_step_eig <- round(amf_mod_step$CCA$eig * 100, 1)
 amf_mod_scor <- scores(
   amf_mod_step,
   choices = c(1, 2),
@@ -4122,7 +4120,6 @@ patho_mod_axpct <- round(100 * patho_mod_step$CCA$eig / sum(patho_mod_step$CCA$e
 Figure data
 
 ``` r
-patho_mod_step_eig <- c(round(patho_mod_step$CCA$eig * 100, 1), round(patho_mod_step$CA$eig * 100, 1)[1])
 patho_mod_scor <- scores(
   patho_mod_step,
   choices = c(1, 2),
@@ -4205,7 +4202,6 @@ sapro_mod_axpct <- round(100 * sapro_mod_step$CCA$eig / sum(sapro_mod_step$CCA$e
 Figure data
 
 ``` r
-sapro_mod_step_eig <- round(sapro_mod_step$CCA$eig * 100, 1)
 sapro_mod_scor <- scores(
   sapro_mod_step,
   choices = c(1, 2),
@@ -4413,12 +4409,12 @@ fig4a <-
   geom_segment(data = mod_scor_bp, 
                aes(x = origin, xend = -1*dbRDA1, y = origin, yend = dbRDA2), 
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c(pfg_col[5], pfg_col[4], "gray20")) +
+               color = c(pfg_col[5], pfg_col[4], "black")) +
   geom_text(na.rm = TRUE, data = mod_scor_bp, 
             aes(x = -1*labx, y = laby, label = envlabs), 
-            size = 3, color = "gray20", fontface = 2) +
+            size = map_pt_to_mm(9), color = "black", fontface = 2, family = "Helvetica") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", mod_axpct[1], "%; General fungi)"),
     y = paste0("db-RDA 2 (", mod_axpct[2], "%; General fungi)")) +
@@ -4427,7 +4423,7 @@ fig4a <-
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 ```
 
@@ -4439,12 +4435,12 @@ fig4b <-
   geom_segment(data = amf_mod_scor_bp,
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c(pfg_col[5], pfg_col[4], "gray20")) +
+               color = c(pfg_col[5], pfg_col[4], "black")) +
   geom_text(na.rm = TRUE, data = amf_mod_scor_bp,
             aes(x = labx, y = laby, label = envlabs),
-            size = 3, color = "gray20", fontface = 2) +
+            size = map_pt_to_mm(9), color = "black", fontface = 2, family = "Helvetica") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", amf_mod_axpct[1], "%; AM fungi)"),
     y = paste0("db-RDA 2 (", amf_mod_axpct[2], "%; AM fungi)")) +
@@ -4453,7 +4449,7 @@ fig4b <-
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 ```
 
@@ -4465,21 +4461,21 @@ fig4c <-
   geom_segment(data = patho_mod_scor_bp,
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", pfg_col[5], pfg_col[4])) +
+               color = c("black", pfg_col[5], pfg_col[4])) +
   geom_text(na.rm = TRUE, data = patho_mod_scor_bp,
             aes(x = labx, y = laby, label = envlabs),
-            size = 3, color = "gray20", fontface = 2) +
+            size = map_pt_to_mm(9), color = "black", fontface = 2, family = "Helvetica") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   labs(
-    x = paste0("db-RDA 1 (", patho_mod_step_eig[1], "%; Pathogens)"),
-    y = paste0("db-RDA 2 (", patho_mod_step_eig[2], "%; Pathogens)")) +
+    x = paste0("db-RDA 1 (", patho_mod_axpct[1], "%; Pathogens)"),
+    y = paste0("db-RDA 2 (", patho_mod_axpct[2], "%; Pathogens)")) +
   scale_x_continuous(limits = c(-1.1,1.1), breaks = c(-1, 0, 1)) +
   scale_y_continuous(breaks = c(-1, 0, 1)) +
   scale_fill_manual(values = ft_pal[2:3]) +
   theme_ord +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 ```
 
@@ -4491,12 +4487,12 @@ fig4d <-
   geom_segment(data = sapro_mod_scor_bp,
                aes(x = origin, xend = dbRDA1, y = origin, yend = dbRDA2),
                arrow = arrow(length = unit(2, "mm"), type = "closed"),
-               color = c("gray20", "gray20", pfg_col[5], pfg_col[4])) +
+               color = c("black", "black", pfg_col[5], pfg_col[4])) +
   geom_text(na.rm = TRUE, data = sapro_mod_scor_bp,
             aes(x = labx, y = laby, label = envlabs),
-            size = 3, color = "gray20", fontface = 2) +
+            size = map_pt_to_mm(9), color = "black", fontface = 2, family = "Helvetica") +
   geom_point(aes(fill = field_type), size = sm_size, stroke = lw, shape = 21) +
-  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+  geom_text(na.rm = TRUE, aes(label = yr_since), size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   labs(
     x = paste0("db-RDA 1 (", sapro_mod_axpct[1], "%; Saprotrophs)"),
     y = paste0("db-RDA 2 (", sapro_mod_axpct[2], "%; Saprotrophs)")) +
@@ -4510,7 +4506,7 @@ fig4d <-
         legend.text = element_text(size = 8, face = 1),
         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
         legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1, hjust = 0),
+        plot.tag = element_text(size = 10, face = 1, hjust = 0),
         plot.tag.position = c(0, 1))
 ```
 
@@ -4537,13 +4533,13 @@ fig4
 Fungal community ordinations which are constrained or unconstrained by
 explanatory variables. Panels show results for all soil fungi **a**, amf
 **b**, pathogens **c**, and saprotrophs **d**. Percent of constrained
-(db-RDA) and unconstrained (PCoA) variation explained is shown with axis
-labels. For explanatory variables with significant community
-correlations, blue arrows show the grass-forb index with labels
-indicating the direction of relative increase in C4 grasses or forbs,
-respectively, along the index. The black arrows show other significant
-constraining variables. Points show locations of restored fields (green)
-and remnant fields (blue) in Wisconsin.
+(db-RDA) variation explained is shown with axis labels. For explanatory
+variables with significant community correlations, colored arrows show
+the grass-forb index with labels indicating the direction of relative
+increase in C4 grasses (pink) or forbs (blue), respectively, along the
+index. The black arrows show other significant constraining variables.
+Points show locations of restored fields (green) and remnant fields
+(blue) in Wisconsin.
 
 # Fungal abundance and the environment
 
@@ -5811,7 +5807,7 @@ fig5a <-
   geom_point(data = patho_resto, aes(x = gf_axis, y = patho_prop, fill = field_type),
              size = sm_size, stroke = lw, shape = 21) +
   geom_text(na.rm = TRUE, data = patho_resto, aes(x = gf_axis, y = patho_prop, label = yr_since),
-            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+            size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   labs(
     x = "Grass–forb axis",
     y = "Pathogen proportion",
@@ -5825,7 +5821,7 @@ fig5a <-
         legend.text = element_text(size = 8, face = 1),
         legend.background = element_rect(fill = "white", color = "black", linewidth = 0.2),
         legend.key = element_rect(fill = "white"),
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 
@@ -5861,7 +5857,7 @@ fig5b <-
   geom_point(data = sapro_resto, aes(x = pl_rich, y = sapro_prop, fill = field_type),
              size = sm_size, stroke = lw, shape = 21) +
   geom_text(na.rm = TRUE, data = sapro_resto, aes(x = pl_rich, y = sapro_prop, label = yr_since),
-            size = yrtx_size, family = "sans", fontface = 2, color = "black") +
+            size = yrtx_size, family = "Helvetica", fontface = 2, color = "black") +
   labs(
     x = expression(paste("Plant richness (", italic(n), " species)")),
     y = "Saprotroph proportion",
@@ -5870,7 +5866,7 @@ fig5b <-
   scale_fill_manual(name = "Field type", values = ft_pal[2:3]) +
   theme_cor +
   theme(legend.position = "none",
-        plot.tag = element_text(size = 14, face = 1),
+        plot.tag = element_text(size = 10, face = 1),
         plot.tag.position = c(0, 1))
 ```
 

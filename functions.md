@@ -2,7 +2,7 @@ Supplement: Functions
 ================
 Beau Larkin
 
-Last updated: 17 September, 2026
+Last updated: 02 October, 2026
 
 - [Description](#description)
   - [Sequence data processing
@@ -749,4 +749,10 @@ add_fig7_rug <- function(p, comp_df,
     ) +
     coord_cartesian(clip = "off")
 }
+```
+
+### Label size convert
+
+``` r
+map_pt_to_mm <- function(pt) pt / ggplot2::.pt
 ```
