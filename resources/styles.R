@@ -29,28 +29,28 @@ theme_ord <-
   theme(
     plot.margin = margin(t = 0, r = 0, b = 1, l = 2, unit = "mm"),
     axis.title.x = element_text(
-      size = 9, face = 1,
+      size = 9, face = 1, color = "black",
       margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
-      size = 9, face = 1,
+      size = 9, face = 1, color = "black",
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.text.x = element_text(
-      size = 8, face = 1,
+      size = 8, face = 1, color = "black",
       margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.text.y = element_text(
-      size = 8, face = 1,
+      size = 8, face = 1, color = "black",
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.ticks.length = unit(-1.4, "mm"),
-    legend.text = element_text(size = 8, face = 1),
+    legend.text = element_text(size = 8, face = 1, color = "black"),
     panel.grid = element_blank(),
     legend.title = element_blank(),
     legend.background = element_blank(),
     legend.box.background = element_blank(),
-    text = element_text(family = "Helvetica")
+    text = element_text(family = "Helvetica", color = "black")
   )
 
 # Correlation plots
@@ -59,27 +59,27 @@ theme_cor <-
   theme(
     plot.margin = margin(t = 0, r = 0, b = 1, l = 1, unit = "mm"),
     axis.title.x = element_text(
-      size = 9, face = 1,
+      size = 9, face = 1, color = "black",
       margin = margin(t = 2, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
-      size = 9, face = 1,
+      size = 9, face = 1, color = "black",
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.text.x = element_text(
-      size = 8, face = 1,
+      size = 8, face = 1, color = "black",
       margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.text.y = element_text(
-      size = 8, face = 1,
+      size = 8, face = 1, color = "black",
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.ticks.length.y = unit(-1.4, "mm"),
     axis.ticks.length.x = unit(0, "mm"),
-    legend.title = element_text(size = 9, face = 1),
-    legend.text = element_text(size = 8, face = 1),
+    legend.title = element_text(size = 9, color = "black", face = 1),
+    legend.text = element_text(size = 8, color = "black", face = 1),
     panel.grid = element_blank(),
-    text = element_text(family = "Helvetica")
+    text = element_text(family = "Helvetica", color = "black")
   )
 
 # Correlation plots in facets
@@ -88,27 +88,27 @@ theme_corf <-
   theme(
     plot.margin = margin(t = 2, r = 2, b = 2, l = 2, unit = "mm"),
     axis.title.x = element_text(
-      size = 9, face = 1,
+      size = 9, face = 1, color = "black",
       margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.title.y = element_text(
-      size = 9, face = 1,
+      size = 9, face = 1, color = "black",
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.text.x = element_text(
-      size = 8, face = 1,
+      size = 8, face = 1, color = "black",
       margin = margin(t = 1, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.text.y = element_text(
-      size = 8, face = 1,
+      size = 8, face = 1, color = "black",
       margin = margin(t = 0, r = 1, b = 0, l = 0, unit = "mm")
     ),
     axis.ticks.length = unit(-1.4, "mm"),
     panel.grid = element_blank(),
     legend.title = element_blank(),
     strip.background = element_blank(),
-    strip.text = element_text(size = 10, face = 1),
-    text = element_text(family = "Helvetica")
+    strip.text = element_text(size = 10, color = "black", face = 1),
+    text = element_text(family = "Helvetica", color = "black")
   )
 
 # Map style
@@ -118,13 +118,13 @@ theme_map <-
     plot.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"),
     axis.title = element_blank(),
     axis.text.x = element_text(
-      size = 6, face = 1,
+      size = 6, face = 1, color = "black",
       margin = margin(t = 0.5, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.text.y = element_text(
-      size = 6, face = 1, angle = 90, hjust = 1,
+      size = 6, face = 1, angle = 90, hjust = 1, color = "black",
       margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm")
     ),
     axis.ticks.length = unit(0, "mm"),
-    text = element_text(family = "Helvetica")
+    text = element_text(family = "Helvetica",  color = "black")
   )
