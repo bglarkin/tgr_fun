@@ -2,7 +2,7 @@ Results: Soil Fungal Communities
 ================
 Beau Larkin
 
-Last updated: 02 October, 2026
+Last updated: 04 October, 2026
 
 - [Description](#description)
   - [Notes](#notes)
@@ -97,6 +97,30 @@ to_install <- setdiff(packages_needed, rownames(installed.packages()))
 if (length(to_install)) install.packages(to_install)
 invisible(lapply(packages_needed, library, character.only = TRUE))
 ```
+
+    ## Warning: package 'emmeans' was built under R version 4.6.1
+
+    ## Warning: package 'vegan' was built under R version 4.6.1
+
+    ## Warning: package 'rlang' was built under R version 4.6.1
+
+    ## Warning: package 'sandwich' was built under R version 4.6.1
+
+    ## Warning: package 'zoo' was built under R version 4.6.1
+
+    ## Warning: package 'performance' was built under R version 4.6.1
+
+    ## Warning: package 'MASS' was built under R version 4.6.1
+
+    ## Warning: package 'see' was built under R version 4.6.1
+
+    ## Warning: package 'sf' was built under R version 4.6.1
+
+    ## Warning: package 'colorspace' was built under R version 4.6.1
+
+    ## Warning: package 'gridExtra' was built under R version 4.6.1
+
+    ## Warning: package 'ggpubr' was built under R version 4.6.1
 
 ## Root path function
 
@@ -1232,29 +1256,6 @@ means separation by obtaining estimated marginal means for field type.
 its_rich_em <- emmeans(its_rich_glm, ~ field_type, type = "response")
 ```
 
-Results tables below show the emmeans summary of group means and
-confidence intervals, with sequencing depth as a covariate, and the post
-hoc contrast of richness among field types.
-
-| field_type | response |       SE |  df | asymp.LCL | asymp.UCL |
-|:-----------|---------:|---------:|----:|----------:|----------:|
-| corn       | 392.0337 | 15.74190 | Inf |  362.3630 |  424.1339 |
-| restored   | 503.0749 | 11.72832 | Inf |  480.6051 |  526.5952 |
-| remnant    | 553.3668 | 24.49096 | Inf |  507.3884 |  603.5116 |
-
-Confidence level used: 0.95
-
-| contrast           |     ratio |        SE |  df | null |   z.ratio |   p.value |
-|:-------------------|----------:|----------:|----:|-----:|----------:|----------:|
-| corn / restored    | 0.7792751 | 0.0361178 | Inf |    1 | -5.380839 | 0.0000002 |
-| corn / remnant     | 0.7084519 | 0.0425042 | Inf |    1 | -5.744946 | 0.0000000 |
-| restored / remnant | 0.9091165 | 0.0460571 | Inf |    1 | -1.880761 | 0.1442407 |
-
-P value adjustment: tukey method for comparing a family of 3 estimates
-
-OTU richness in cornfields is significantly less than in restored or
-remnant fields (p\<0.001), which don’t differ.
-
 ### AM fungi
 
 Sequence depth square root transformed and centered. Negative binomial
@@ -1446,30 +1447,6 @@ Sequencing depth not a significant predictor of amf richness
 amf_rich_em <- emmeans(amf_rich_glm, ~ field_type, type = "response")
 ```
 
-Results tables below show the emmeans summary of estimated marginal
-means and confidence intervals, and the post hoc contrast of richness
-among field types. Main effect in model significant; pairwise contrast
-warranted.
-
-| field_type |     rate |       SE |  df | asymp.LCL | asymp.UCL |
-|:-----------|---------:|---------:|----:|----------:|----------:|
-| corn       | 41.85939 | 2.896984 | Inf |  36.54966 |  47.94049 |
-| restored   | 52.95563 | 1.953254 | Inf |  49.26243 |  56.92571 |
-| remnant    | 53.51428 | 3.689285 | Inf |  46.75066 |  61.25644 |
-
-Confidence level used: 0.95
-
-| contrast           |     ratio |        SE |  df | null |    z.ratio |   p.value |
-|:-------------------|----------:|----------:|----:|-----:|-----------:|----------:|
-| corn / restored    | 0.7904616 | 0.0620763 | Inf |    1 | -2.9941829 | 0.0077511 |
-| corn / remnant     | 0.7822097 | 0.0762742 | Inf |    1 | -2.5190179 | 0.0315765 |
-| restored / remnant | 0.9895607 | 0.0777379 | Inf |    1 | -0.1335851 | 0.9902101 |
-
-P value adjustment: tukey method for comparing a family of 3 estimates
-
-OTU richness in cornfields is significantly less than in restored or
-remnant fields, which don’t differ.
-
 ### Pathogens
 
 Sequence depth square root transformed and centered. Negative binomial
@@ -1618,22 +1595,6 @@ in this case.
 ``` r
 patho_rich_em <- emmeans(patho_rich_glm, ~ field_type, type = "response")
 ```
-
-| field_type |     rate |       SE |  df | asymp.LCL | asymp.UCL |
-|:-----------|---------:|---------:|----:|----------:|----------:|
-| corn       | 38.33196 | 2.761761 | Inf |  33.28382 |  44.14574 |
-| restored   | 42.60754 | 1.766885 | Inf |  39.28150 |  46.21519 |
-| remnant    | 39.33911 | 3.291259 | Inf |  33.38949 |  46.34889 |
-
-Confidence level used: 0.95
-
-| contrast           |     ratio |        SE |  df | null |    z.ratio |   p.value |
-|:-------------------|----------:|----------:|----:|-----:|-----------:|----------:|
-| corn / restored    | 0.8996521 | 0.0744917 | Inf |    1 | -1.2771307 | 0.4081112 |
-| corn / remnant     | 0.9743981 | 0.1080486 | Inf |    1 | -0.2338882 | 0.9702939 |
-| restored / remnant | 1.0830833 | 0.1028556 | Inf |    1 |  0.8404298 | 0.6778429 |
-
-P value adjustment: tukey method for comparing a family of 3 estimates
 
 ### Saprotrophs
 
@@ -1848,29 +1809,6 @@ separation by obtaining estimated marginal means for field type.
 sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
 ```
 
-Results tables below show the emmeans summary of group means and
-confidence intervals, with sequencing depth as a covariate, and the post
-hoc contrast of richness among field types.
-
-| field_type | response |       SE |  df | asymp.LCL | asymp.UCL |
-|:-----------|---------:|---------:|----:|----------:|----------:|
-| corn       | 100.7280 | 6.617169 | Inf |  88.55883 |  114.5694 |
-| restored   | 122.9139 | 3.659137 | Inf | 115.94730 |  130.2990 |
-| remnant    | 129.6494 | 8.294525 | Inf | 114.37035 |  146.9696 |
-
-Confidence level used: 0.95
-
-| contrast           |     ratio |        SE |  df | null |    z.ratio |   p.value |
-|:-------------------|----------:|----------:|----:|-----:|-----------:|----------:|
-| corn / restored    | 0.8195008 | 0.0610977 | Inf |    1 | -2.6699805 | 0.0207225 |
-| corn / remnant     | 0.7769263 | 0.0817252 | Inf |    1 | -2.3995497 | 0.0433396 |
-| restored / remnant | 0.9480482 | 0.0650498 | Inf |    1 | -0.7775321 | 0.7168515 |
-
-P value adjustment: tukey method for comparing a family of 3 estimates
-
-OTU richness in cornfields is significantly less than in restored or
-remnant fields (p\<0.05), which don’t differ.
-
 ## Shannon diversity
 
 ``` r
@@ -1992,29 +1930,6 @@ field type. Arithmetic means calculated in this case.
 its_shan_em <- emmeans(its_shan_lm, ~ field_type, type = "response")
 ```
 
-Results tables below show the emmeans summary of group means and
-confidence intervals, with sequencing depth as a covariate, and the post
-hoc contrast of richness among field types.
-
-| field_type |    emmean |       SE |  df |  lower.CL |  upper.CL |
-|:-----------|----------:|---------:|----:|----------:|----------:|
-| corn       |  79.88937 | 8.160571 |  19 |  62.80909 |  96.96964 |
-| restored   | 113.16398 | 4.917855 |  19 | 102.87080 | 123.45717 |
-| remnant    | 121.28435 | 9.451146 |  19 | 101.50287 | 141.06582 |
-
-Confidence level used: 0.95
-
-| contrast           |   estimate |        SE |  df |    t.ratio |   p.value |
-|:-------------------|-----------:|----------:|----:|-----------:|----------:|
-| corn - restored    | -33.274619 |  9.515723 |  19 | -3.4968040 | 0.0065035 |
-| corn - remnant     | -41.394983 | 12.522352 |  19 | -3.3056876 | 0.0099148 |
-| restored - remnant |  -8.120364 | 10.802278 |  19 | -0.7517269 | 0.7362612 |
-
-P value adjustment: tukey method for comparing a family of 3 estimates
-
-Shannon diversity in cornfields is significantly less than in restored
-or remnant fields, which don’t differ.
-
 ### AM fungi
 
 Sequence depth square root transformed and centered
@@ -2103,29 +2018,6 @@ Produce arithmetic means in groups and post hoc contrasts
 amf_shan_em <- emmeans(amf_shan_lm, ~ field_type, type = "response")
 ```
 
-Results tables below show the emmeans summary of group means and
-confidence intervals, with sequencing depth as a covariate, and the post
-hoc contrast of richness among field types.
-
-| field_type |   emmean |        SE |  df | lower.CL | upper.CL |
-|:-----------|---------:|----------:|----:|---------:|---------:|
-| corn       | 14.71948 | 1.4611247 |  19 | 11.66131 | 17.77765 |
-| restored   | 21.42925 | 0.8756828 |  19 | 19.59642 | 23.26207 |
-| remnant    | 24.84889 | 1.6438083 |  19 | 21.40836 | 28.28942 |
-
-Confidence level used: 0.95
-
-| contrast           |   estimate |       SE |  df |   t.ratio |   p.value |
-|:-------------------|-----------:|---------:|----:|----------:|----------:|
-| corn - restored    |  -6.709768 | 1.705554 |  19 | -3.934070 | 0.0024473 |
-| corn - remnant     | -10.129411 | 2.194984 |  19 | -4.614800 | 0.0005299 |
-| restored - remnant |  -3.419643 | 1.869929 |  19 | -1.828755 | 0.1872242 |
-
-P value adjustment: tukey method for comparing a family of 3 estimates
-
-Shannon’s diversity in cornfields is significantly less than in restored
-or remnant fields, which don’t differ.
-
 ### Pathogens
 
 Sequence depth square root transformed and centered
@@ -2205,26 +2097,6 @@ Neither predictor is significant
 ``` r
 patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
 ```
-
-Results tables below show the emmeans summary of group means and
-confidence intervals, with sequencing depth as a covariate, and the post
-hoc contrast of richness among field types.
-
-| field_type |   emmean |        SE |  df |  lower.CL | upper.CL |
-|:-----------|---------:|----------:|----:|----------:|---------:|
-| corn       | 12.45363 | 1.1116992 |  19 | 10.126812 | 14.78044 |
-| restored   | 10.55528 | 0.6692896 |  19 |  9.154441 | 11.95612 |
-| remnant    | 10.77253 | 1.2822589 |  19 |  8.088728 | 13.45633 |
-
-Confidence level used: 0.95
-
-| contrast           |   estimate |       SE |  df |    t.ratio |   p.value |
-|:-------------------|-----------:|---------:|----:|-----------:|----------:|
-| corn - restored    |  1.8983450 | 1.296171 |  19 |  1.4645791 | 0.3295507 |
-| corn - remnant     |  1.6810984 | 1.701338 |  19 |  0.9881039 | 0.5930316 |
-| restored - remnant | -0.2172467 | 1.464276 |  19 | -0.1483645 | 0.9879457 |
-
-P value adjustment: tukey method for comparing a family of 3 estimates
 
 ### Saprotrophs
 
@@ -2307,10 +2179,6 @@ field type
 sapro_shan_em <- emmeans(sapro_shan_lm, ~ field_type, type = "response")
 ```
 
-Results tables below show the emmeans summary of group means and
-confidence intervals, with sequencing depth as a covariate, and the post
-hoc contrast of richness among field types.
-
 ## Unified results
 
 ``` r
@@ -2389,7 +2257,97 @@ list(
 
 Table S1 (shannon)
 
-Results summary and figures
+Pairwise contrasts Richness
+
+``` r
+list(
+  its_rich = its_rich_em,
+  amf_rich = amf_rich_em,
+  patho_rich = patho_rich_em,
+  sapro_rich = sapro_rich_em
+) %>% map(\(df) pairs(df))
+```
+
+    ## $its_rich
+    ##  contrast           ratio     SE  df null z.ratio p.value
+    ##  corn / restored    0.779 0.0361 Inf    1  -5.381 <0.0001
+    ##  corn / remnant     0.708 0.0425 Inf    1  -5.745 <0.0001
+    ##  restored / remnant 0.909 0.0461 Inf    1  -1.881  0.1442
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates 
+    ## Tests are performed on the log scale 
+    ## 
+    ## $amf_rich
+    ##  contrast           ratio     SE  df null z.ratio p.value
+    ##  corn / restored    0.790 0.0621 Inf    1  -2.994  0.0078
+    ##  corn / remnant     0.782 0.0763 Inf    1  -2.519  0.0316
+    ##  restored / remnant 0.990 0.0777 Inf    1  -0.134  0.9902
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates 
+    ## Tests are performed on the log scale 
+    ## 
+    ## $patho_rich
+    ##  contrast           ratio     SE  df null z.ratio p.value
+    ##  corn / restored    0.900 0.0745 Inf    1  -1.277  0.4081
+    ##  corn / remnant     0.974 0.1080 Inf    1  -0.234  0.9703
+    ##  restored / remnant 1.083 0.1030 Inf    1   0.840  0.6778
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates 
+    ## Tests are performed on the log scale 
+    ## 
+    ## $sapro_rich
+    ##  contrast           ratio     SE  df null z.ratio p.value
+    ##  corn / restored    0.820 0.0611 Inf    1  -2.670  0.0207
+    ##  corn / remnant     0.777 0.0817 Inf    1  -2.400  0.0433
+    ##  restored / remnant 0.948 0.0650 Inf    1  -0.778  0.7169
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates 
+    ## Tests are performed on the log scale
+
+Shannon Diversity
+
+``` r
+list(
+  its_shan = its_shan_em,
+  amf_shan = amf_shan_em,
+  patho_shan = patho_shan_em,
+  sapro_shan = sapro_shan_em
+) %>% map(\(df) pairs(df))
+```
+
+    ## $its_shan
+    ##  contrast           estimate    SE df t.ratio p.value
+    ##  corn - restored      -33.27  9.52 19  -3.497  0.0065
+    ##  corn - remnant       -41.39 12.50 19  -3.306  0.0099
+    ##  restored - remnant    -8.12 10.80 19  -0.752  0.7363
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates 
+    ## 
+    ## $amf_shan
+    ##  contrast           estimate   SE df t.ratio p.value
+    ##  corn - restored       -6.71 1.71 19  -3.934  0.0024
+    ##  corn - remnant       -10.13 2.19 19  -4.615  0.0005
+    ##  restored - remnant    -3.42 1.87 19  -1.829  0.1872
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates 
+    ## 
+    ## $patho_shan
+    ##  contrast           estimate   SE df t.ratio p.value
+    ##  corn - restored       1.898 1.30 19   1.465  0.3296
+    ##  corn - remnant        1.681 1.70 19   0.988  0.5930
+    ##  restored - remnant   -0.217 1.46 19  -0.148  0.9879
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates 
+    ## 
+    ## $sapro_shan
+    ##  contrast           estimate   SE df t.ratio p.value
+    ##  corn - restored       -8.21 4.82 19  -1.702  0.2304
+    ##  corn - remnant        -6.68 6.88 19  -0.970  0.6043
+    ##  restored - remnant     1.53 4.51 19   0.340  0.9383
+    ## 
+    ## P value adjustment: tukey method for comparing a family of 3 estimates
+
+Figures
 
 ``` r
 div_tagpos <- c(0, 1)
@@ -2545,7 +2503,7 @@ par(mfrow = c(2,2))
 plot(plfa_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-96-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-98-1.png)<!-- -->
 
 variance differs slightly in groups. Tails on qq plot diverge, lots of
 groups structure visible.
@@ -2632,7 +2590,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm) # variance obviously not constant in groups
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-101-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-103-1.png)<!-- -->
 
 ``` r
 distribution_prob(nlfa_lm)
@@ -2697,7 +2655,7 @@ par(mfrow = c(2,2))
 plot(nlfa_lm_log) # qqplot ok, one high leverage point in remnants
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-103-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-105-1.png)<!-- -->
 
 ``` r
 ncvTest(nlfa_lm_log) # p=0.19, null of constant variance not rejected
@@ -2715,7 +2673,7 @@ nlfa_glm_diag <- glm.diag(nlfa_glm)
 glm.diag.plots(nlfa_glm, nlfa_glm_diag) # qqplot shows strong fit; no leverage >0.5
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-104-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-106-1.png)<!-- -->
 
 ``` r
 performance::check_overdispersion(nlfa_glm) # not detected
@@ -2776,7 +2734,7 @@ par(mfrow = c(2,2))
 plot(patho_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-106-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-108-1.png)<!-- -->
 
 no serious violations observed
 
@@ -2860,7 +2818,7 @@ par(mfrow = c(2,2))
 plot(sapro_ma_lm) 
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-110-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-112-1.png)<!-- -->
 
 Variance looks consistent, no leverage points, poor qq fit
 
@@ -3460,7 +3418,7 @@ same for the sequence-based and biomass-aware analyses.
 mva_patho <- mva(d = d_reps$d_patho, env = sites_reps)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-120-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-122-1.png)<!-- -->
 
 ``` r
 mva_patho$ordination
@@ -5013,7 +4971,7 @@ Diagnostics
 check_model(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-166-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-168-1.png)<!-- -->
 
 ``` r
 check_collinearity(patho_gf_glm)
@@ -5128,7 +5086,7 @@ View partial regression plots for consistency.
 avPlots(patho_gf_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-170-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-172-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear structure is obvious. Both variables seem valuable.
@@ -5306,7 +5264,7 @@ distribution_prob(saprofa_prich_lm)
 check_model(saprofa_prich_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-177-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-179-1.png)<!-- -->
 
 Passes visual diagnostics
 
@@ -5393,7 +5351,7 @@ Diagnostics
 check_model(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-181-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-183-1.png)<!-- -->
 
 ``` r
 check_collinearity(sapro_prich_glm)
@@ -5500,7 +5458,7 @@ covariate than the test variable.
 avPlots(sapro_prich_glm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-185-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-187-1.png)<!-- -->
 
 Noise in fungal mass data is obvious here. Fit of partial gf_axis is
 clean. No non-linear behavior is obvious, increasing spread with fungal
@@ -5651,7 +5609,7 @@ distribution_prob(saprofa_pshan_lm)
 check_model(saprofa_pshan_lm)
 ```
 
-![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-189-1.png)<!-- -->
+![](resources/fungal_ecology_files/figure-gfm/unnamed-chunk-191-1.png)<!-- -->
 
 ``` r
 summary(saprofa_pshan_lm)

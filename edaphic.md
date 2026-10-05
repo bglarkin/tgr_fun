@@ -2,7 +2,7 @@ Soil properties
 ================
 Beau Larkin
 
-Last updated: 02 October, 2026
+Last updated: 04 October, 2026
 
 - [Description](#description)
 - [Packages and libraries](#packages-and-libraries)
@@ -55,16 +55,16 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
     ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+    ## Warning: package 'vegan' was built under R version 4.6.1
+
     ## Loading required package: permute
     ## 
-    ## 
     ## Attaching package: 'ape'
-    ## 
     ## 
     ## The following object is masked from 'package:dplyr':
     ## 
     ##     where
-    ## 
     ## 
     ## Registered S3 methods overwritten by 'adegraphics':
     ##   method         from
@@ -83,11 +83,9 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
     ##   score.mix      ade4
     ##   score.pca      ade4
     ##   screeplot.dudi ade4
-    ## 
     ## Registered S3 method overwritten by 'spdep':
     ##   method   from
     ##   plot.mst ape 
-    ## 
     ## Registered S3 method overwritten by 'adespatial':
     ##   method          from       
     ##   plot.multispati adegraphics
@@ -107,6 +105,8 @@ conflict_prefer("diversity", "vegan")
 ``` r
 source(root_path("resources", "styles.R"))
 ```
+
+    ## Warning: package 'colorspace' was built under R version 4.6.1
 
 ``` r
 source(root_path("code", "functions.R"))
@@ -288,11 +288,11 @@ forward.sel(soil_z, mem, alpha = 0.05, nperm = 1999)
     ## Testing variable 1
     ## Testing variable 2
     ## Testing variable 3
-    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.121000 (> 0.050000)
+    ## Procedure stopped (alpha criteria): pvalue for variable 3 is 0.126500 (> 0.050000)
 
     ##   variables order        R2     R2Cum  AdjR2Cum        F pvalue
-    ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525 0.0025
-    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814 0.0010
+    ## 1      MEM3     3 0.1758088 0.1758088 0.1365616 4.479525 0.0015
+    ## 2      MEM1     1 0.1379889 0.3137977 0.2451775 4.021814 0.0005
 
 ``` r
 soil_mem_rda <- rda(soil_z, mem[, c(1,3)])

@@ -2,7 +2,7 @@ Site locations and pairwise distances
 ================
 Beau Larkin
 
-Last updated: 02 October, 2026
+Last updated: 04 October, 2026
 
 - [Description](#description)
 - [Package and library installation](#package-and-library-installation)
@@ -50,67 +50,68 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
     ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+    ## Warning: package 'colorspace' was built under R version 4.6.1
+
+    ## Warning: package 'gridExtra' was built under R version 4.6.1
+
     ## 
     ## Attaching package: 'gridExtra'
-    ## 
     ## 
     ## The following object is masked from 'package:dplyr':
     ## 
     ##     combine
-    ## 
-    ## 
+
+    ## Warning: package 'sf' was built under R version 4.6.1
+
     ## Linking to GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1; sf_use_s2() is TRUE
     ## 
-    ## 
     ## Attaching package: 'rnaturalearthdata'
-    ## 
     ## 
     ## The following object is masked from 'package:rnaturalearth':
     ## 
     ##     countries110
     ## 
     ## 
-    ## 
     ## Attaching package: 'maps'
-    ## 
     ## 
     ## The following object is masked from 'package:purrr':
     ## 
     ##     map
-    ## 
-    ## 
+
+    ## Warning: package 'ggpubr' was built under R version 4.6.1
+
+    ## Warning: package 'ggpmisc' was built under R version 4.6.1
+
     ## Loading required package: ggpp
-    ## 
+
+    ## Warning: package 'ggpp' was built under R version 4.6.1
+
     ## Registered S3 methods overwritten by 'ggpp':
     ##   method                  from   
     ##   heightDetails.titleGrob ggplot2
     ##   widthDetails.titleGrob  ggplot2
     ## 
-    ## 
     ## Attaching package: 'ggpp'
-    ## 
     ## 
     ## The following objects are masked from 'package:ggpubr':
     ## 
     ##     as_npc, as_npcx, as_npcy
     ## 
-    ## 
     ## The following object is masked from 'package:ggplot2':
     ## 
     ##     annotate
-    ## 
-    ## 
+
+    ## Warning: package 'osmdata' was built under R version 4.6.1
+
     ## Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
     ## connected to: https://maps.mail.ru/osm/tools/overpass/api/interpreter
     ## 
-    ## 
     ## Attaching package: 'cowplot'
-    ## 
     ## 
     ## The following object is masked from 'package:ggpubr':
     ## 
     ##     get_legend
-    ## 
     ## 
     ## The following object is masked from 'package:lubridate':
     ## 

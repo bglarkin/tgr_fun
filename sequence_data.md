@@ -2,7 +2,7 @@ Species Data: ETL and Diagnostics
 ================
 Beau Larkin
 
-Last updated: 02 October, 2026
+Last updated: 04 October, 2026
 
 - [Description](#description)
 - [Resources](#resources)
@@ -58,11 +58,17 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
     ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+    ## Warning: package 'vegan' was built under R version 4.6.1
+
     ## Loading required package: permute
-    ## 
+
+    ## Warning: package 'colorspace' was built under R version 4.6.1
+
+    ## Warning: package 'rlang' was built under R version 4.6.1
+
     ## 
     ## Attaching package: 'rlang'
-    ## 
     ## 
     ## The following objects are masked from 'package:purrr':
     ## 
@@ -70,14 +76,11 @@ invisible(lapply(packages_needed, library, character.only = TRUE))
     ##     flatten_raw, invoke, splice
     ## 
     ## 
-    ## 
     ## Attaching package: 'cowplot'
-    ## 
     ## 
     ## The following object is masked from 'package:patchwork':
     ## 
     ##     align_plots
-    ## 
     ## 
     ## The following object is masked from 'package:lubridate':
     ## 
