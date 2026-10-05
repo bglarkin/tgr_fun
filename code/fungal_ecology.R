@@ -678,18 +678,6 @@ Anova(its_rich_glm, type = 2, test.statistic = "LR")
 #' Sequence depth is significant, less so than field type. 
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 its_rich_em <- emmeans(its_rich_glm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
-#+ its_rich_em_summary,echo=FALSE
-kable(summary(its_rich_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ its_rich_em_posthoc,echo=FALSE
-kable(pairs(its_rich_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' OTU richness in cornfields is significantly less than in restored or remnant fields (p<0.001), which 
-#' don't differ. 
 #' 
 #' ### AM fungi
 #' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
@@ -725,19 +713,6 @@ leveneTest(residuals(amf_rich_glm) ~ amf_div$field_type) %>% as.data.frame() %>%
 Anova(amf_rich_glm, type = 2, test.statistic = "LR")
 #' Sequencing depth not a significant predictor of amf richness
 amf_rich_em <- emmeans(amf_rich_glm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of estimated marginal means and confidence intervals, 
-#' and the post hoc contrast of richness among field types. 
-#' Main effect in model significant; pairwise contrast warranted.
-#+ amf_rich_em_summary,echo=FALSE
-kable(summary(amf_rich_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ amf_rich_em_posthoc,echo=FALSE
-kable(pairs(amf_rich_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' OTU richness in cornfields is significantly less than in restored or remnant fields, which 
-#' don't differ.
 #' 
 #' ### Pathogens
 #' Sequence depth square root transformed and centered. Negative binomial model was underdispersed 
@@ -776,14 +751,6 @@ patho_div %>%
 #' Calculate confidence intervals for figure.
 #' Arithmetic means calculated in this case.
 patho_rich_em <- emmeans(patho_rich_glm, ~ field_type, type = "response")
-#+ patho_rich_em_summary,echo=FALSE
-kable(summary(patho_rich_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ patho_rich_em_posthoc,echo=FALSE
-kable(pairs(patho_rich_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' 
 #' ### Saprotrophs
 #' Sequence depth square root transformed and centered. Poisson model was overdispersed (not shown), 
@@ -820,18 +787,6 @@ Anova(sapro_rich_glm, type = 2, test.statistic = "LR")
 #' Both terms are significant, depth a little more.
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 sapro_rich_em <- emmeans(sapro_rich_glm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
-#+ sapro_rich_em_summary,echo=FALSE
-kable(summary(sapro_rich_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ sapro_rich_em_posthoc,echo=FALSE
-kable(pairs(sapro_rich_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' OTU richness in cornfields is significantly less than in restored or remnant fields (p<0.05), which 
-#' don't differ. 
 #' 
 #' ## Shannon diversity
 ## Shannon diversity ———————— ####
@@ -869,18 +824,6 @@ Anova(its_shan_lm, type = 2)
 #' Proceed with means separation by obtaining estimated marginal means for field type.
 #' Arithmetic means calculated in this case.
 its_shan_em <- emmeans(its_shan_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
-#+ its_shan_em_summary,echo=FALSE
-kable(summary(its_shan_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ its_shan_em_posthoc,echo=FALSE
-kable(pairs(its_shan_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' Shannon diversity in cornfields is significantly less than in restored or remnant fields, which 
-#' don't differ.
 #' 
 #' ### AM fungi
 #' Sequence depth square root transformed and centered 
@@ -904,18 +847,6 @@ Anova(amf_shan_lm, type = 2)
 #' Sequencing depth not a significant predictor of Shannon diversity. Produce arithmetic means
 #' in groups and post hoc contrasts
 amf_shan_em <- emmeans(amf_shan_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types. 
-#+ amf_shan_em_summary,echo=FALSE
-kable(summary(amf_shan_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ amf_shan_em_posthoc,echo=FALSE
-kable(pairs(amf_shan_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
-#' Shannon's diversity in cornfields is significantly less than in restored or remnant fields, which 
-#' don't differ.
 #' 
 #' ### Pathogens
 #' Sequence depth square root transformed and centered 
@@ -935,16 +866,6 @@ leveneTest(residuals(patho_shan_lm) ~ patho_div$field_type) %>% as.data.frame() 
 Anova(patho_shan_lm, type = 2)
 #' Neither predictor is significant
 patho_shan_em <- emmeans(patho_shan_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
-#+ patho_shan_em_summary,echo=FALSE
-kable(summary(patho_shan_em), 
-      format = "pandoc", 
-      caption = "Confidence level used: 0.95")
-#+ patho_shan_em_posthoc,echo=FALSE
-kable(pairs(patho_shan_em), 
-      format = "pandoc", 
-      caption = "P value adjustment: tukey method for comparing a family of 3 estimates")
 #' 
 #' ### Saprotrophs
 #' Sequence depth square root transformed and centered 
@@ -964,8 +885,6 @@ leveneTest(residuals(sapro_shan_lm) ~ sapro_div$field_type) %>% as.data.frame() 
 Anova(sapro_shan_lm, type = 2)
 #' Sequence depth is not a significant predictor of Shannon diversity, nor field type
 sapro_shan_em <- emmeans(sapro_shan_lm, ~ field_type, type = "response")
-#' Results tables below show the emmeans summary of group means and confidence intervals,
-#' with sequencing depth as a covariate, and the post hoc contrast of richness among field types.
 #' 
 #' ## Unified results
 ## Unified results ———————— ####
@@ -1005,7 +924,23 @@ list(
   select(guild_test, term, `F`, p.value, p.adj) %>% 
   kable(format = "pandoc", caption = "Table S1 (shannon)")
 #' 
-#' Results summary and figures
+#' Pairwise contrasts
+#' Richness
+list(
+  its_rich = its_rich_em,
+  amf_rich = amf_rich_em,
+  patho_rich = patho_rich_em,
+  sapro_rich = sapro_rich_em
+) %>% map(\(df) pairs(df))
+#' Shannon Diversity
+list(
+  its_shan = its_shan_em,
+  amf_shan = amf_shan_em,
+  patho_shan = patho_shan_em,
+  sapro_shan = sapro_shan_em
+) %>% map(\(df) pairs(df))
+#' 
+#' Figures
 div_tagpos <- c(0, 1)
 #+ its_div_fig
 its_div_fig <- 
