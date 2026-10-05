@@ -1,6 +1,8 @@
 # tgr-fun
 Soil fungi response to tallgrass prairie restoration in Illinois and Wisconsin
 
+[![DOI](https://zenodo.org/badge/982255781.svg)](https://doi.org/10.5281/zenodo.23150782)
+
 ## Contents
 - [Sequence Data](sequence_data.md) describes procedures to extract, transform, and load the raw OTU data. 
    - [Raw Sequence Data](otu_tables) are housed in a separate directory.
